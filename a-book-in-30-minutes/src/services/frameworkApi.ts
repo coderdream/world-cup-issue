@@ -7,6 +7,8 @@ import type {
   AppStatePayload,
   BookMaterials,
   BookMaterialsRequest,
+  ExportBookMaterialsRequest,
+  ExportBookMaterialsResult,
   UpdateInfo
 } from "@/types";
 
@@ -31,5 +33,8 @@ export const frameworkApi = {
   },
   generateBookMaterials(request: BookMaterialsRequest) {
     return callCommand<BookMaterials>("generate_book_materials", { request });
+  },
+  exportBookMaterials(request: ExportBookMaterialsRequest) {
+    return callCommand<ExportBookMaterialsResult>("export_book_materials", { request });
   }
 };

@@ -84,3 +84,13 @@ export interface BookMaterials {
   model: string;
   overview: EpubOverview;
 }
+
+export interface ExportBookMaterialsRequest {
+  outputDir: string;
+  materials: BookMaterials;
+}
+
+export interface ExportBookMaterialsResult {
+  outputDir: string;
+  files: string[];
+}

@@ -1,4 +1,4 @@
-import { BookOpenText, Clipboard, FileText, Hash, ListVideo, Loader2, MessageSquareText, Sparkles, Tags } from "lucide-react";
+import { BookOpenText, Clipboard, Download, FileText, Hash, ListVideo, Loader2, MessageSquareText, Sparkles, Tags } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Panel, SectionTitle } from "@/pages/primitives";
 import { frameworkApi } from "@/services/frameworkApi";
@@ -29,8 +29,11 @@ export function HomePage() {
   const [materials, setMaterials] = useState<BookMaterials | null>(null);
   const [activeTab, setActiveTab] = useState<OutputTab>("title");
   const [busy, setBusy] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [outputDir, setOutputDir] = useState("");
   const [error, setError] = useState("");
   const [copyState, setCopyState] = useState("");
+  const [exportState, setExportState] = useState("");
 
   const activeContent = useMemo(() => {
     if (!materials) return "";
@@ -118,6 +121,7 @@ export function HomePage() {
           </button>
           {error && <p className="status error">{error}</p>}
           {copyState && <p className="status success">{copyState}</p>}
+          {exportState && <p className="status success">{exportState}</p>}
         </Panel>
 
         <Panel className="result-panel">
@@ -177,6 +181,21 @@ export function HomePage() {
                   <Clipboard size={15} /> 复制全部素材
                 </button>
               </div>
+
+              <div className="export-box">
+                <label className="field">
+                  <span>导出目录</span>
+                  <input
+                    placeholder="留空则导出到应用数据目录 exports"
+                    value={outputDir}
+                    onChange={(event) => setOutputDir(event.target.value)}
+                  />
+                </label>
+                <button className="primary-btn wide-btn" disabled={exporting} type="button" onClick={() => void exportMaterials()}>
+                  {exporting ? <Loader2 className="spin" size={16} /> : <Download size={16} />}
+                  {exporting ? "导出中..." : "导出素材包"}
+                </button>
+              </div>
             </>
           ) : (
             <div className="empty-result">
@@ -198,6 +217,7 @@ export function HomePage() {
     setBusy(true);
     setError("");
     setCopyState("");
+    setExportState("");
     try {
       const result = await frameworkApi.generateBookMaterials(request);
       setMaterials(result);
@@ -226,6 +246,21 @@ export function HomePage() {
     ].join("\n\n---\n\n");
     await navigator.clipboard.writeText(all);
     setCopyState("已复制全部素材。");
+  }
+
+  async function exportMaterials() {
+    if (!materials) return;
+    setExporting(true);
+    setError("");
+    setExportState("");
+    try {
+      const result = await frameworkApi.exportBookMaterials({ outputDir, materials });
+      setExportState(`已导出 ${result.files.length} 个文件：${result.outputDir}`);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : String(caught));
+    } finally {
+      setExporting(false);
+    }
   }
 }
 

@@ -57,7 +57,7 @@ impl Default for AiProfile {
     fn default() -> Self {
         Self {
             provider: "openai_compatible".to_string(),
-            name: "Tauri Framework".to_string(),
+            name: "A Book in 30 Minutes".to_string(),
             base_url: "http://81.68.73.15:3000/openai/v1".to_string(),
             model: "gpt-5.5".to_string(),
             api_key: String::new(),
@@ -139,6 +139,20 @@ pub struct BookMaterials {
     pub prompt: String,
     pub model: String,
     pub overview: EpubOverview,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExportBookMaterialsRequest {
+    pub output_dir: String,
+    pub materials: BookMaterials,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExportBookMaterialsResult {
+    pub output_dir: String,
+    pub files: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

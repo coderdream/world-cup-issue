@@ -43,7 +43,8 @@ pub fn run() {
             check_update_mock,
             test_ai_profile,
             generate_ai_text,
-            generate_book_materials
+            generate_book_materials,
+            export_book_materials
         ])
         .run(tauri::generate_context!())
         .expect("error while running A Book in 30 Minutes");

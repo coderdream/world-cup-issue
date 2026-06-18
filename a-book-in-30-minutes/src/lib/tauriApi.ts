@@ -1,6 +1,6 @@
 import { APP_VERSION } from "@/config/app";
 import { defaultSettings } from "@/store/defaults";
-import type { AiGenerateResult, AiTestResult, AppSettings, AppStatePayload, BookMaterials, UpdateInfo } from "@/types";
+import type { AiGenerateResult, AiTestResult, AppSettings, AppStatePayload, BookMaterials, ExportBookMaterialsResult, UpdateInfo } from "@/types";
 
 declare global {
   interface Window {
@@ -33,7 +33,7 @@ function readSettings(): AppSettings {
       aiProfile: {
         ...defaultSettings.aiProfile,
         ...(parsed.aiProfile ?? {})
-      },
+      }
     };
   } catch {
     return defaultSettings;
@@ -58,7 +58,7 @@ async function localCommand<T>(command: string, args?: Record<string, unknown>):
         aiProfile: {
           ...settings.aiProfile,
           ...((args?.settings as Partial<AppSettings> | undefined)?.aiProfile ?? {})
-        },
+        }
       };
       writeSettings(next);
       return next as T;
@@ -109,6 +109,11 @@ async function localCommand<T>(command: string, args?: Record<string, unknown>):
         }
       } satisfies BookMaterials as T;
     }
+    case "export_book_materials":
+      return {
+        outputDir: "浏览器预览模式不会写入本地文件",
+        files: []
+      } satisfies ExportBookMaterialsResult as T;
     default:
       throw new Error(`Unsupported local command: ${command}`);
   }

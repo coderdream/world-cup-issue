@@ -1,11 +1,13 @@
 use crate::models::{
     AiBookMaterialsPayload, AiGenerateRequest, AiGenerateResult, AiTestResult, AppSettings, AppStatePayload, BookMaterials,
-    BookMaterialsRequest, ChatCompletionRequest, ChatCompletionResponse, ChatMessage, EpubBook, UpdateInfo,
+    BookMaterialsRequest, ChatCompletionRequest, ChatCompletionResponse, ChatMessage, EpubBook, ExportBookMaterialsRequest,
+    ExportBookMaterialsResult, UpdateInfo,
 };
 use crate::epub::{count_han_chars, read_epub, truncate_chars};
 use crate::operation_log::OperationLogger;
 use regex::Regex;
 use std::fs;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use tauri::{Manager, State};
@@ -233,6 +235,35 @@ pub async fn generate_book_materials(data: State<'_, AppData>, request: BookMate
     })
 }
 
+#[tauri::command]
+pub fn export_book_materials(data: State<'_, AppData>, request: ExportBookMaterialsRequest) -> Result<ExportBookMaterialsResult, CommandError> {
+    data.logger.info("materials", "export", "开始导出 YouTube 听书素材包");
+    let base_dir = resolve_export_base_dir(&data, request.output_dir.trim())?;
+    fs::create_dir_all(&base_dir).map_err(|error| command_error(format!("创建导出目录失败：{error}")))?;
+
+    let folder_name = build_export_folder_name(&request.materials);
+    let output_dir = base_dir.join(folder_name);
+    fs::create_dir_all(&output_dir).map_err(|error| command_error(format!("创建素材包目录失败：{error}")))?;
+
+    let mut files = Vec::new();
+    write_material_file(&output_dir, &mut files, "title.txt", &request.materials.video_title)?;
+    write_material_file(&output_dir, &mut files, "description.txt", &request.materials.description)?;
+    write_material_file(&output_dir, &mut files, "tags.txt", &request.materials.tags.join(", "))?;
+    write_material_file(&output_dir, &mut files, "narration.txt", &request.materials.narration)?;
+    write_material_file(&output_dir, &mut files, "subtitles.txt", &request.materials.subtitles.join("\n"))?;
+    write_material_file(&output_dir, &mut files, "draft.srt", &build_srt(&request.materials.subtitles))?;
+    write_material_file(&output_dir, &mut files, "prompt.txt", &request.materials.prompt)?;
+    write_material_file(&output_dir, &mut files, "overview.json", &serde_json::to_string_pretty(&request.materials.overview).unwrap_or_default())?;
+    write_material_file(&output_dir, &mut files, "materials.json", &serde_json::to_string_pretty(&request.materials).unwrap_or_default())?;
+    write_material_file(&output_dir, &mut files, "README.md", &build_export_readme(&request.materials))?;
+
+    data.logger.info("materials", "export", "YouTube 听书素材包导出成功");
+    Ok(ExportBookMaterialsResult {
+        output_dir: output_dir.to_string_lossy().into_owned(),
+        files,
+    })
+}
+
 async fn call_ai(settings: &AppSettings, messages: Vec<ChatMessage>) -> Result<String, CommandError> {
     let profile = &settings.ai_profile;
     if profile.api_key.trim().is_empty() {
@@ -441,4 +472,106 @@ fn push_subtitle_chunks(lines: &mut Vec<String>, text: &str, max_chars: usize) {
         lines.push(chars[start..end].iter().collect::<String>());
         start = end;
     }
+}
+
+fn resolve_export_base_dir(data: &AppData, output_dir: &str) -> Result<PathBuf, CommandError> {
+    if output_dir.is_empty() {
+        let parent = data
+            .settings_path
+            .parent()
+            .ok_or_else(|| command_error("无法定位默认导出目录。"))?;
+        return Ok(parent.join("exports"));
+    }
+    Ok(PathBuf::from(output_dir))
+}
+
+fn build_export_folder_name(materials: &BookMaterials) -> String {
+    let now = chrono::Local::now().format("%Y%m%d_%H%M%S").to_string();
+    let title = sanitize_file_name(&materials.overview.title);
+    if title.is_empty() {
+        format!("{now}_book_materials")
+    } else {
+        format!("{now}_{title}")
+    }
+}
+
+fn sanitize_file_name(value: &str) -> String {
+    let invalid_re = Regex::new(r#"[\\/:*?"<>|\r\n\t]+"#).expect("valid regex");
+    let space_re = Regex::new(r#"\s+"#).expect("valid regex");
+    let cleaned = invalid_re.replace_all(value.trim(), "_");
+    let cleaned = space_re.replace_all(&cleaned, "_");
+    cleaned.trim_matches('_').chars().take(60).collect()
+}
+
+fn write_material_file(output_dir: &Path, files: &mut Vec<String>, file_name: &str, content: &str) -> Result<(), CommandError> {
+    let path = output_dir.join(file_name);
+    let mut file = fs::File::create(&path).map_err(|error| command_error(format!("创建文件 {file_name} 失败：{error}")))?;
+    file.write_all(content.as_bytes())
+        .map_err(|error| command_error(format!("写入文件 {file_name} 失败：{error}")))?;
+    files.push(path.to_string_lossy().into_owned());
+    Ok(())
+}
+
+fn build_srt(subtitles: &[String]) -> String {
+    let mut output = String::new();
+    let mut start_ms = 0u64;
+    for (index, line) in subtitles.iter().enumerate() {
+        let duration_ms = estimate_subtitle_duration_ms(line);
+        let end_ms = start_ms + duration_ms;
+        output.push_str(&format!(
+            "{}\n{} --> {}\n{}\n\n",
+            index + 1,
+            format_srt_time(start_ms),
+            format_srt_time(end_ms),
+            line
+        ));
+        start_ms = end_ms + 120;
+    }
+    output
+}
+
+fn estimate_subtitle_duration_ms(line: &str) -> u64 {
+    let han = count_han_chars(line).max(1) as u64;
+    (han * 260).clamp(900, 4800)
+}
+
+fn format_srt_time(ms: u64) -> String {
+    let hours = ms / 3_600_000;
+    let minutes = (ms % 3_600_000) / 60_000;
+    let seconds = (ms % 60_000) / 1_000;
+    let millis = ms % 1_000;
+    format!("{hours:02}:{minutes:02}:{seconds:02},{millis:03}")
+}
+
+fn build_export_readme(materials: &BookMaterials) -> String {
+    format!(
+        r#"# {title}
+
+## 文件说明
+
+- `title.txt`：YouTube 视频标题
+- `description.txt`：YouTube 简介
+- `tags.txt`：YouTube 标签
+- `narration.txt`：完整旁白稿
+- `subtitles.txt`：一行一条的字幕文本
+- `draft.srt`：按字幕行估算时长生成的草稿 SRT，后续应以 TTS 音频重新对齐
+- `prompt.txt`：本次生成使用的提示词
+- `overview.json`：EPUB 解析概览
+- `materials.json`：完整结构化素材
+
+## 基础信息
+
+- 书名：{book}
+- 作者：{creator}
+- 模型：{model}
+- 旁白中文字数：{narration_chars}
+- 字幕行数：{subtitle_count}
+"#,
+        title = materials.video_title,
+        book = materials.overview.title,
+        creator = materials.overview.creator,
+        model = materials.model,
+        narration_chars = count_han_chars(&materials.narration),
+        subtitle_count = materials.subtitles.len()
+    )
 }
