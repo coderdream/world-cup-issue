@@ -1,0 +1,15 @@
+{
+  "version": "0.1.5",
+  "notes": "WorldCupIssue（世界杯组手）v0.1.5：延长无最终比分比赛的进行中/待确认窗口，避免补时阶段被提前归入已结束。",
+  "pub_date": "2026-06-17T06:27:41.410Z",
+  "platforms": {
+    "windows-x86_64-nsis": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUaVhvNmUwV29zajB4bldFalV1ZVZyb2FoclBSVHhjeFVjRm9tK00wR2tZZllzK20vdHVTamZEZzV5STl1MlBLcFByNFRLSUlmckFPcmlZU2ROblJ5L3RSbEk4U3NkV2dvPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgxNjc3NjYxCWZpbGU6V29ybGRDdXBJc3N1ZV8wLjEuNV94NjQtc2V0dXAuZXhlCno4TXlETjJlT0J2a0QwTXZkUWJVUVo0NnlWQVlFM1p3UGZnVXBmdXJTVU5FVFo0OVAxSWhTM2p0TTNCbTBxb3lhdkpkUE42cVk4NW1Oejg2YTRva0FnPT0K",
+      "url": "https://github.com/coderdream/world-cup-issue/releases/download/v0.1.5/WorldCupIssue_0.1.5_x64-setup.exe"
+    },
+    "windows-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUaVhvNmUwV29zajB4bldFalV1ZVZyb2FoclBSVHhjeFVjRm9tK00wR2tZZllzK20vdHVTamZEZzV5STl1MlBLcFByNFRLSUlmckFPcmlZU2ROblJ5L3RSbEk4U3NkV2dvPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgxNjc3NjYxCWZpbGU6V29ybGRDdXBJc3N1ZV8wLjEuNV94NjQtc2V0dXAuZXhlCno4TXlETjJlT0J2a0QwTXZkUWJVUVo0NnlWQVlFM1p3UGZnVXBmdXJTVU5FVFo0OVAxSWhTM2p0TTNCbTBxb3lhdkpkUE42cVk4NW1Oejg2YTRva0FnPT0K",
+      "url": "https://github.com/coderdream/world-cup-issue/releases/download/v0.1.5/WorldCupIssue_0.1.5_x64-setup.exe"
+    }
+  }
+}

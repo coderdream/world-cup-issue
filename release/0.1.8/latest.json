@@ -1,0 +1,15 @@
+{
+  "version": "0.1.8",
+  "notes": "WorldCupIssue（世界杯组手）v0.1.8：补齐 football-data Token 测试、AI 模型配置/测试/分享，修复配置分享粘贴导入，并保持“上次更新”只在真实成功刷新后前进。",
+  "pub_date": "2026-06-17T07:51:48.748Z",
+  "platforms": {
+    "windows-x86_64-nsis": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUaVhvNmUwV29zajB5Wk9FcG0yV3dvMVhLbHZOZTlvejQySDdwZTkrZ09QUm9ZcWRIRjhWdm95NUtFZnhWYmZNdk9TNVJFQUE0cGo1UlhMU3AwV3ZPbFFWVG4rdkJGV3dJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgxNjgyNTU3CWZpbGU6V29ybGRDdXBJc3N1ZV8wLjEuOF94NjQtc2V0dXAuZXhlCkduNWtvMmxqQlhNK1BXNGpxNndRSTE3NkRPekdsU24xeTNsWFFhb3hOeHkyQXhYTC9CeGFkZzlRb2lIeWFONmVtRzBaeFZxVUJuQWJiVVhxVWVjSERBPT0K",
+      "url": "https://github.com/coderdream/world-cup-issue/releases/download/v0.1.8/WorldCupIssue_0.1.8_x64-setup.exe"
+    },
+    "windows-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUaVhvNmUwV29zajB5Wk9FcG0yV3dvMVhLbHZOZTlvejQySDdwZTkrZ09QUm9ZcWRIRjhWdm95NUtFZnhWYmZNdk9TNVJFQUE0cGo1UlhMU3AwV3ZPbFFWVG4rdkJGV3dJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgxNjgyNTU3CWZpbGU6V29ybGRDdXBJc3N1ZV8wLjEuOF94NjQtc2V0dXAuZXhlCkduNWtvMmxqQlhNK1BXNGpxNndRSTE3NkRPekdsU24xeTNsWFFhb3hOeHkyQXhYTC9CeGFkZzlRb2lIeWFONmVtRzBaeFZxVUJuQWJiVVhxVWVjSERBPT0K",
+      "url": "https://github.com/coderdream/world-cup-issue/releases/download/v0.1.8/WorldCupIssue_0.1.8_x64-setup.exe"
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "version": "0.1.9",
+  "generatedAt": "2026-06-17T08:29:53.335Z",
+  "files": [
+    {
+      "name": "WorldCupIssue_0.1.9_x64-setup.exe",
+      "size": 9119616,
+      "sha256": "4d3d657a2b5bdbc52c6f2cc027661ed6d8fc585700bcb6e8d4e4e06b299c78aa"
+    },
+    {
+      "name": "WorldCupIssue_0.1.9_x64-setup.exe.sig",
+      "size": 424,
+      "sha256": "d97de589e5307f14f5f397faa13f4d5f07d35c6f144f376a9d9aa2797070fd08"
+    }
+  ],
+  "updaterEndpoint": "https://github.com/coderdream/world-cup-issue/releases/latest/download/latest.json",
+  "uploadTargets": [
+    "latest.json",
+    "WorldCupIssue_0.1.9_x64-setup.exe",
+    "WorldCupIssue_0.1.9_x64-setup.exe.sig"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "version": "0.1.4",
+  "notes": "WorldCupIssue（世界杯组手）v0.1.4：接入 football-data API Token 增量比分，修复 LIVE 比分缺失时误显示 0-0。",
+  "pub_date": "2026-06-17T05:52:14.305Z",
+  "platforms": {
+    "windows-x86_64-nsis": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUaVhvNmUwV29zajVuMXRPM1NTamxsekZVbGVYdGNNSU1jZ2svS2hjSVl6UGtDUTlDZk1VYmNvNmtnL2VoMDdnZ3ZKVjlPNlRHNDI3NjZXTjdTWHVHUWJ3a3IyVVdPdGd3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgxNjc1NTM0CWZpbGU6V29ybGRDdXBJc3N1ZV8wLjEuNF94NjQtc2V0dXAuZXhlCi9QZ3pJYnMya3NFWVFUcXFRODZpOGlCTVVqVUdrZXhDSTdRMm9YT0E5RFVuTUFpdGhydFM0N1pFK3lCdlNEYWI1ZElpdzJFcURMemJjblJabE9JeEJnPT0K",
+      "url": "https://github.com/coderdream/world-cup-issue/releases/download/v0.1.4/WorldCupIssue_0.1.4_x64-setup.exe"
+    },
+    "windows-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUaVhvNmUwV29zajVuMXRPM1NTamxsekZVbGVYdGNNSU1jZ2svS2hjSVl6UGtDUTlDZk1VYmNvNmtnL2VoMDdnZ3ZKVjlPNlRHNDI3NjZXTjdTWHVHUWJ3a3IyVVdPdGd3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgxNjc1NTM0CWZpbGU6V29ybGRDdXBJc3N1ZV8wLjEuNF94NjQtc2V0dXAuZXhlCi9QZ3pJYnMya3NFWVFUcXFRODZpOGlCTVVqVUdrZXhDSTdRMm9YT0E5RFVuTUFpdGhydFM0N1pFK3lCdlNEYWI1ZElpdzJFcURMemJjblJabE9JeEJnPT0K",
+      "url": "https://github.com/coderdream/world-cup-issue/releases/download/v0.1.4/WorldCupIssue_0.1.4_x64-setup.exe"
+    }
+  }
+}

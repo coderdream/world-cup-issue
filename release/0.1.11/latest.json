@@ -1,0 +1,15 @@
+{
+  "version": "0.1.11",
+  "notes": "WorldCupIssue（世界杯组手）v0.1.11：继续收紧导航和小节标题字号，使界面更贴近 CupWatch 参考图；保留简体中文安装器和顶部栏拖拽。",
+  "pub_date": "2026-06-17T09:43:22.326Z",
+  "platforms": {
+    "windows-x86_64-nsis": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUaVhvNmUwV29zajgyVXFDMTlrd3RSajFpVmhWL2p1eDlvTHB5NkpvN2k5Ri9JdHZTSERNaE5vblFhUENDK1JpWUdCeU1FSmlsWGN3WlNPRkdKcFNJN0lMb2pSVEhsbmdnPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgxNjg5NDAyCWZpbGU6V29ybGRDdXBJc3N1ZV8wLjEuMTFfeDY0LXNldHVwLmV4ZQpxb1lRRExCRnQwSjdkN0liMytQYTJJK3FXVmxBazVCeGhBUTQ4RFI3TlRoM2FTMUZQTnRCS2NBdGRNNWJkWTRmdzFDanB3cWx0N0ZSZzI1R1dHTDVDQT09Cg==",
+      "url": "https://github.com/coderdream/world-cup-issue/releases/download/v0.1.11/WorldCupIssue_0.1.11_x64-setup.exe"
+    },
+    "windows-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUaVhvNmUwV29zajgyVXFDMTlrd3RSajFpVmhWL2p1eDlvTHB5NkpvN2k5Ri9JdHZTSERNaE5vblFhUENDK1JpWUdCeU1FSmlsWGN3WlNPRkdKcFNJN0lMb2pSVEhsbmdnPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgxNjg5NDAyCWZpbGU6V29ybGRDdXBJc3N1ZV8wLjEuMTFfeDY0LXNldHVwLmV4ZQpxb1lRRExCRnQwSjdkN0liMytQYTJJK3FXVmxBazVCeGhBUTQ4RFI3TlRoM2FTMUZQTnRCS2NBdGRNNWJkWTRmdzFDanB3cWx0N0ZSZzI1R1dHTDVDQT09Cg==",
+      "url": "https://github.com/coderdream/world-cup-issue/releases/download/v0.1.11/WorldCupIssue_0.1.11_x64-setup.exe"
+    }
+  }
+}

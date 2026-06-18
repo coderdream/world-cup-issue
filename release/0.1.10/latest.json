@@ -1,0 +1,15 @@
+{
+  "version": "0.1.10",
+  "notes": "WorldCupIssue（世界杯组手）v0.1.10：安装程序改为简体中文，AI 分析页改成结果优先布局，收紧整体字号，并支持按住顶部栏拖拽窗口。",
+  "pub_date": "2026-06-17T09:27:17.826Z",
+  "platforms": {
+    "windows-x86_64-nsis": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUaVhvNmUwV29zajhlTWQyRzB1N0UrcjJQQklkWlp4MFR4WGcrYmt6MEIrR2NwdjhZcVFiVHpEb0NOZDhMc0cvblNzMkR3QmJlaGRUa3E5NGdUMnBvN0tlNkQ2eUJGM2dRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgxNjg4NDM3CWZpbGU6V29ybGRDdXBJc3N1ZV8wLjEuMTBfeDY0LXNldHVwLmV4ZQprazIxSVhJLzNqV0R5azBzRFZzalB3UC9ybzhSNTFnUGxVSy9BSjF3Vk1LNU10L2RRalRRT3R0WnovYzF0dkVEbmNoUTZ0amw3OTIxckVEYkxjQm1Bdz09Cg==",
+      "url": "https://github.com/coderdream/world-cup-issue/releases/download/v0.1.10/WorldCupIssue_0.1.10_x64-setup.exe"
+    },
+    "windows-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUaVhvNmUwV29zajhlTWQyRzB1N0UrcjJQQklkWlp4MFR4WGcrYmt6MEIrR2NwdjhZcVFiVHpEb0NOZDhMc0cvblNzMkR3QmJlaGRUa3E5NGdUMnBvN0tlNkQ2eUJGM2dRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgxNjg4NDM3CWZpbGU6V29ybGRDdXBJc3N1ZV8wLjEuMTBfeDY0LXNldHVwLmV4ZQprazIxSVhJLzNqV0R5azBzRFZzalB3UC9ybzhSNTFnUGxVSy9BSjF3Vk1LNU10L2RRalRRT3R0WnovYzF0dkVEbmNoUTZ0amw3OTIxckVEYkxjQm1Bdz09Cg==",
+      "url": "https://github.com/coderdream/world-cup-issue/releases/download/v0.1.10/WorldCupIssue_0.1.10_x64-setup.exe"
+    }
+  }
+}

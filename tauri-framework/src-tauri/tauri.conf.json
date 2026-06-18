@@ -1,0 +1,59 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Tauri Framework",
+  "version": "0.1.10",
+  "identifier": "com.tauriframework.app",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://127.0.0.1:1421",
+    "beforeBuildCommand": "pnpm build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [
+      {
+        "label": "main",
+        "title": "Tauri Framework",
+        "width": 1180,
+        "height": 820,
+        "minWidth": 920,
+        "minHeight": 640,
+        "decorations": false,
+        "resizable": true,
+        "center": true,
+        "visible": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "publisher": "Tauri Framework",
+    "copyright": "Copyright 2026 Tauri Framework",
+    "category": "DeveloperTool",
+    "shortDescription": "Tauri 桌面应用框架",
+    "longDescription": "一个 Windows 优先的 Tauri 2 + React 桌面应用基础框架。",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico"
+    ],
+    "windows": {
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper"
+      },
+      "nsis": {
+        "installerIcon": "icons/icon.ico",
+        "installMode": "perMachine",
+        "languages": ["SimpChinese"],
+        "displayLanguageSelector": false
+      }
+    }
+  },
+  "plugins": {}
+}

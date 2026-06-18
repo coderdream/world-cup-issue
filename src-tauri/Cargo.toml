@@ -1,0 +1,43 @@
+[package]
+name = "world_cup_issue"
+version = "0.1.11"
+description = "WorldCupIssue锛堜笘鐣屾澂缁勬墜锛塪esktop score companion"
+authors = ["WorldCupIssue"]
+license = "MIT"
+repository = ""
+edition = "2021"
+rust-version = "1.77"
+
+[lib]
+name = "world_cup_issue_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "world_cup_issue"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+chrono = { version = "0.4", features = ["serde"] }
+log = "0.4"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+rusqlite = { version = "0.31", features = ["bundled"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
+tauri-plugin-autostart = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-global-shortcut = "2"
+tauri-plugin-log = "2"
+tauri-plugin-notification = "2"
+tauri-plugin-opener = "2"
+tauri-plugin-process = "2"
+tauri-plugin-store = "2"
+tauri-plugin-updater = "2"
+thiserror = "1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+
+[features]
+custom-protocol = ["tauri/custom-protocol"]

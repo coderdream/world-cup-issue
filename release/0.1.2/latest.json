@@ -1,0 +1,15 @@
+{
+  "version": "0.1.2",
+  "notes": "WorldCupIssue（世界杯组手）v0.1.2：按北京时间刷新赛事状态，修正进行中比赛与比分页展示。",
+  "pub_date": "2026-06-17T01:52:59.107Z",
+  "platforms": {
+    "windows-x86_64-nsis": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUaVhvNmUwV29zajNWd0JFTWpTbE55a3ZQYmVWQ0I2UmFSVGJpRXlteGxaTzFwSnVGbUIvcGtTNCtNNUtGSndUMElESlhtbkFKMUJmNW15MmhGbFJrdS8vd1hTNEROc2dBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgxNjYxMTc4CWZpbGU6V29ybGRDdXBJc3N1ZV8wLjEuMl94NjQtc2V0dXAuZXhlCkFRWEhCUUNLRENMa0NPSzE2d0QzRGJGUlZDOTVna2JNWGpJeFZwYUNqN1p3UTY1ZDBadFZoOWtWNFl5Q0dpVVBGSHV0dzdCcUoyVU9QMGVxTWhnVkFBPT0K",
+      "url": "https://github.com/coderdream/world-cup-issue/releases/download/v0.1.2/WorldCupIssue_0.1.2_x64-setup.exe"
+    },
+    "windows-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUaVhvNmUwV29zajNWd0JFTWpTbE55a3ZQYmVWQ0I2UmFSVGJpRXlteGxaTzFwSnVGbUIvcGtTNCtNNUtGSndUMElESlhtbkFKMUJmNW15MmhGbFJrdS8vd1hTNEROc2dBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgxNjYxMTc4CWZpbGU6V29ybGRDdXBJc3N1ZV8wLjEuMl94NjQtc2V0dXAuZXhlCkFRWEhCUUNLRENMa0NPSzE2d0QzRGJGUlZDOTVna2JNWGpJeFZwYUNqN1p3UTY1ZDBadFZoOWtWNFl5Q0dpVVBGSHV0dzdCcUoyVU9QMGVxTWhnVkFBPT0K",
+      "url": "https://github.com/coderdream/world-cup-issue/releases/download/v0.1.2/WorldCupIssue_0.1.2_x64-setup.exe"
+    }
+  }
+}
