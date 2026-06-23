@@ -130,6 +130,20 @@ def split_subtitle_text(text: str, max_chars: int = MAX_SUBTITLE_LINE_CHARS) -> 
     return [line for line in lines if line]
 
 
+def load_chinese_subtitle_lines(material_root: Path) -> list[str]:
+    text = read_text(material_root / "subtitles.txt")
+    if text.strip():
+        return [line.strip() for line in text.splitlines() if line.strip()]
+    material = read_material_json(material_root)
+    subtitles = material.get("subtitles")
+    if isinstance(subtitles, list):
+        lines = [str(line).strip() for line in subtitles if str(line).strip()]
+        if lines:
+            return lines
+    narration = material.get("narration") or read_text(material_root / "narration.txt")
+    return split_subtitle_text(str(narration))
+
+
 def load_subtitle_lines(material_root: Path) -> list[str]:
     english_cache = material_root / "subtitles_en.json"
     chinese_text = read_text(material_root / "subtitles.txt")
@@ -189,6 +203,42 @@ def format_ass_time(ms: int) -> str:
     seconds = ms // 1000
     centis = (ms % 1000) // 10
     return f"{hours}:{minutes:02}:{seconds:02}.{centis:02}"
+
+
+def parse_srt_time(value: str) -> int:
+    match = re.match(r"(\d+):(\d{2}):(\d{2})[,.](\d{1,3})", value.strip())
+    if not match:
+        raise ValueError(f"Invalid SRT timestamp: {value}")
+    hours, minutes, seconds, millis = match.groups()
+    return (
+        int(hours) * 3_600_000
+        + int(minutes) * 60_000
+        + int(seconds) * 1000
+        + int(millis.ljust(3, "0")[:3])
+    )
+
+
+def read_srt_events(path: Path) -> list[tuple[int, int, str]]:
+    text = read_text(path)
+    blocks = re.split(r"\n\s*\n", text.replace("\r\n", "\n").replace("\r", "\n"))
+    events: list[tuple[int, int, str]] = []
+    for block in blocks:
+        lines = [line.strip() for line in block.splitlines() if line.strip()]
+        if not lines:
+            continue
+        time_line = next((line for line in lines if "-->" in line), "")
+        if not time_line:
+            continue
+        time_index = lines.index(time_line)
+        start_raw, end_raw = [part.strip().split()[0] for part in time_line.split("-->", 1)]
+        body = "\n".join(lines[time_index + 1 :]).strip()
+        if body:
+            events.append((parse_srt_time(start_raw), parse_srt_time(end_raw), body))
+    return events
+
+
+def offset_events(events: list[tuple[int, int, str]], offset_ms: int) -> list[tuple[int, int, str]]:
+    return [(start + offset_ms, end + offset_ms, text) for start, end, text in events]
 
 
 def build_subtitle_events(lines: list[str], duration_ms: int, offset_ms: int = 0) -> list[tuple[int, int, str]]:
@@ -254,6 +304,188 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 f"Dialogue: 0,{format_ass_time(start)},{format_ass_time(end)},English,,0,0,0,,{ass_escape(english)}"
             )
     path.write_text("\n".join(lines), encoding="utf-8")
+
+
+def find_existing_aeneas_ass(material_root: Path) -> Path | None:
+    candidates = [
+        path
+        for path in material_root.rglob("*.aeneas*.ass")
+        if path.is_file() and "zh-en" in path.name.lower()
+    ]
+    if not candidates:
+        return None
+    return max(candidates, key=lambda path: path.stat().st_mtime)
+
+
+def load_english_lines(material_root: Path, expected_count: int) -> list[str]:
+    english_cache = material_root / "subtitles_en.json"
+    if english_cache.exists():
+        try:
+            data = json.loads(english_cache.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            raise RuntimeError(f"English subtitle cache is invalid JSON: {english_cache}") from exc
+        if isinstance(data, list):
+            lines = [str(item).strip() for item in data]
+            if len(lines) == expected_count and all(lines):
+                return lines
+            raise RuntimeError(
+                f"English subtitle cache must contain {expected_count} non-empty lines, "
+                f"but got {len(lines)}: {english_cache}"
+            )
+
+    translation_cache = material_root / "translation_cache.json"
+    if translation_cache.exists():
+        try:
+            data = json.loads(translation_cache.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            raise RuntimeError(f"Translation cache is invalid JSON: {translation_cache}") from exc
+        lines: list[str] = []
+        if isinstance(data, list):
+            for item in data:
+                if isinstance(item, dict):
+                    lines.append(str(item.get("en") or item.get("english") or item.get("translation") or "").strip())
+                else:
+                    lines.append(str(item).strip())
+        elif isinstance(data, dict):
+            items = data.get("items") if isinstance(data.get("items"), list) else None
+            translations = data.get("translations") if isinstance(data.get("translations"), list) else None
+            source = items or translations or []
+            for item in source:
+                if isinstance(item, dict):
+                    lines.append(str(item.get("en") or item.get("english") or item.get("translation") or "").strip())
+                else:
+                    lines.append(str(item).strip())
+        if len(lines) == expected_count and all(lines):
+            return lines
+        if lines:
+            raise RuntimeError(
+                f"Translation cache must contain {expected_count} non-empty English lines, "
+                f"but got {len(lines)}: {translation_cache}"
+            )
+
+    raise RuntimeError(
+        "English subtitles are required after aeneas alignment. "
+        "Generate them with Codex/AI first and save subtitles_en.json or translation_cache.json."
+    )
+
+
+def run_aeneas_alignment(audio: Path, subtitle_lines: list[str], output_dir: Path, audio_language: str) -> tuple[Path, dict]:
+    try:
+        from aeneas.executetask import ExecuteTask
+        from aeneas.task import Task
+    except Exception as exc:
+        raise RuntimeError(
+            "aeneas.tools is required for final subtitle timing. "
+            "Install/configure aeneas instead of falling back to estimated subtitle timing."
+        ) from exc
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    text_file = output_dir / "aeneas_input.txt"
+    srt_file = output_dir / "hard_subtitle.aeneas.chn.srt"
+    text_file.write_text("\n".join(subtitle_lines), encoding="utf-8")
+    language = (audio_language or "cmn").strip() or "cmn"
+    config = (
+        f"task_language={language}|"
+        "is_text_type=plain|"
+        "os_task_file_format=srt|"
+        "task_adjust_boundary_algorithm=percent|"
+        "task_adjust_boundary_percent_value=50"
+    )
+    task = Task(config_string=config)
+    task.audio_file_path_absolute = str(audio)
+    task.text_file_path_absolute = str(text_file)
+    task.sync_map_file_path_absolute = str(srt_file)
+    ExecuteTask(task).execute()
+    task.output_sync_map_file()
+    events = read_srt_events(srt_file)
+    if len(events) != len(subtitle_lines):
+        raise RuntimeError(
+            f"aeneas cue count mismatch: expected {len(subtitle_lines)}, got {len(events)} from {srt_file}"
+        )
+    manifest = {
+        "audioLanguage": language,
+        "inputAudio": str(audio),
+        "inputText": str(text_file),
+        "outputSrt": str(srt_file),
+        "cueCount": len(events),
+        "firstCueMs": events[0][0] if events else None,
+        "lastCueMs": events[-1][1] if events else None,
+    }
+    (output_dir / "hard_subtitle.aeneas.subtitle_manifest.json").write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    return srt_file, manifest
+
+
+def build_aeneas_subtitles(material_root: Path, audio: Path, video_dir: Path, audio_language: str) -> tuple[Path, Path, list[tuple[int, int, str]], dict]:
+    existing_ass = find_existing_aeneas_ass(material_root)
+    if existing_ass:
+        ass_file = video_dir / "hard_subtitle.aeneas.zh-en.ass"
+        events = offset_events(read_ass_dialogue_events(existing_ass), COVER_SECONDS * 1000)
+        write_ass(ass_file, events)
+        srt_file = video_dir / "hard_subtitle.aeneas.zh-en.srt"
+        write_srt(srt_file, events)
+        return ass_file, srt_file, events, {
+            "subtitleTiming": "existing_aeneas_ass",
+            "sourceAss": str(existing_ass),
+            "cueCount": len(events),
+            "delayMs": COVER_SECONDS * 1000,
+        }
+
+    chinese_lines = load_chinese_subtitle_lines(material_root)
+    if not chinese_lines:
+        raise RuntimeError("No Chinese subtitle lines found for aeneas alignment.")
+    aeneas_dir = material_root / "subtitles" / f"aeneas_{time.strftime('%Y%m%d_%H%M%S')}"
+    zh_srt, subtitle_manifest = run_aeneas_alignment(audio, chinese_lines, aeneas_dir, audio_language)
+    zh_events = read_srt_events(zh_srt)
+    english_lines = load_english_lines(material_root, len(zh_events))
+    bilingual_events = [
+        (start + COVER_SECONDS * 1000, end + COVER_SECONDS * 1000, f"{zh}\n{en}")
+        for (start, end, zh), en in zip(zh_events, english_lines)
+    ]
+    srt_file = video_dir / "hard_subtitle.aeneas.zh-en.srt"
+    ass_file = video_dir / "hard_subtitle.aeneas.zh-en.ass"
+    write_srt(srt_file, bilingual_events)
+    write_ass(ass_file, bilingual_events)
+    shutil.copy2(srt_file, aeneas_dir / "hard_subtitle.aeneas.zh-en.srt")
+    shutil.copy2(ass_file, aeneas_dir / "hard_subtitle.aeneas.zh-en.ass")
+    subtitle_manifest = {
+        **subtitle_manifest,
+        "subtitleTiming": "aeneas",
+        "zhEnSrt": str(srt_file),
+        "zhEnAss": str(ass_file),
+        "dialogueCount": len(bilingual_events) * 2,
+    }
+    return ass_file, srt_file, bilingual_events, subtitle_manifest
+
+
+def read_ass_dialogue_events(path: Path) -> list[tuple[int, int, str]]:
+    events: dict[tuple[int, int], list[str]] = {}
+    for line in read_text(path).splitlines():
+        if not line.startswith("Dialogue:"):
+            continue
+        parts = line.split(",", 9)
+        if len(parts) < 10:
+            continue
+        start = parse_ass_time(parts[1])
+        end = parse_ass_time(parts[2])
+        text = parts[9].replace("\\N", "\n")
+        events.setdefault((start, end), []).append(text)
+    return [(start, end, "\n".join(lines)) for (start, end), lines in sorted(events.items())]
+
+
+def parse_ass_time(value: str) -> int:
+    match = re.match(r"(\d+):(\d{2}):(\d{2})\.(\d{1,2})", value.strip())
+    if not match:
+        raise ValueError(f"Invalid ASS timestamp: {value}")
+    hours, minutes, seconds, centis = match.groups()
+    return (
+        int(hours) * 3_600_000
+        + int(minutes) * 60_000
+        + int(seconds) * 1000
+        + int(centis.ljust(2, "0")[:2]) * 10
+    )
 
 
 def atempo_chain(factor: float) -> str:
@@ -869,12 +1101,12 @@ def main() -> int:
         video_dir / "narration_for_video.mp3",
         TARGET_MIN_SECONDS,
     )
-    subtitle_lines = load_subtitle_lines(material_root)
-    events = build_subtitle_events(subtitle_lines, duration_ms, COVER_SECONDS * 1000)
-    srt_file = video_dir / "hard_subtitle.srt"
-    ass_file = video_dir / "hard_subtitle.ass"
-    write_srt(srt_file, events)
-    write_ass(ass_file, events)
+    ass_file, srt_file, events, subtitle_manifest = build_aeneas_subtitles(
+        material_root,
+        prepared_audio,
+        video_dir,
+        args.audio_language,
+    )
 
     content_images, visual_source_dir, visual_source_kind = migrate_visual_assets(material_root, video_dir)
     if not content_images:
@@ -914,8 +1146,11 @@ def main() -> int:
         "hardSubtitleVideo": str(hard_video),
         "hardSubtitleManifest": str(ass_file),
         "hardSubtitleSrt": str(srt_file),
+        "subtitleTiming": subtitle_manifest.get("subtitleTiming"),
+        "subtitleManifest": subtitle_manifest,
         "narrationAudioForVideo": str(prepared_audio),
         "sourceAudio": str(source_audio),
+        "backgroundMusic": str(background_music) if background_music and background_music.is_file() else None,
         "sourceAudioDurationMs": ffprobe_duration_ms(source_audio),
         "narrationAudioForVideoDurationMs": duration_ms,
         "noSubtitleVideoDurationMs": no_subtitle_duration_ms,

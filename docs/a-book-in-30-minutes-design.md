@@ -822,7 +822,7 @@ a-book-in-30-minutes/src-tauri/target/x86_64-pc-windows-gnu/release/bundle/nsis
 - 点击 `视频` 是一键入口：没有素材先生成素材，没有音频先生成音频，最后启动后台视频流水线；前端只刷新任务列表状态，实际过程到操作日志查看。
 - 视频流水线不再写入固定 5 秒占位视频。脚本会读取素材包内最新音频，根据音频时长生成 MP4，并输出 `pipeline_manifest.json`。
 - 后端在视频任务成功落库前使用 `ffprobe` 读取音频和视频时长；音频超过 60 秒时，如果视频时长缺失或与音频差异超过 5 秒，任务标记为失败，不允许显示已完成。
-- 背景循环音乐从 exe 同级 `music` 文件夹查找第一个 `.mp3` 文件，作为 `--background-music` 传入视频流水线；打包或绿色版部署时需把背景音乐复制到 `exe所在目录/music/`。
+- 背景循环音乐从 exe 同级 `bg` 文件夹查找第一个 `.mp3` 文件，作为 `--background-music` 传入视频流水线；打包或绿色版部署时需把背景音乐复制到 `exe所在目录/bg/`。旧 `music` 目录只作为兼容回退，不能作为新版本主路径。
 - 当前版本升级为 `0.1.69`。
 ## 2026-06-23 两段式视频生成流程
 
@@ -846,6 +846,7 @@ a-book-in-30-minutes/src-tauri/target/x86_64-pc-windows-gnu/release/bundle/nsis
 
 - 最终硬字幕必须支持真实中英双语字幕，而不是只有中文字幕套双语样式。素材包内存在 `subtitles_en.json` 时，视频流水线必须优先把 `subtitles.txt` 与 `subtitles_en.json` 一一配对生成双语字幕事件。
 - `subtitles_en.json` 与 `subtitles.txt` 的条数必须一致；生成 ASS 后应能统计到相同数量的 `Chinese` 与 `English` Dialogue。
+- 发布级硬字幕禁止使用按文本长度或总时长估算出来的字幕时间轴。应用内视频脚本必须优先复用素材包 `subtitles/aeneas_*/*.aeneas.zh-en.ass`；没有可复用 ASS 时，必须调用 `aeneas.tools` 使用最终旁白音频和 `subtitles.txt` 生成中文 cue，再按相同 cue 写入英文字幕。若 aeneas 环境或英文字幕缓存缺失，视频生成应明确失败并写日志，不能静默退回估算时间轴。
 - ASS 样式参考 `D:\04_GitHub\yt-download` 的 Apple 双语字幕：中文使用米白大字、加粗、黑描边和阴影，英文使用橙色较小字号、加粗、黑描边和阴影，英文位于中文下方。
 - 当前 1920x1080 视频使用 `Chinese` 和 `English` 两个独立 Style；中文底边距高于英文，避免两行重叠。只有中文行时仍使用 `Chinese` 样式；有英文行时必须输出成对 Dialogue。
 - 生成最终视频后必须抽帧验证：封面帧、无字幕母版背景帧、硬字幕双语帧；同时使用 `ffprobe` 校验无字幕母版和硬字幕最终版时长一致。

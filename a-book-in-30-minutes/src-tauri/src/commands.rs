@@ -2113,12 +2113,18 @@ fn format_duration_ms(value: Option<i64>) -> String {
 fn find_background_music_file() -> Option<PathBuf> {
     if let Ok(exe) = std::env::current_exe() {
         if let Some(parent) = exe.parent() {
-            let music_dir = parent.join("music");
-            if let Ok(entries) = fs::read_dir(&music_dir) {
-                for entry in entries.flatten() {
-                    let path = entry.path();
-                    if path.extension().and_then(|value| value.to_str()).is_some_and(|value| value.eq_ignore_ascii_case("mp3")) {
-                        return Some(path);
+            for dir_name in ["bg", "music"] {
+                let music_dir = parent.join(dir_name);
+                if let Ok(entries) = fs::read_dir(&music_dir) {
+                    for entry in entries.flatten() {
+                        let path = entry.path();
+                        if path
+                            .extension()
+                            .and_then(|value| value.to_str())
+                            .is_some_and(|value| value.eq_ignore_ascii_case("mp3"))
+                        {
+                            return Some(path);
+                        }
                     }
                 }
             }
