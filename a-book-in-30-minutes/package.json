@@ -1,7 +1,7 @@
 {
   "name": "a-book-in-30-minutes",
   "private": true,
-  "version": "0.1.12",
+  "version": "0.1.72",
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@tauri-apps/api": "^2.7.0",
+    "@tauri-apps/plugin-dialog": "^2.4.1",
     "@tauri-apps/plugin-log": "^2.6.0",
     "@tauri-apps/plugin-opener": "^2.4.0",
     "@tauri-apps/plugin-process": "^2.3.0",

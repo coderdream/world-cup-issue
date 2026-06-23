@@ -9,7 +9,29 @@ import type {
   BookMaterialsRequest,
   ExportBookMaterialsRequest,
   ExportBookMaterialsResult,
-  UpdateInfo
+  FeishuSendRequest,
+  FeishuSendResult,
+  GenerateMaterialTaskAudioRequest,
+  GenerateBookVideoRequest,
+  GenerateBookVideoResult,
+  GetMaterialTasksRequest,
+  GetSpeechVoicesResult,
+  GetOperationLogsRequest,
+  GetOperationLogsResult,
+  GenerateAudioRequest,
+  GenerateAudioResult,
+  MaterialFile,
+  MaterialTaskPathRequest,
+  ResetMaterialTasksRequest,
+  ScanMaterialFilesRequest,
+  ScanMaterialFilesResult,
+  SpeechPreviewRequest,
+  SpeechRegionKeyRequest,
+  SpeechRegionKeyResult,
+  SpeechTestResult,
+  ToolTestResult,
+  UpdateInfo,
+  UpdateMaterialTaskStatusRequest
 } from "@/types";
 
 export const frameworkApi = {
@@ -31,10 +53,64 @@ export const frameworkApi = {
   generateAiText(request: AiGenerateRequest) {
     return callCommand<AiGenerateResult>("generate_ai_text", { request });
   },
+  testFeishuProfile() {
+    return callCommand<FeishuSendResult>("test_feishu_profile");
+  },
+  sendFeishuMessage(request: FeishuSendRequest) {
+    return callCommand<FeishuSendResult>("send_feishu_message", { request });
+  },
+  testSpeechProfile() {
+    return callCommand<SpeechTestResult>("test_speech_profile");
+  },
+  previewSpeech(request: SpeechPreviewRequest) {
+    return callCommand<SpeechTestResult>("preview_speech", { request });
+  },
+  saveSpeechRegionKey(request: SpeechRegionKeyRequest) {
+    return callCommand<SpeechRegionKeyResult>("save_speech_region_key", { request });
+  },
+  getSpeechRegionKey(region: string) {
+    return callCommand<SpeechRegionKeyResult>("get_speech_region_key", { region });
+  },
+  getSpeechVoices(locale?: string) {
+    return callCommand<GetSpeechVoicesResult>("get_speech_voices", { locale });
+  },
+  testFfmpegPath() {
+    return callCommand<ToolTestResult>("test_ffmpeg_path");
+  },
+  generateAudio(request: GenerateAudioRequest) {
+    return callCommand<GenerateAudioResult>("generate_audio", { request });
+  },
+  generateMaterialTaskAudio(request: GenerateMaterialTaskAudioRequest) {
+    return callCommand<GenerateAudioResult>("generate_material_task_audio", { request });
+  },
+  generateBookVideoPipeline(request: GenerateBookVideoRequest) {
+    return callCommand<GenerateBookVideoResult>("generate_book_video_pipeline", { request });
+  },
   generateBookMaterials(request: BookMaterialsRequest) {
     return callCommand<BookMaterials>("generate_book_materials", { request });
   },
+  scanMaterialFiles(request: ScanMaterialFilesRequest) {
+    return callCommand<ScanMaterialFilesResult>("scan_material_files", { request });
+  },
+  getMaterialTasks(request: GetMaterialTasksRequest = {}) {
+    return callCommand<ScanMaterialFilesResult>("get_material_tasks", { request });
+  },
+  updateMaterialTaskStatus(request: UpdateMaterialTaskStatusRequest) {
+    return callCommand<MaterialFile>("update_material_task_status", { request });
+  },
+  removeMaterialTask(request: MaterialTaskPathRequest) {
+    return callCommand<boolean>("remove_material_task", { request });
+  },
+  resetMaterialTasks(request: ResetMaterialTasksRequest = {}) {
+    return callCommand<boolean>("reset_material_tasks", { request });
+  },
+  openMaterialOutputDir(request: MaterialTaskPathRequest) {
+    return callCommand<boolean>("open_material_output_dir", { request });
+  },
   exportBookMaterials(request: ExportBookMaterialsRequest) {
     return callCommand<ExportBookMaterialsResult>("export_book_materials", { request });
+  },
+  getOperationLogs(request: GetOperationLogsRequest) {
+    return callCommand<GetOperationLogsResult>("get_operation_logs", { request });
   }
 };

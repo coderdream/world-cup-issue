@@ -8,12 +8,18 @@ use std::path::{Path, PathBuf};
 use zip::ZipArchive;
 
 pub fn read_epub(path: &Path) -> Result<EpubBook, CommandError> {
-    let file = File::open(path).map_err(|error| command_error(format!("读取 EPUB 失败：{error}")))?;
-    let mut archive = ZipArchive::new(file).map_err(|error| command_error(format!("打开 EPUB 压缩包失败：{error}")))?;
+    let file =
+        File::open(path).map_err(|error| command_error(format!("读取 EPUB 失败：{error}")))?;
+    let mut archive = ZipArchive::new(file)
+        .map_err(|error| command_error(format!("打开 EPUB 压缩包失败：{error}")))?;
     let container = read_zip_text(&mut archive, "META-INF/container.xml")?;
-    let opf_path = capture_attr(&container, "rootfile", "full-path").ok_or_else(|| command_error("EPUB 缺少 OPF 路径。"))?;
+    let opf_path = capture_attr(&container, "rootfile", "full-path")
+        .ok_or_else(|| command_error("EPUB 缺少 OPF 路径。"))?;
     let opf = read_zip_text(&mut archive, &opf_path)?;
-    let base = Path::new(&opf_path).parent().map(Path::to_path_buf).unwrap_or_default();
+    let base = Path::new(&opf_path)
+        .parent()
+        .map(Path::to_path_buf)
+        .unwrap_or_default();
 
     let manifest = parse_manifest(&opf);
     let spine = parse_spine(&opf);
@@ -71,7 +77,10 @@ pub fn read_epub(path: &Path) -> Result<EpubBook, CommandError> {
     })
 }
 
-fn read_zip_text<R: Read + std::io::Seek>(archive: &mut ZipArchive<R>, path: &str) -> Result<String, CommandError> {
+fn read_zip_text<R: Read + std::io::Seek>(
+    archive: &mut ZipArchive<R>,
+    path: &str,
+) -> Result<String, CommandError> {
     let mut file = archive
         .by_name(path)
         .map_err(|error| command_error(format!("读取 EPUB 文件 {path} 失败：{error}")))?;
@@ -119,7 +128,8 @@ fn read_toc_titles<R: Read + std::io::Seek>(
     let toc = read_zip_text(archive, &toc_path)?;
     let nav_re = Regex::new(r#"(?is)<navPoint\b.*?</navPoint>"#).expect("valid regex");
     let text_re = Regex::new(r#"(?is)<text[^>]*>(.*?)</text>"#).expect("valid regex");
-    let content_re = Regex::new(r#"(?is)<content\b[^>]*\bsrc\s*=\s*["']([^"']+)["'][^>]*/?>"#).expect("valid regex");
+    let content_re = Regex::new(r#"(?is)<content\b[^>]*\bsrc\s*=\s*["']([^"']+)["'][^>]*/?>"#)
+        .expect("valid regex");
     let mut titles = HashMap::new();
     for nav in nav_re.find_iter(&toc) {
         let block = nav.as_str();
@@ -140,7 +150,11 @@ fn read_toc_titles<R: Read + std::io::Seek>(
 }
 
 fn first_dc_value(opf: &str, tag: &str) -> Option<String> {
-    let pattern = format!(r#"(?is)<(?:dc:)?{}\b[^>]*>(.*?)</(?:dc:)?{}>"#, regex::escape(tag), regex::escape(tag));
+    let pattern = format!(
+        r#"(?is)<(?:dc:)?{}\b[^>]*>(.*?)</(?:dc:)?{}>"#,
+        regex::escape(tag),
+        regex::escape(tag)
+    );
     let re = Regex::new(&pattern).ok()?;
     re.captures(opf)
         .and_then(|captures| captures.get(1))
@@ -150,12 +164,18 @@ fn first_dc_value(opf: &str, tag: &str) -> Option<String> {
 
 fn capture_attr(xml: &str, tag: &str, attr: &str) -> Option<String> {
     let tag_re = Regex::new(&format!(r#"(?is)<{}\b[^>]*>"#, regex::escape(tag))).ok()?;
-    let value = tag_re.find_iter(xml).find_map(|matched| attr_value(matched.as_str(), attr));
+    let value = tag_re
+        .find_iter(xml)
+        .find_map(|matched| attr_value(matched.as_str(), attr));
     value
 }
 
 fn attr_value(tag: &str, attr: &str) -> Option<String> {
-    let attr_re = Regex::new(&format!(r#"(?is)\b{}\s*=\s*["']([^"']+)["']"#, regex::escape(attr))).ok()?;
+    let attr_re = Regex::new(&format!(
+        r#"(?is)\b{}\s*=\s*["']([^"']+)["']"#,
+        regex::escape(attr)
+    ))
+    .ok()?;
     attr_re
         .captures(tag)
         .and_then(|captures| captures.get(1))
@@ -163,17 +183,23 @@ fn attr_value(tag: &str, attr: &str) -> Option<String> {
 }
 
 fn clean_html_text(raw: &str) -> String {
-    let script_re = Regex::new(r#"(?is)<(script|style)\b.*?</\1>"#).expect("valid regex");
-    let block_re = Regex::new(r#"(?is)</?(p|div|h[1-6]|br|li|section|article|body|title)\b[^>]*>"#).expect("valid regex");
+    let script_re = Regex::new(r#"(?is)<script\b[^>]*>.*?</script>"#).expect("valid regex");
+    let style_re = Regex::new(r#"(?is)<style\b[^>]*>.*?</style>"#).expect("valid regex");
+    let block_re = Regex::new(r#"(?is)</?(p|div|h[1-6]|br|li|section|article|body|title)\b[^>]*>"#)
+        .expect("valid regex");
     let tag_re = Regex::new(r#"(?is)<[^>]+>"#).expect("valid regex");
     let whitespace_re = Regex::new(r#"[ \t\r\f\v]+"#).expect("valid regex");
     let blank_re = Regex::new(r#"\n\s*\n+"#).expect("valid regex");
     let without_scripts = script_re.replace_all(raw, "");
-    let with_breaks = block_re.replace_all(&without_scripts, "\n");
+    let without_styles = style_re.replace_all(&without_scripts, "");
+    let with_breaks = block_re.replace_all(&without_styles, "\n");
     let without_tags = tag_re.replace_all(&with_breaks, "");
     let decoded = decode_xml_entities(&without_tags);
     let compact = whitespace_re.replace_all(&decoded, " ");
-    blank_re.replace_all(compact.trim(), "\n").trim().to_string()
+    blank_re
+        .replace_all(compact.trim(), "\n")
+        .trim()
+        .to_string()
 }
 
 fn extract_title_from_html(raw: &str) -> Option<String> {
@@ -188,7 +214,10 @@ fn clean_inline_text(raw: &str) -> String {
     let tag_re = Regex::new(r#"(?is)<[^>]+>"#).expect("valid regex");
     let whitespace_re = Regex::new(r#"\s+"#).expect("valid regex");
     let decoded = decode_xml_entities(&tag_re.replace_all(raw, ""));
-    whitespace_re.replace_all(decoded.trim(), " ").trim().to_string()
+    whitespace_re
+        .replace_all(decoded.trim(), " ")
+        .trim()
+        .to_string()
 }
 
 fn decode_xml_entities(value: &str) -> String {
@@ -243,7 +272,10 @@ fn is_html_href(href: &str) -> bool {
 }
 
 pub fn count_han_chars(value: &str) -> usize {
-    value.chars().filter(|ch| ('\u{4e00}'..='\u{9fff}').contains(ch)).count()
+    value
+        .chars()
+        .filter(|ch| ('\u{4e00}'..='\u{9fff}').contains(ch))
+        .count()
 }
 
 pub fn truncate_chars(value: &str, max_chars: usize) -> String {
@@ -253,6 +285,24 @@ pub fn truncate_chars(value: &str, max_chars: usize) -> String {
 #[allow(dead_code)]
 fn _read_zip_text_from_bytes(bytes: Vec<u8>, path: &str) -> Result<String, CommandError> {
     let cursor = Cursor::new(bytes);
-    let mut archive = ZipArchive::new(cursor).map_err(|error| command_error(format!("打开 EPUB 压缩包失败：{error}")))?;
+    let mut archive = ZipArchive::new(cursor)
+        .map_err(|error| command_error(format!("打开 EPUB 压缩包失败：{error}")))?;
     read_zip_text(&mut archive, path)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::clean_html_text;
+
+    #[test]
+    fn clean_html_text_removes_script_and_style_blocks() {
+        let text = clean_html_text(
+            r#"<html><head><style>.hidden{display:none}</style><script>bad()</script></head><body><p>第一段&nbsp;文字</p><div>第二段</div></body></html>"#,
+        );
+
+        assert!(text.contains("第一段 文字"));
+        assert!(text.contains("第二段"));
+        assert!(!text.contains("display:none"));
+        assert!(!text.contains("bad()"));
+    }
 }

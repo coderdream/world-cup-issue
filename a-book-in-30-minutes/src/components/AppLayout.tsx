@@ -1,4 +1,4 @@
-import { useEffect, useState, type MouseEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type CSSProperties, type MouseEvent, type ReactNode } from "react";
 import clsx from "clsx";
 import { BookOpenText, Clock3, Copy, Minus, Moon, PanelLeft, Shield, Square, X } from "lucide-react";
 import { APP_NAME, APP_SUBTITLE } from "@/config/app";
@@ -12,7 +12,18 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const settings = useAppStore((state) => state.settings);
   const current = routeMeta[route];
   const time = useBeijingTime();
+  const modelName = settings.aiProfile.model.trim() || "未配置模型";
   const [isMaximized, setIsMaximized] = useState(false);
+  const fontStyle = useMemo(
+    () =>
+      ({
+        "--menu-font-family": settings.uiProfile.menuFontFamily,
+        "--menu-font-size": `${clampFontSize(settings.uiProfile.menuFontSize, 10, 18)}px`,
+        "--content-font-family": settings.uiProfile.contentFontFamily,
+        "--content-font-size": `${clampFontSize(settings.uiProfile.contentFontSize, 10, 18)}px`
+      }) as CSSProperties,
+    [settings.uiProfile]
+  );
 
   useEffect(() => {
     let dispose: (() => void) | undefined;
@@ -37,7 +48,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <div className="app-shell">
+    <div className="app-shell" style={fontStyle}>
       <aside className="sidebar">
         <div className="brand">
           <div className="brand-icon">
@@ -76,6 +87,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
             </div>
           </div>
           <div className="top-actions">
+            <div className="model-pill" title={`当前模型：${modelName}`}>
+              【{modelName}】
+            </div>
             <div className="clock-pill">
               <Clock3 className="clock-icon" size={17} />
               <span>{time}</span>
@@ -99,6 +113,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
       </main>
     </div>
   );
+}
+
+function clampFontSize(value: number, min: number, max: number) {
+  if (!Number.isFinite(value)) return min;
+  return Math.max(min, Math.min(max, Math.round(value)));
 }
 
 async function startWindowDrag(event: MouseEvent<HTMLElement>) {

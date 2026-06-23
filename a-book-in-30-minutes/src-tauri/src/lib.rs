@@ -14,6 +14,7 @@ use tauri::{
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_process::init())
         .plugin(
@@ -43,7 +44,25 @@ pub fn run() {
             check_update_mock,
             test_ai_profile,
             generate_ai_text,
+            test_feishu_profile,
+            send_feishu_message,
             generate_book_materials,
+            scan_material_files,
+            get_material_tasks,
+            update_material_task_status,
+            remove_material_task,
+            reset_material_tasks,
+            open_material_output_dir,
+            test_ffmpeg_path,
+            test_speech_profile,
+            preview_speech,
+            save_speech_region_key,
+            get_speech_region_key,
+            get_speech_voices,
+            generate_audio,
+            generate_material_task_audio,
+            generate_book_video_pipeline,
+            get_operation_logs,
             export_book_materials
         ])
         .run(tauri::generate_context!())
