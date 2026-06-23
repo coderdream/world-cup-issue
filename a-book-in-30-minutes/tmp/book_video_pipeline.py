@@ -1080,7 +1080,7 @@ def main() -> int:
     output_dir = Path(args.output_dir) if args.output_dir else None
     material_root = find_material_root(epub, output_dir)
     if material_root is None:
-        material_root = epub.parent / "output" / f"{safe_stem(epub)}_video_{time.strftime('%Y%m%d_%H%M%S')}"
+        material_root = epub.parent / "output"
     video_dir = output_dir or material_root
     video_dir.mkdir(parents=True, exist_ok=True)
 
