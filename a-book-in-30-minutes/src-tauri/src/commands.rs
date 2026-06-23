@@ -3,16 +3,15 @@ use crate::models::{
     AiBookMaterialsPayload, AiGenerateRequest, AiGenerateResult, AiTestResult, AppSettings,
     AppStatePayload, AudioManifest, AudioManifestPart, BookMaterials, BookMaterialsRequest,
     ChatCompletionRequest, ChatCompletionResponse, ChatMessage, EpubBook, EpubChapter,
-    EpubChapterSummary, EpubOverview,
-    ExportBookMaterialsRequest, ExportBookMaterialsResult, FeishuSendRequest, FeishuSendResult,
-    FeishuWebhookResponse, GenerateAudioRequest, GenerateAudioResult, GenerateBookVideoRequest,
-    GenerateBookVideoResult, GenerateMaterialTaskAudioRequest, GetMaterialTasksRequest,
-    GetOperationLogsRequest, GetOperationLogsResult, GetSpeechVoicesResult, MaterialFile,
-    MaterialOutputDirRequest, MaterialTaskPathRequest, MaterialTaskProgressEvent,
-    OperationLogEntry, ResetMaterialTasksRequest, ScanMaterialFilesRequest,
-    ScanMaterialFilesResult, SpeechPreviewRequest, SpeechProfile, SpeechRegionKeyRequest,
-    SpeechRegionKeyResult, SpeechTestResult, SpeechVoice, ToolTestResult, UpdateInfo,
-    UpdateMaterialTaskStatusRequest,
+    EpubChapterSummary, EpubOverview, ExportBookMaterialsRequest, ExportBookMaterialsResult,
+    FeishuSendRequest, FeishuSendResult, FeishuWebhookResponse, GenerateAudioRequest,
+    GenerateAudioResult, GenerateBookVideoRequest, GenerateBookVideoResult,
+    GenerateMaterialTaskAudioRequest, GetMaterialTasksRequest, GetOperationLogsRequest,
+    GetOperationLogsResult, GetSpeechVoicesResult, MaterialFile, MaterialOutputDirRequest,
+    MaterialTaskPathRequest, MaterialTaskProgressEvent, OperationLogEntry,
+    ResetMaterialTasksRequest, ScanMaterialFilesRequest, ScanMaterialFilesResult,
+    SpeechPreviewRequest, SpeechProfile, SpeechRegionKeyRequest, SpeechRegionKeyResult,
+    SpeechTestResult, SpeechVoice, ToolTestResult, UpdateInfo, UpdateMaterialTaskStatusRequest,
 };
 use crate::operation_log::OperationLogger;
 use base64::Engine;
@@ -24,7 +23,7 @@ use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use std::sync::{mpsc, Mutex};
+use std::sync::Mutex;
 use std::time::{Duration, Instant};
 use tauri::{Emitter, Manager, State};
 
@@ -171,8 +170,9 @@ impl AppData {
 
     fn save_settings(&self, settings: &AppSettings) -> Result<(), CommandError> {
         if let Some(parent) = self.settings_path.parent() {
-            fs::create_dir_all(parent)
-                .map_err(|error| command_error(format!("Create settings directory failed: {error}")))?;
+            fs::create_dir_all(parent).map_err(|error| {
+                command_error(format!("Create settings directory failed: {error}"))
+            })?;
         }
         let content = serde_json::to_string_pretty(settings)
             .map_err(|error| command_error(format!("Serialize settings failed: {error}")))?;
@@ -191,7 +191,8 @@ pub struct CommandError {
 
 #[tauri::command]
 pub fn get_app_state(data: State<'_, AppData>) -> Result<AppStatePayload, CommandError> {
-    data.logger.info("app", "get_app_state", "鐠囪褰囨惔鏃傛暏閻樿埖鈧?");
+    data.logger
+        .info("app", "get_app_state", "鐠囪褰囨惔鏃傛暏閻樿埖鈧?");
     Ok(AppStatePayload {
         settings: data.settings.lock().map_err(lock_error)?.clone(),
         version: env!("CARGO_PKG_VERSION").to_string(),
@@ -241,14 +242,19 @@ pub async fn test_ai_profile(data: State<'_, AppData>) -> Result<AiTestResult, C
     {
         Ok(content) => content,
         Err(error) => {
-            data.logger
-                .error("ai", "test_profile", "AI profile test failed", &error.message);
+            data.logger.error(
+                "ai",
+                "test_profile",
+                "AI profile test failed",
+                &error.message,
+            );
             return Err(error);
         }
     };
 
     data.save_settings(&settings)?;
-    data.logger.info("ai", "test_profile", "AI profile test succeeded");
+    data.logger
+        .info("ai", "test_profile", "AI profile test succeeded");
     Ok(AiTestResult {
         ok: true,
         message: "AI profile test succeeded.".to_string(),
@@ -261,7 +267,8 @@ pub async fn generate_ai_text(
     data: State<'_, AppData>,
     request: AiGenerateRequest,
 ) -> Result<AiGenerateResult, CommandError> {
-    data.logger.info("ai", "generate_text", "瀵偓婵鏁撻幋?AI 閺傚洦婀?");
+    data.logger
+        .info("ai", "generate_text", "瀵偓婵鏁撻幋?AI 閺傚洦婀?");
     let settings = data.settings.lock().map_err(lock_error)?.clone();
     let mut messages = Vec::new();
     if let Some(system_prompt) = request
@@ -281,12 +288,17 @@ pub async fn generate_ai_text(
     let content = match call_ai(&settings, messages).await {
         Ok(content) => content,
         Err(error) => {
-            data.logger
-                .error("ai", "generate_text", "AI 閺傚洦婀伴悽鐔稿灇婢惰精瑙?", &error.message);
+            data.logger.error(
+                "ai",
+                "generate_text",
+                "AI 閺傚洦婀伴悽鐔稿灇婢惰精瑙?",
+                &error.message,
+            );
             return Err(error);
         }
     };
-    data.logger.info("ai", "generate_text", "AI 閺傚洦婀伴悽鐔稿灇閹存劕濮?");
+    data.logger
+        .info("ai", "generate_text", "AI 閺傚洦婀伴悽鐔稿灇閹存劕濮?");
     Ok(AiGenerateResult {
         content,
         model: settings.ai_profile.model,
@@ -297,7 +309,8 @@ pub async fn generate_ai_text(
 pub async fn test_feishu_profile(
     data: State<'_, AppData>,
 ) -> Result<FeishuSendResult, CommandError> {
-    data.logger.info("feishu", "test_profile", "Testing Feishu webhook");
+    data.logger
+        .info("feishu", "test_profile", "Testing Feishu webhook");
     let settings = data.settings.lock().map_err(lock_error)?.clone();
     let text = settings.feishu_profile.test_message.trim();
     let message = if text.is_empty() {
@@ -307,11 +320,17 @@ pub async fn test_feishu_profile(
     };
     match call_feishu(&settings, &message).await {
         Ok(result) => {
-            data.logger.info("feishu", "test_profile", "Feishu webhook test succeeded");
+            data.logger
+                .info("feishu", "test_profile", "Feishu webhook test succeeded");
             Ok(result)
         }
         Err(error) => {
-            data.logger.error("feishu", "test_profile", "Feishu webhook test failed", &error.message);
+            data.logger.error(
+                "feishu",
+                "test_profile",
+                "Feishu webhook test failed",
+                &error.message,
+            );
             Err(error)
         }
     }
@@ -327,13 +346,20 @@ pub async fn send_feishu_message(
     let settings = data.settings.lock().map_err(lock_error)?.clone();
     match call_feishu(&settings, &request.text).await {
         Ok(result) => {
-            data.logger
-                .info("feishu", "send_message", "妞嬬偘鍔熷☉鍫熶紖閸欐垿鈧焦鍨氶崝?");
+            data.logger.info(
+                "feishu",
+                "send_message",
+                "妞嬬偘鍔熷☉鍫熶紖閸欐垿鈧焦鍨氶崝?",
+            );
             Ok(result)
         }
         Err(error) => {
-            data.logger
-                .error("feishu", "send_message", "妞嬬偘鍔熷☉鍫熶紖閸欐垿鈧礁銇戠拹?", &error.message);
+            data.logger.error(
+                "feishu",
+                "send_message",
+                "妞嬬偘鍔熷☉鍫熶紖閸欐垿鈧礁銇戠拹?",
+                &error.message,
+            );
             Err(error)
         }
     }
@@ -387,7 +413,9 @@ pub async fn generate_book_materials(
             "鐠囧嘲鍘涙繅顐㈠晸缁辩姵娼楅弬鍥︽鐠侯垰绶為妴?",
             &trace_id,
         );
-        return Err(command_error("鐠囧嘲鍘涙繅顐㈠晸缁辩姵娼楅弬鍥︽鐠侯垰绶為妴?"));
+        return Err(command_error(
+            "鐠囧嘲鍘涙繅顐㈠晸缁辩姵娼楅弬鍥︽鐠侯垰绶為妴?",
+        ));
     }
     if !epub_path.exists() {
         data.logger.trace_error(
@@ -397,7 +425,9 @@ pub async fn generate_book_materials(
             request.epub_path.trim(),
             &trace_id,
         );
-        return Err(command_error("缁辩姵娼楅弬鍥︽娑撳秴鐡ㄩ崷顭掔礉鐠囬攱顥呴弻銉ㄧ熅瀵板嫨鈧?"));
+        return Err(command_error(
+            "缁辩姵娼楅弬鍥︽娑撳秴鐡ㄩ崷顭掔礉鐠囬攱顥呴弻銉ㄧ熅瀵板嫨鈧?",
+        ));
     }
     data.logger.debug(
         "materials",
@@ -408,7 +438,13 @@ pub async fn generate_book_materials(
     );
 
     let read_started = Instant::now();
-    emit_material_progress(&app, &trace_id, request.epub_path.trim(), 1, "鐟欙絾鐎藉┃鎰姛濮濓絾鏋?");
+    emit_material_progress(
+        &app,
+        &trace_id,
+        request.epub_path.trim(),
+        1,
+        "鐟欙絾鐎藉┃鎰姛濮濓絾鏋?",
+    );
     data.logger.trace_info(
         "materials",
         "source.read",
@@ -771,12 +807,8 @@ pub async fn generate_book_materials(
     }
     let before_fallback_chars = count_han_chars(&payload.narration);
     if before_fallback_chars < min_chars {
-        let fallback = build_local_narration_extension(
-            &payload,
-            before_fallback_chars,
-            min_chars,
-            max_chars,
-        );
+        let fallback =
+            build_local_narration_extension(&payload, before_fallback_chars, min_chars, max_chars);
         if !fallback.trim().is_empty() {
             payload.narration = merge_narration_extension(&payload.narration, &fallback);
             data.logger.warn(
@@ -904,7 +936,13 @@ pub async fn generate_book_materials(
         &trace_id,
     )
     .await;
-    emit_material_progress(&app, &trace_id, request.epub_path.trim(), 4, "閻㈢喐鍨氱€瑰本鍨?");
+    emit_material_progress(
+        &app,
+        &trace_id,
+        request.epub_path.trim(),
+        4,
+        "閻㈢喐鍨氱€瑰本鍨?",
+    );
     Ok(materials)
 }
 
@@ -917,15 +955,22 @@ pub fn scan_material_files(
     data.logger.info(
         "materials",
         "scan",
-        format!("瀵偓婵澹傞幓蹇曠閺夋劖鏋冩禒璁圭窗{}", request.path.trim()),
+        format!(
+            "瀵偓婵澹傞幓蹇曠閺夋劖鏋冩禒璁圭窗{}",
+            request.path.trim()
+        ),
     );
     let input = request.path.trim();
     if input.is_empty() {
-        return Err(command_error("鐠囧嘲鍘涙繅顐㈠晸閺傚洣娆㈡径瑙勫灗閺傚洣娆㈢捄顖氱窞閵?"));
+        return Err(command_error(
+            "鐠囧嘲鍘涙繅顐㈠晸閺傚洣娆㈡径瑙勫灗閺傚洣娆㈢捄顖氱窞閵?",
+        ));
     }
     let path = PathBuf::from(input);
     if !path.exists() {
-        return Err(command_error("鐠侯垰绶炴稉宥呯摠閸︻煉绱濈拠閿嬵梾閺屻儱鎮楅柌宥堢槸閵?"));
+        return Err(command_error(
+            "鐠侯垰绶炴稉宥呯摠閸︻煉绱濈拠閿嬵梾閺屻儱鎮楅柌宥堢槸閵?",
+        ));
     }
 
     let directory = if path.is_dir() {
@@ -950,7 +995,9 @@ pub fn scan_material_files(
     for entry in fs::read_dir(&directory)
         .map_err(|error| command_error(format!("Read material directory failed: {error}")))?
     {
-        let entry = entry.map_err(|error| command_error(format!("Read material directory entry failed: {error}")))?;
+        let entry = entry.map_err(|error| {
+            command_error(format!("Read material directory entry failed: {error}"))
+        })?;
         let path = entry.path();
         if !path.is_file() {
             continue;
@@ -963,9 +1010,9 @@ pub fn scan_material_files(
         if !matches!(extension.as_str(), "epub" | "pdf" | "txt" | "docx") {
             continue;
         }
-        let metadata = entry
-            .metadata()
-            .map_err(|error| command_error(format!("Read material file metadata failed: {error}")))?;
+        let metadata = entry.metadata().map_err(|error| {
+            command_error(format!("Read material file metadata failed: {error}"))
+        })?;
         let name = path
             .file_name()
             .and_then(|value| value.to_str())
@@ -1028,8 +1075,11 @@ pub fn get_material_tasks(
     data: State<'_, AppData>,
     request: GetMaterialTasksRequest,
 ) -> Result<ScanMaterialFilesResult, CommandError> {
-    let connection = Connection::open(&data.db_path)
-        .map_err(|error| command_error(format!("閹垫挸绱戞禒璇插閺佺増宓佹惔鎾炽亼鐠愩儻绱皗{error}")))?;
+    let connection = Connection::open(&data.db_path).map_err(|error| {
+        command_error(format!(
+            "閹垫挸绱戞禒璇插閺佺増宓佹惔鎾炽亼鐠愩儻绱皗{error}"
+        ))
+    })?;
     ensure_material_tasks_table(&connection)?;
     let category = request.category.unwrap_or_default().trim().to_string();
     let mut files = if category.is_empty() {
@@ -1040,7 +1090,9 @@ pub fn get_material_tasks(
             .map_err(|error| command_error(format!("閸戝棗顦拠璇插絿缁辩姵娼楁禒璇插婢惰精瑙﹂敍姝縠{error}")))?;
         let rows = statement
             .query_map([], material_task_from_row)
-            .map_err(|error| command_error(format!("鐠囪褰囩槐鐘虫綏娴犺濮熸径杈Е閿涙{error}")))?;
+            .map_err(|error| {
+                command_error(format!("鐠囪褰囩槐鐘虫綏娴犺濮熸径杈Е閿涙{error}"))
+            })?;
         collect_material_tasks(rows)?
     } else {
         let mut statement = connection
@@ -1050,7 +1102,9 @@ pub fn get_material_tasks(
             .map_err(|error| command_error(format!("閸戝棗顦拠璇插絿缁辩姵娼楁禒璇插婢惰精瑙﹂敍姝縠{error}")))?;
         let rows = statement
             .query_map(params![category], material_task_from_row)
-            .map_err(|error| command_error(format!("鐠囪褰囩槐鐘虫綏娴犺濮熸径杈Е閿涙{error}")))?;
+            .map_err(|error| {
+                command_error(format!("鐠囪褰囩槐鐘虫綏娴犺濮熸径杈Е閿涙{error}"))
+            })?;
         collect_material_tasks(rows)?
     };
     files.retain(|file| Path::new(&file.path).exists());
@@ -1077,8 +1131,11 @@ pub fn update_material_task_status(
     if path.is_empty() {
         return Err(command_error("娴犺濮熺捄顖氱窞娑撳秷鍏樻稉铏光敄閵?"));
     }
-    let connection = Connection::open(&data.db_path)
-        .map_err(|error| command_error(format!("閹垫挸绱戞禒璇插閺佺増宓佹惔鎾炽亼鐠愩儻绱皗{error}")))?;
+    let connection = Connection::open(&data.db_path).map_err(|error| {
+        command_error(format!(
+            "閹垫挸绱戞禒璇插閺佺増宓佹惔鎾炽亼鐠愩儻绱皗{error}"
+        ))
+    })?;
     ensure_material_tasks_table(&connection)?;
     let progress = clamp_task_progress(request.progress);
     let status = normalize_task_status(&request.status);
@@ -1115,7 +1172,7 @@ pub fn update_material_task_status(
         upsert_material_task(&connection, &material_file_from_path(path, category)?)?;
         connection
             .execute(
-            r#"
+                r#"
                 UPDATE material_tasks
                 SET status = ?2,
                     progress = ?3,
@@ -1135,7 +1192,9 @@ pub fn update_material_task_status(
                     now
                 ],
             )
-            .map_err(|error| command_error(format!("Update material task status failed: {error}")))?;
+            .map_err(|error| {
+                command_error(format!("Update material task status failed: {error}"))
+            })?;
     }
     data.logger.info(
         "materials",
@@ -1155,8 +1214,11 @@ pub fn remove_material_task(
     if path.is_empty() {
         return Err(command_error("娴犺濮熺捄顖氱窞娑撳秷鍏樻稉铏光敄閵?"));
     }
-    let connection = Connection::open(&data.db_path)
-        .map_err(|error| command_error(format!("閹垫挸绱戞禒璇插閺佺増宓佹惔鎾炽亼鐠愩儻绱皗{error}")))?;
+    let connection = Connection::open(&data.db_path).map_err(|error| {
+        command_error(format!(
+            "閹垫挸绱戞禒璇插閺佺増宓佹惔鎾炽亼鐠愩儻绱皗{error}"
+        ))
+    })?;
     ensure_material_tasks_table(&connection)?;
     connection
         .execute("DELETE FROM material_tasks WHERE path = ?1", params![path])
@@ -1174,8 +1236,11 @@ pub fn reset_material_tasks(
     data: State<'_, AppData>,
     request: ResetMaterialTasksRequest,
 ) -> Result<bool, CommandError> {
-    let connection = Connection::open(&data.db_path)
-        .map_err(|error| command_error(format!("閹垫挸绱戞禒璇插閺佺増宓佹惔鎾炽亼鐠愩儻绱皗{error}")))?;
+    let connection = Connection::open(&data.db_path).map_err(|error| {
+        command_error(format!(
+            "閹垫挸绱戞禒璇插閺佺増宓佹惔鎾炽亼鐠愩儻绱皗{error}"
+        ))
+    })?;
     ensure_material_tasks_table(&connection)?;
     let now = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
     if let Some(path) = request
@@ -1201,8 +1266,11 @@ pub fn reset_material_tasks(
                 params![now],
             )
             .map_err(|error| command_error(format!("閹靛綊鍣洪柌宥囩枂缁辩姵娼楁禒璇插婢惰精瑙﹂敍姝縠{error}")))?;
-        data.logger
-            .info("materials", "tasks.reset_all", "閹靛綊鍣洪柌宥囩枂缁辩姵娼楁禒璇插閻樿埖鈧?");
+        data.logger.info(
+            "materials",
+            "tasks.reset_all",
+            "閹靛綊鍣洪柌宥囩枂缁辩姵娼楁禒璇插閻樿埖鈧?",
+        );
     }
     Ok(true)
 }
@@ -1257,8 +1325,11 @@ pub fn open_material_output_dir(
     if path.is_empty() {
         return Err(command_error("娴犺濮熺捄顖氱窞娑撳秷鍏樻稉铏光敄閵?"));
     }
-    let connection = Connection::open(&data.db_path)
-        .map_err(|error| command_error(format!("閹垫挸绱戞禒璇插閺佺増宓佹惔鎾炽亼鐠愩儻绱皗{error}")))?;
+    let connection = Connection::open(&data.db_path).map_err(|error| {
+        command_error(format!(
+            "閹垫挸绱戞禒璇插閺佺増宓佹惔鎾炽亼鐠愩儻绱皗{error}"
+        ))
+    })?;
     ensure_material_tasks_table(&connection)?;
     let file = load_material_task_by_path(&connection, path)?
         .ok_or_else(|| command_error("閺堫亝澹橀崚鎷岊嚉缁辩姵娼楁禒璇插閵?"))?;
@@ -1298,14 +1369,18 @@ pub fn open_material_output_dir(
     data.logger.info(
         "materials",
         "output_dir.open",
-        format!("Open material output directory: {}", output_path.to_string_lossy()),
+        format!(
+            "Open material output directory: {}",
+            output_path.to_string_lossy()
+        ),
     );
     Ok(true)
 }
 
 #[tauri::command]
 pub fn test_ffmpeg_path(data: State<'_, AppData>) -> Result<ToolTestResult, CommandError> {
-    data.logger.info("audio", "ffmpeg.test", "Testing ffmpeg path");
+    data.logger
+        .info("audio", "ffmpeg.test", "Testing ffmpeg path");
     let settings = data.settings.lock().map_err(lock_error)?.clone();
     let version = run_ffmpeg_version(&settings.tool_profile.ffmpeg_path)?;
     data.save_settings(&settings)?;
@@ -1321,7 +1396,8 @@ pub async fn test_speech_profile(
     data: State<'_, AppData>,
 ) -> Result<SpeechTestResult, CommandError> {
     let started = Instant::now();
-    data.logger.info("audio", "speech.test", "Testing speech profile");
+    data.logger
+        .info("audio", "speech.test", "Testing speech profile");
     let settings = data.settings.lock().map_err(lock_error)?.clone();
     validate_speech_profile(&settings.speech_profile)?;
     let output_dir = resolve_audio_base_dir(&data, "")?.join("tests");
@@ -1337,7 +1413,10 @@ pub async fn test_speech_profile(
     data.logger.info(
         "audio",
         "speech.test.done",
-        format!("Speech test done elapsed_ms={}", started.elapsed().as_millis()),
+        format!(
+            "Speech test done elapsed_ms={}",
+            started.elapsed().as_millis()
+        ),
     );
     Ok(SpeechTestResult {
         ok: true,
@@ -1353,7 +1432,8 @@ pub async fn preview_speech(
     request: SpeechPreviewRequest,
 ) -> Result<SpeechTestResult, CommandError> {
     let started = Instant::now();
-    data.logger.info("audio", "speech.preview", "Generating speech preview");
+    data.logger
+        .info("audio", "speech.preview", "Generating speech preview");
     let settings = data.settings.lock().map_err(lock_error)?.clone();
     validate_speech_profile(&settings.speech_profile)?;
     let text = request.text.as_deref().unwrap_or("").trim();
@@ -1361,8 +1441,9 @@ pub async fn preview_speech(
         return Err(command_error("Preview text cannot be empty."));
     }
     let output_dir = resolve_audio_base_dir(&data, "")?.join("previews");
-    fs::create_dir_all(&output_dir)
-        .map_err(|error| command_error(format!("Create speech preview output dir failed: {error}")))?;
+    fs::create_dir_all(&output_dir).map_err(|error| {
+        command_error(format!("Create speech preview output dir failed: {error}"))
+    })?;
     let audio_file = output_dir.join(format!(
         "speech_preview_{}_{}.mp3",
         sanitize_file_name(&settings.speech_profile.voice_name),
@@ -1374,7 +1455,11 @@ pub async fn preview_speech(
     data.logger.info(
         "audio",
         "speech.preview.done",
-        format!("Speech preview done chars={} elapsed_ms={}", text.chars().count(), started.elapsed().as_millis()),
+        format!(
+            "Speech preview done chars={} elapsed_ms={}",
+            text.chars().count(),
+            started.elapsed().as_millis()
+        ),
     );
     Ok(SpeechTestResult {
         ok: true,
@@ -1401,10 +1486,30 @@ pub fn save_speech_region_key(
         .map_err(|error| command_error(format!("Open database failed: {error}")))?;
     ensure_speech_region_key_table(&connection)?;
     let current_settings = data.settings.lock().map_err(lock_error)?.clone();
-    let voice_name = request.voice_name.as_deref().unwrap_or(&current_settings.speech_profile.voice_name).trim().to_string();
-    let output_format = request.output_format.as_deref().unwrap_or(&current_settings.speech_profile.output_format).trim().to_string();
-    let rate = request.rate.as_deref().unwrap_or(&current_settings.speech_profile.rate).trim().to_string();
-    let pitch = request.pitch.as_deref().unwrap_or(&current_settings.speech_profile.pitch).trim().to_string();
+    let voice_name = request
+        .voice_name
+        .as_deref()
+        .unwrap_or(&current_settings.speech_profile.voice_name)
+        .trim()
+        .to_string();
+    let output_format = request
+        .output_format
+        .as_deref()
+        .unwrap_or(&current_settings.speech_profile.output_format)
+        .trim()
+        .to_string();
+    let rate = request
+        .rate
+        .as_deref()
+        .unwrap_or(&current_settings.speech_profile.rate)
+        .trim()
+        .to_string();
+    let pitch = request
+        .pitch
+        .as_deref()
+        .unwrap_or(&current_settings.speech_profile.pitch)
+        .trim()
+        .to_string();
     connection
         .execute(
             r#"
@@ -1428,7 +1533,10 @@ pub fn save_speech_region_key(
     settings.speech_profile.output_format = output_format.clone();
     settings.speech_profile.rate = rate.clone();
     settings.speech_profile.pitch = pitch.clone();
-    settings.speech_profile.region_keys.insert(region.to_string(), speech_key.to_string());
+    settings
+        .speech_profile
+        .region_keys
+        .insert(region.to_string(), speech_key.to_string());
     data.save_settings(&settings)?;
     Ok(SpeechRegionKeyResult {
         region: region.to_string(),
@@ -1468,7 +1576,11 @@ pub fn get_speech_region_key(
             current_settings.speech_profile.rate,
             current_settings.speech_profile.pitch,
         ),
-        Err(error) => return Err(command_error(format!("Load speech region key failed: {error}"))),
+        Err(error) => {
+            return Err(command_error(format!(
+                "Load speech region key failed: {error}"
+            )))
+        }
     };
     Ok(SpeechRegionKeyResult {
         region: region.to_string(),
@@ -1500,7 +1612,9 @@ pub fn get_speech_voices(
             .query_map([], speech_voice_from_row)
             .map_err(|error| command_error(format!("Query speech voices failed: {error}")))?;
         for row in rows {
-            voices.push(row.map_err(|error| command_error(format!("Read speech voice row failed: {error}")))?);
+            voices.push(row.map_err(|error| {
+                command_error(format!("Read speech voice row failed: {error}"))
+            })?);
         }
     } else {
         let mut statement = connection
@@ -1510,7 +1624,9 @@ pub fn get_speech_voices(
             .query_map(params![locale], speech_voice_from_row)
             .map_err(|error| command_error(format!("Query speech voices failed: {error}")))?;
         for row in rows {
-            voices.push(row.map_err(|error| command_error(format!("Read speech voice row failed: {error}")))?);
+            voices.push(row.map_err(|error| {
+                command_error(format!("Read speech voice row failed: {error}"))
+            })?);
         }
     }
     Ok(GetSpeechVoicesResult {
@@ -1546,8 +1662,11 @@ pub async fn generate_material_task_audio(
         return Err(command_error("娴犺濮熺捄顖氱窞娑撳秷鍏樻稉铏光敄閵?"));
     }
     let trace_id = build_audio_trace_id(request.trace_id.as_deref());
-    let connection = Connection::open(&data.db_path)
-        .map_err(|error| command_error(format!("閹垫挸绱戞禒璇插閺佺増宓佹惔鎾炽亼鐠愩儻绱皗{error}")))?;
+    let connection = Connection::open(&data.db_path).map_err(|error| {
+        command_error(format!(
+            "閹垫挸绱戞禒璇插閺佺増宓佹惔鎾炽亼鐠愩儻绱皗{error}"
+        ))
+    })?;
     ensure_material_tasks_table(&connection)?;
     let mut file = match load_material_task_by_path(&connection, path)? {
         Some(file) => file,
@@ -1610,13 +1729,8 @@ pub async fn generate_material_task_audio(
         None,
         Some("閺冧胶娅у鑼额嚢閸欐牭绱濆锝呮躬鐟欏嫬鍨濋崚鍡橆唽"),
     )?;
-    let file_name = material_dir
-        .file_name()
-        .and_then(|value| value.to_str())
-        .map(sanitize_file_name)
-        .filter(|value| !value.is_empty())
-        .unwrap_or_else(|| sanitize_file_name(&file.name));
-    let audio_base_dir = material_dir.join("audio");
+    let file_name = sanitize_file_name(&file.name);
+    let audio_base_dir = material_dir.clone();
     update_material_task_audio_status(
         &connection,
         path,
@@ -1714,7 +1828,9 @@ pub fn generate_book_video_pipeline(
     }
     let epub = PathBuf::from(epub_path);
     if !epub.exists() {
-        return Err(command_error(format!("EPUB file does not exist: {epub_path}")));
+        return Err(command_error(format!(
+            "EPUB file does not exist: {epub_path}"
+        )));
     }
     let (pipeline_root, script) = find_video_pipeline(&app)?;
     let python = find_python_command();
@@ -1731,8 +1847,11 @@ pub fn generate_book_video_pipeline(
         &trace_id,
     );
 
-    let connection = Connection::open(&data.db_path)
-        .map_err(|error| command_error(format!("閹垫挸绱戞禒璇插閺佺増宓佹惔鎾炽亼鐠愩儻绱皗{error}")))?;
+    let connection = Connection::open(&data.db_path).map_err(|error| {
+        command_error(format!(
+            "閹垫挸绱戞禒璇插閺佺増宓佹惔鎾炽亼鐠愩儻绱皗{error}"
+        ))
+    })?;
     ensure_material_tasks_table(&connection)?;
     upsert_material_task(
         &connection,
@@ -1813,7 +1932,7 @@ fn run_book_video_pipeline_background(
 
     let mut command = Command::new(&python);
     let app_material_dir = resolve_task_material_dir_for_video(&db_path, &epub_path);
-    let app_video_dir = app_material_dir.as_ref().map(|path| path.join("video"));
+    let app_video_dir = app_material_dir.clone();
     command
         .current_dir(&pipeline_root)
         .env("PYTHONIOENCODING", "UTF-8")
@@ -1870,9 +1989,9 @@ fn run_book_video_pipeline_background(
             text_preview(&stderr, 4000)
         );
         logger.trace_error(
-                "video",
-                "pipeline.failed",
-                "Video pipeline failed",
+            "video",
+            "pipeline.failed",
+            "Video pipeline failed",
             &detail,
             &trace_id,
         );
@@ -2090,7 +2209,10 @@ fn resolve_task_material_dir_for_video(db_path: &Path, epub_path: &str) -> Optio
     }
 }
 
-fn video_duration_is_abnormal(audio_duration_ms: Option<i64>, video_duration_ms: Option<i64>) -> bool {
+fn video_duration_is_abnormal(
+    audio_duration_ms: Option<i64>,
+    video_duration_ms: Option<i64>,
+) -> bool {
     let Some(audio) = audio_duration_ms else {
         return false;
     };
@@ -2169,11 +2291,15 @@ async fn generate_audio_from_text(
             "鐠囧嘲鍘涢悽鐔稿灇閹存牜鐭樼拹瀛樻⒑閻ц姤鏋冮張顑锯偓?",
             &trace_id,
         );
-        return Err(command_error("鐠囧嘲鍘涢悽鐔稿灇閹存牜鐭樼拹瀛樻⒑閻ц姤鏋冮張顑锯偓?"));
+        return Err(command_error(
+            "鐠囧嘲鍘涢悽鐔稿灇閹存牜鐭樼拹瀛樻⒑閻ц姤鏋冮張顑锯偓?",
+        ));
     }
     let chunks = split_speech_text(text, SPEECH_CHUNK_MAX_CHARS);
     if chunks.is_empty() {
-        return Err(command_error("濞屸剝婀侀崣顖滄暏娴滃海鏁撻幋鎰扮叾妫版垹娈戦弬鍥ㄦ拱閵?"));
+        return Err(command_error(
+            "濞屸剝婀侀崣顖滄暏娴滃海鏁撻幋鎰扮叾妫版垹娈戦弬鍥ㄦ拱閵?",
+        ));
     }
     if chunks.len() > 1 {
         run_ffmpeg_version(&settings.tool_profile.ffmpeg_path)?;
@@ -2197,10 +2323,16 @@ async fn generate_audio_from_text(
     ));
     let parts_dir = output_dir.join("parts");
     let ssml_dir = output_dir.join("ssml");
-    fs::create_dir_all(&output_dir)
-        .map_err(|error| command_error(format!("閸掓稑缂撻棅鎶筋暥鏉堟挸鍤惄顔肩秿婢惰精瑙﹂敍姝縠{error}")))?;
-    fs::create_dir_all(&parts_dir)
-        .map_err(|error| command_error(format!("閸掓稑缂撻棅鎶筋暥閸掑棙顔岄惄顔肩秿婢惰精瑙﹂敍姝縠{error}")))?;
+    fs::create_dir_all(&output_dir).map_err(|error| {
+        command_error(format!(
+            "閸掓稑缂撻棅鎶筋暥鏉堟挸鍤惄顔肩秿婢惰精瑙﹂敍姝縠{error}"
+        ))
+    })?;
+    fs::create_dir_all(&parts_dir).map_err(|error| {
+        command_error(format!(
+            "閸掓稑缂撻棅鎶筋暥閸掑棙顔岄惄顔肩秿婢惰精瑙﹂敍姝縠{error}"
+        ))
+    })?;
     fs::create_dir_all(&ssml_dir)
         .map_err(|error| command_error(format!("閸掓稑缂?SSML 閻╊喖缍嶆径杈Е閿涙{error}")))?;
 
@@ -2255,12 +2387,17 @@ async fn generate_audio_from_text(
         let part_file = parts_dir.join(format!("part_{:03}.mp3", index + 1));
         let part_ssml_file = ssml_dir.join(format!("part_{:03}.ssml", index + 1));
         let ssml = build_ssml(chunk, &settings.speech_profile);
-        fs::write(&part_ssml_file, &ssml)
-            .map_err(|error| command_error(format!("閸愭瑥鍙嗛崚鍡橆唽 SSML 婢惰精瑙﹂敍姝縠{error}")))?;
+        fs::write(&part_ssml_file, &ssml).map_err(|error| {
+            command_error(format!("閸愭瑥鍙嗛崚鍡橆唽 SSML 婢惰精瑙﹂敍姝縠{error}"))
+        })?;
         data.logger.trace_info(
             "audio",
             "speech.request",
-            format!("瀵偓婵顕Ч鍌氫簳鏉烆垵顕㈤棅鍐插瀻濞?{}/{}", index + 1, chunks.len()),
+            format!(
+                "瀵偓婵顕Ч鍌氫簳鏉烆垵顕㈤棅鍐插瀻濞?{}/{}",
+                index + 1,
+                chunks.len()
+            ),
             format!(
                 "chunk_chars={} output={}",
                 chunk.chars().count(),
@@ -2300,13 +2437,21 @@ async fn generate_audio_from_text(
             let progress = 40 + (((index + 1) as i64 * 45) / chunks.len().max(1) as i64);
             callback.update(
                 progress.min(85),
-                &format!("瀵邦喛钂嬬拠顓㈢叾閸掑棙顔?{}/{} 瀹告彃鐣幋?", index + 1, chunks.len()),
+                &format!(
+                    "瀵邦喛钂嬬拠顓㈢叾閸掑棙顔?{}/{} 瀹告彃鐣幋?",
+                    index + 1,
+                    chunks.len()
+                ),
             );
         }
         data.logger.trace_info(
             "audio",
             "speech.response",
-            format!("瀵邦喛钂嬬拠顓㈢叾閸掑棙顔?{}/{} 閻㈢喐鍨氶幋鎰", index + 1, chunks.len()),
+            format!(
+                "瀵邦喛钂嬬拠顓㈢叾閸掑棙顔?{}/{} 閻㈢喐鍨氶幋鎰",
+                index + 1,
+                chunks.len()
+            ),
             format!(
                 "elapsed_ms={} file={}",
                 part_started.elapsed().as_millis(),
@@ -2319,8 +2464,9 @@ async fn generate_audio_from_text(
 
     let final_audio = output_dir.join(format!("{file_stem}.mp3"));
     if part_files.len() == 1 {
-        fs::copy(&part_files[0], &final_audio)
-            .map_err(|error| command_error(format!("婢跺秴鍩楅棅鎶筋暥閺傚洣娆㈡径杈Е閿涙{error}")))?;
+        fs::copy(&part_files[0], &final_audio).map_err(|error| {
+            command_error(format!("婢跺秴鍩楅棅鎶筋暥閺傚洣娆㈡径杈Е閿涙{error}"))
+        })?;
     } else {
         if let Some(callback) = progress_callback.as_ref() {
             callback.update(88, "濮濓絽婀幏鍏煎复闂婃娊顣堕崚鍡橆唽");
@@ -2403,8 +2549,11 @@ pub fn get_operation_logs(
         .trace_id
         .as_deref()
         .filter(|value| !value.trim().is_empty());
-    let connection = Connection::open(&data.db_path)
-        .map_err(|error| command_error(format!("鐠囪褰囬幙宥勭稊閺冦儱绻旈弫鐗堝祦鎼存挸銇戠拹銉窗{error}")))?;
+    let connection = Connection::open(&data.db_path).map_err(|error| {
+        command_error(format!(
+            "鐠囪褰囬幙宥勭稊閺冦儱绻旈弫鐗堝祦鎼存挸銇戠拹銉窗{error}"
+        ))
+    })?;
     let entries = if let Some(trace_id) = trace_id {
         query_operation_logs_by_trace(&connection, limit, trace_id)?
     } else {
@@ -2451,7 +2600,9 @@ fn query_operation_logs_by_trace(
             LIMIT ?3
             "#,
         )
-        .map_err(|error| command_error(format!("Prepare operation log trace query failed: {error}")))?;
+        .map_err(|error| {
+            command_error(format!("Prepare operation log trace query failed: {error}"))
+        })?;
     let rows = statement
         .query_map(
             (trace_id, trace_prefix, limit as i64),
@@ -2469,7 +2620,11 @@ where
 {
     let mut entries = Vec::new();
     for row in rows {
-        entries.push(row.map_err(|error| command_error(format!("鐠囪褰囬幙宥勭稊閺冦儱绻旂悰灞姐亼鐠愩儻绱皗{error}")))?);
+        entries.push(row.map_err(|error| {
+            command_error(format!(
+                "鐠囪褰囬幙宥勭稊閺冦儱绻旂悰灞姐亼鐠愩儻绱皗{error}"
+            ))
+        })?);
     }
     entries.reverse();
     Ok(entries)
@@ -2560,8 +2715,6 @@ async fn call_ai(
                 Err(error) => {
                     let message = format!("Failed to launch video pipeline: {error}");
 
-
-
                     if attempt == AI_REQUEST_MAX_ATTEMPTS {
                         return Err(command_error(message));
                     }
@@ -2639,8 +2792,9 @@ fn parse_streaming_chat_content(body: &str) -> Result<String, CommandError> {
         if data.is_empty() || data == "[DONE]" {
             continue;
         }
-        let chunk = serde_json::from_str::<StreamingChatChunk>(data)
-            .map_err(|error| command_error(format!("AI 濞翠礁绱￠崫宥呯安鐟欙絾鐎芥径杈Е閿涙{error}")))?;
+        let chunk = serde_json::from_str::<StreamingChatChunk>(data).map_err(|error| {
+            command_error(format!("AI 濞翠礁绱￠崫宥呯安鐟欙絾鐎芥径杈Е閿涙{error}"))
+        })?;
         for choice in chunk.choices {
             if let Some(delta) = choice.delta {
                 if let Some(part) = delta.content {
@@ -2698,9 +2852,14 @@ async fn call_feishu(settings: &AppSettings, text: &str) -> Result<FeishuSendRes
     let code = body.code.unwrap_or(-1);
     if code != 0 {
         let msg = body.msg.unwrap_or_else(|| "unknown".to_string());
-        return Err(command_error(format!("Feishu webhook failed: code={code} msg={msg}")));
+        return Err(command_error(format!(
+            "Feishu webhook failed: code={code} msg={msg}"
+        )));
     }
-    Ok(FeishuSendResult { ok: true, message: "Feishu message sent.".to_string() })
+    Ok(FeishuSendResult {
+        ok: true,
+        message: "Feishu message sent.".to_string(),
+    })
 }
 
 async fn notify_generation_completed(
@@ -2712,7 +2871,13 @@ async fn notify_generation_completed(
     trace_id: &str,
 ) {
     if settings.feishu_profile.webhook_url.trim().is_empty() {
-        data.logger.debug("feishu", "materials_notify.skip", "Feishu webhook is empty", "", trace_id);
+        data.logger.debug(
+            "feishu",
+            "materials_notify.skip",
+            "Feishu webhook is empty",
+            "",
+            trace_id,
+        );
         return;
     }
     let message = format!(
@@ -2726,8 +2891,20 @@ async fn notify_generation_completed(
         source_path,
     );
     match call_feishu(settings, &message).await {
-        Ok(_) => data.logger.trace_info("feishu", "materials_notify.done", "Materials Feishu notification sent", format!("source={source_path}"), trace_id),
-        Err(error) => data.logger.trace_error("feishu", "materials_notify.failed", "Materials Feishu notification failed", &error.message, trace_id),
+        Ok(_) => data.logger.trace_info(
+            "feishu",
+            "materials_notify.done",
+            "Materials Feishu notification sent",
+            format!("source={source_path}"),
+            trace_id,
+        ),
+        Err(error) => data.logger.trace_error(
+            "feishu",
+            "materials_notify.failed",
+            "Materials Feishu notification failed",
+            &error.message,
+            trace_id,
+        ),
     }
 }
 
@@ -2741,7 +2918,13 @@ async fn notify_audio_generation_completed(
     trace_id: &str,
 ) {
     if settings.feishu_profile.webhook_url.trim().is_empty() {
-        data.logger.debug("feishu", "audio_notify.skip", "Feishu webhook is empty", "", trace_id);
+        data.logger.debug(
+            "feishu",
+            "audio_notify.skip",
+            "Feishu webhook is empty",
+            "",
+            trace_id,
+        );
         return;
     }
     let duration = result
@@ -2760,8 +2943,20 @@ async fn notify_audio_generation_completed(
         source_path,
     );
     match call_feishu(settings, &message).await {
-        Ok(_) => data.logger.trace_info("feishu", "audio_notify.done", "Audio Feishu notification sent", format!("source={source_path} audio={}", result.audio_file), trace_id),
-        Err(error) => data.logger.trace_error("feishu", "audio_notify.failed", "Audio Feishu notification failed", &error.message, trace_id),
+        Ok(_) => data.logger.trace_info(
+            "feishu",
+            "audio_notify.done",
+            "Audio Feishu notification sent",
+            format!("source={source_path} audio={}", result.audio_file),
+            trace_id,
+        ),
+        Err(error) => data.logger.trace_error(
+            "feishu",
+            "audio_notify.failed",
+            "Audio Feishu notification failed",
+            &error.message,
+            trace_id,
+        ),
     }
 }
 
@@ -2824,7 +3019,10 @@ async fn synthesize_speech_to_file(
         .map_err(|error| command_error(format!("Read speech response failed: {error}")))?;
     if !status.is_success() {
         let body = String::from_utf8_lossy(&bytes);
-        return Err(command_error(format!("Speech service returned HTTP {status}: {}", text_preview(&body, 300))));
+        return Err(command_error(format!(
+            "Speech service returned HTTP {status}: {}",
+            text_preview(&body, 300)
+        )));
     }
     if bytes.is_empty() {
         return Err(command_error("Speech service returned empty audio."));
@@ -2909,7 +3107,12 @@ fn estimate_speech_duration_ms(text: &str) -> u64 {
     let chars = text.chars().filter(|char| !char.is_whitespace()).count() as u64;
     let punctuation_pauses = text
         .chars()
-        .filter(|char| matches!(char, '?' | '?' | '?' | '.' | '!' | '?' | ';' | '?' | ',' | '?'))
+        .filter(|char| {
+            matches!(
+                char,
+                '?' | '?' | '?' | '.' | '!' | '?' | ';' | '?' | ',' | '?'
+            )
+        })
         .count() as u64;
     (chars * 260 + punctuation_pauses * 180).max(800)
 }
@@ -2973,10 +3176,16 @@ fn build_audio_manifest(
 }
 
 fn write_audio_manifest(path: &Path, manifest: &AudioManifest) -> Result<(), CommandError> {
-    let json = serde_json::to_string_pretty(manifest)
-        .map_err(|error| command_error(format!("鎼村繐鍨崠鏍叾妫?manifest 婢惰精瑙﹂敍姝縠{error}")))?;
-    fs::write(path, json)
-        .map_err(|error| command_error(format!("閸愭瑥鍙嗛棅鎶筋暥 manifest 婢惰精瑙﹂敍姝縠{error}")))?;
+    let json = serde_json::to_string_pretty(manifest).map_err(|error| {
+        command_error(format!(
+            "鎼村繐鍨崠鏍叾妫?manifest 婢惰精瑙﹂敍姝縠{error}"
+        ))
+    })?;
+    fs::write(path, json).map_err(|error| {
+        command_error(format!(
+            "閸愭瑥鍙嗛棅鎶筋暥 manifest 婢惰精瑙﹂敍姝縠{error}"
+        ))
+    })?;
     Ok(())
 }
 
@@ -3017,7 +3226,9 @@ fn run_ffmpeg_version(ffmpeg_path: &str) -> Result<String, CommandError> {
     }
     let path_buf = PathBuf::from(path);
     if !path_buf.exists() {
-        return Err(command_error("ffmpeg.exe 鐠侯垰绶炴稉宥呯摠閸︻煉绱濈拠閿嬵梾閺屻儵鍘ょ純顔衡偓?"));
+        return Err(command_error(
+            "ffmpeg.exe 鐠侯垰绶炴稉宥呯摠閸︻煉绱濈拠閿嬵梾閺屻儵鍘ょ純顔衡偓?",
+        ));
     }
     let output = Command::new(&path_buf)
         .arg("-version")
@@ -3033,7 +3244,11 @@ fn run_ffmpeg_version(ffmpeg_path: &str) -> Result<String, CommandError> {
         )));
     }
     let stdout = String::from_utf8_lossy(&output.stdout);
-    Ok(stdout.lines().next().unwrap_or("ffmpeg 閸欘垳鏁?").to_string())
+    Ok(stdout
+        .lines()
+        .next()
+        .unwrap_or("ffmpeg 閸欘垳鏁?")
+        .to_string())
 }
 
 fn concat_audio_parts(
@@ -3059,8 +3274,11 @@ fn concat_audio_parts(
         })
         .collect::<Vec<_>>()
         .join("\n");
-    fs::write(&concat_file, content)
-        .map_err(|error| command_error(format!("閸愭瑥鍙?ffmpeg 閹峰吋甯村〒鍛礋婢惰精瑙﹂敍姝縠{error}")))?;
+    fs::write(&concat_file, content).map_err(|error| {
+        command_error(format!(
+            "閸愭瑥鍙?ffmpeg 閹峰吋甯村〒鍛礋婢惰精瑙﹂敍姝縠{error}"
+        ))
+    })?;
     logger.trace_info(
         "audio",
         "ffmpeg.concat",
@@ -3125,7 +3343,9 @@ fn probe_audio_duration_ms(
 ) -> Result<u64, CommandError> {
     let path = ffmpeg_path.trim();
     if path.is_empty() {
-        return Err(command_error("閺堫亪鍘ょ純?ffmpeg.exe閿涘本妫ゅ▔鏇熷赴濞村鐓舵０鎴炴闂€瑁も偓?"));
+        return Err(command_error(
+            "閺堫亪鍘ょ純?ffmpeg.exe閿涘本妫ゅ▔鏇熷赴濞村鐓舵０鎴炴闂€瑁も偓?",
+        ));
     }
     let output = Command::new(path)
         .args(["-hide_banner", "-i"])
@@ -3136,10 +3356,15 @@ fn probe_audio_duration_ms(
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .output()
-        .map_err(|error| command_error(format!("閹笛嗩攽 ffmpeg 閹恒垺绁撮棅鎶筋暥閺冨爼鏆辨径杈Е閿涙{error}")))?;
+        .map_err(|error| {
+            command_error(format!(
+                "閹笛嗩攽 ffmpeg 閹恒垺绁撮棅鎶筋暥閺冨爼鏆辨径杈Е閿涙{error}"
+            ))
+        })?;
     let stderr = String::from_utf8_lossy(&output.stderr);
-    let duration = parse_ffmpeg_duration_ms(&stderr)
-        .ok_or_else(|| command_error("閺堫亣鍏樻禒?ffmpeg 鏉堟挸鍤憴锝嗙€介棅鎶筋暥閺冨爼鏆遍妴?"))?;
+    let duration = parse_ffmpeg_duration_ms(&stderr).ok_or_else(|| {
+        command_error("閺堫亣鍏樻禒?ffmpeg 鏉堟挸鍤憴锝嗙€介棅鎶筋暥閺冨爼鏆遍妴?")
+    })?;
     logger.trace_info(
         "audio",
         "duration.probe",
@@ -3165,10 +3390,9 @@ fn parse_ffmpeg_duration_ms(output: &str) -> Option<u64> {
 
 fn resolve_audio_base_dir(data: &AppData, output_dir: &str) -> Result<PathBuf, CommandError> {
     if output_dir.is_empty() {
-        let parent = data
-            .settings_path
-            .parent()
-            .ok_or_else(|| command_error("閺冪姵纭剁€规矮缍呮妯款吇闂婃娊顣舵潏鎾冲毉閻╊喖缍嶉妴?"))?;
+        let parent = data.settings_path.parent().ok_or_else(|| {
+            command_error("閺冪姵纭剁€规矮缍呮妯款吇闂婃娊顣舵潏鎾冲毉閻╊喖缍嶉妴?")
+        })?;
         return Ok(parent.join("audio_exports"));
     }
     Ok(PathBuf::from(output_dir))
@@ -3213,8 +3437,8 @@ fn build_audio_trace_id(provided: Option<&str>) -> String {
 }
 
 fn build_audio_data_url(path: &Path) -> Result<String, CommandError> {
-    let bytes =
-        fs::read(path).map_err(|error| command_error(format!("Read audio file failed: {error}")))?;
+    let bytes = fs::read(path)
+        .map_err(|error| command_error(format!("Read audio file failed: {error}")))?;
     let encoded = base64::engine::general_purpose::STANDARD.encode(bytes);
     Ok(format!("data:audio/mpeg;base64,{encoded}"))
 }
@@ -3470,7 +3694,9 @@ fn load_material_task_by_path(
     match result {
         Ok(file) => Ok(Some(file)),
         Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
-        Err(error) => Err(command_error(format!("鐠囪褰囩槐鐘虫綏娴犺濮熸径杈Е閿涙{error}"))),
+        Err(error) => Err(command_error(format!(
+            "鐠囪褰囩槐鐘虫綏娴犺濮熸径杈Е閿涙{error}"
+        ))),
     }
 }
 
@@ -3524,7 +3750,11 @@ fn update_material_task_output_dir(
             "UPDATE material_tasks SET material_output_dir = ?2, updated_at = ?3 WHERE path = ?1",
             params![path, output_dir, now],
         )
-        .map_err(|error| command_error(format!("閸愭瑥鍙嗛悽鐔稿灇缁辩姵娼楅弬鍥︽婢剁懓銇戠拹銉窗{error}")))?;
+        .map_err(|error| {
+            command_error(format!(
+                "閸愭瑥鍙嗛悽鐔稿灇缁辩姵娼楅弬鍥︽婢剁懓銇戠拹銉窗{error}"
+            ))
+        })?;
     Ok(())
 }
 
@@ -3566,7 +3796,9 @@ fn update_material_task_audio_status(
                 now
             ],
         )
-        .map_err(|error| command_error(format!("Update material task audio status failed: {error}")))?;
+        .map_err(|error| {
+            command_error(format!("Update material task audio status failed: {error}"))
+        })?;
     Ok(())
 }
 
@@ -3638,42 +3870,48 @@ fn migrate_task_outputs_to_source_output(
     {
         let old = PathBuf::from(value);
         if old.is_file() && !path_is_inside(&old, &output_dir) {
-            let audio_dir = output_dir.join("audio");
-            fs::create_dir_all(&audio_dir)
-                .map_err(|error| command_error(format!("閸掓稑缂?output 闂婃娊顣堕惄顔肩秿婢惰精瑙﹂敍姝縠{error}")))?;
+            fs::create_dir_all(&output_dir).map_err(|error| {
+                command_error(format!(
+                    "閸掓稑缂?output 闂婃娊顣堕惄顔肩秿婢惰精瑙﹂敍姝縠{error}"
+                ))
+            })?;
             let target = unique_child_path(
-                &audio_dir,
+                &output_dir,
                 old.file_name()
                     .and_then(|name| name.to_str())
                     .unwrap_or("audio.mp3"),
             );
-            fs::copy(&old, &target)
-                .map_err(|error| command_error(format!("鏉╀胶些闂婃娊顣堕弬鍥︽婢惰精瑙﹂敍姝縠{error}")))?;
+            fs::copy(&old, &target).map_err(|error| {
+                command_error(format!("鏉╀胶些闂婃娊顣堕弬鍥︽婢惰精瑙﹂敍姝縠{error}"))
+            })?;
             audio_file = Some(target.to_string_lossy().into_owned());
             file.audio_file = audio_file.clone();
             if file.audio_output_dir.is_none() {
-                audio_output_dir = Some(audio_dir.to_string_lossy().into_owned());
+                audio_output_dir = Some(output_dir.to_string_lossy().into_owned());
                 file.audio_output_dir = audio_output_dir.clone();
             }
         }
     }
-    if let (Some(material_dir), Some(value)) = (material_output_dir.as_deref(), audio_file.as_deref()) {
+    if let (Some(material_dir), Some(value)) =
+        (material_output_dir.as_deref(), audio_file.as_deref())
+    {
         let material_dir = PathBuf::from(material_dir);
         let old = PathBuf::from(value);
-        let audio_dir = material_dir.join("audio");
-        if old.is_file() && !path_is_inside(&old, &audio_dir) {
-            fs::create_dir_all(&audio_dir)
-                .map_err(|error| command_error(format!("Create material audio directory failed: {error}")))?;
+        if old.is_file() && !path_is_inside(&old, &material_dir) {
+            fs::create_dir_all(&material_dir).map_err(|error| {
+                command_error(format!("Create material audio directory failed: {error}"))
+            })?;
             let target = unique_child_path(
-                &audio_dir,
+                &material_dir,
                 old.file_name()
                     .and_then(|name| name.to_str())
                     .unwrap_or("audio.mp3"),
             );
-            fs::copy(&old, &target)
-                .map_err(|error| command_error(format!("Copy audio into material output failed: {error}")))?;
+            fs::copy(&old, &target).map_err(|error| {
+                command_error(format!("Copy audio into material output failed: {error}"))
+            })?;
             audio_file = Some(target.to_string_lossy().into_owned());
-            audio_output_dir = Some(audio_dir.to_string_lossy().into_owned());
+            audio_output_dir = Some(material_dir.to_string_lossy().into_owned());
             file.audio_file = audio_file.clone();
             file.audio_output_dir = audio_output_dir.clone();
         }
@@ -3688,17 +3926,20 @@ fn migrate_task_outputs_to_source_output(
     {
         let old = PathBuf::from(value);
         if old.is_file() && !path_is_inside(&old, &output_dir) {
-            let video_dir = output_dir.join("video");
-            fs::create_dir_all(&video_dir)
-                .map_err(|error| command_error(format!("閸掓稑缂?output 鐟欏棝顣堕惄顔肩秿婢惰精瑙﹂敍姝縠{error}")))?;
+            fs::create_dir_all(&output_dir).map_err(|error| {
+                command_error(format!(
+                    "閸掓稑缂?output 鐟欏棝顣堕惄顔肩秿婢惰精瑙﹂敍姝縠{error}"
+                ))
+            })?;
             let target = unique_child_path(
-                &video_dir,
+                &output_dir,
                 old.file_name()
                     .and_then(|name| name.to_str())
                     .unwrap_or("video.mp4"),
             );
-            fs::copy(&old, &target)
-                .map_err(|error| command_error(format!("鏉╀胶些鐟欏棝顣堕弬鍥︽婢惰精瑙﹂敍姝縠{error}")))?;
+            fs::copy(&old, &target).map_err(|error| {
+                command_error(format!("鏉╀胶些鐟欏棝顣堕弬鍥︽婢惰精瑙﹂敍姝縠{error}"))
+            })?;
             video_file_size = fs::metadata(&target)
                 .ok()
                 .map(|metadata| metadata.len().min(i64::MAX as u64) as i64);
@@ -3770,20 +4011,27 @@ fn unique_child_path(parent: &Path, preferred_name: &str) -> PathBuf {
 fn copy_path_recursive(source: &Path, target: &Path) -> Result<(), CommandError> {
     if source.is_file() {
         if let Some(parent) = target.parent() {
-            fs::create_dir_all(parent)
-                .map_err(|error| command_error(format!("閸掓稑缂撴潻浣盒╅惄顔肩秿婢惰精瑙﹂敍姝縠{error}")))?;
+            fs::create_dir_all(parent).map_err(|error| {
+                command_error(format!("閸掓稑缂撴潻浣盒╅惄顔肩秿婢惰精瑙﹂敍姝縠{error}"))
+            })?;
         }
         fs::copy(source, target)
             .map_err(|error| command_error(format!("鏉╀胶些閺傚洣娆㈡径杈Е閿涙{error}")))?;
         return Ok(());
     }
-    fs::create_dir_all(target)
-        .map_err(|error| command_error(format!("閸掓稑缂撴潻浣盒╅惄顔肩秿婢惰精瑙﹂敍姝縠{error}")))?;
-    for entry in fs::read_dir(source)
-        .map_err(|error| command_error(format!("鐠囪褰囬崢鍡楀蕉娴溠呭⒖閻╊喖缍嶆径杈Е閿涙{error}")))?
-    {
-        let entry =
-            entry.map_err(|error| command_error(format!("鐠囪褰囬崢鍡楀蕉娴溠呭⒖閺夛紕娲版径杈Е閿涙{error}")))?;
+    fs::create_dir_all(target).map_err(|error| {
+        command_error(format!("閸掓稑缂撴潻浣盒╅惄顔肩秿婢惰精瑙﹂敍姝縠{error}"))
+    })?;
+    for entry in fs::read_dir(source).map_err(|error| {
+        command_error(format!(
+            "鐠囪褰囬崢鍡楀蕉娴溠呭⒖閻╊喖缍嶆径杈Е閿涙{error}"
+        ))
+    })? {
+        let entry = entry.map_err(|error| {
+            command_error(format!(
+                "鐠囪褰囬崢鍡楀蕉娴溠呭⒖閺夛紕娲版径杈Е閿涙{error}"
+            ))
+        })?;
         copy_path_recursive(&entry.path(), &target.join(entry.file_name()))?;
     }
     Ok(())
@@ -3803,6 +4051,16 @@ fn find_existing_material_output_dir(
     let mut candidates = Vec::new();
     for base_dir in base_dirs {
         if !base_dir.exists() {
+            continue;
+        }
+        if base_dir.join("materials.json").exists() || base_dir.join("narration.txt").exists() {
+            candidates.push((
+                base_dir
+                    .metadata()
+                    .and_then(|metadata| metadata.modified())
+                    .ok(),
+                base_dir.clone(),
+            ));
             continue;
         }
         for entry in fs::read_dir(&base_dir)
@@ -3838,6 +4096,9 @@ fn find_existing_material_output_dir(
     Ok(candidates.into_iter().map(|(_, path)| path).next())
 }
 fn material_output_dir_matches(file: &MaterialFile, path: &Path) -> bool {
+    if path.join("materials.json").exists() || path.join("narration.txt").exists() {
+        return true;
+    }
     let name = path
         .file_name()
         .and_then(|value| value.to_str())
@@ -3919,7 +4180,9 @@ fn ensure_speech_region_key_table(connection: &Connection) -> Result<(), Command
             );
             "#,
         )
-        .map_err(|error| command_error(format!("Ensure speech region key table failed: {error}")))?;
+        .map_err(|error| {
+            command_error(format!("Ensure speech region key table failed: {error}"))
+        })?;
     let _ = connection.execute(
         "ALTER TABLE speech_region_keys ADD COLUMN voice_name TEXT NOT NULL DEFAULT ''",
         [],
@@ -3985,7 +4248,11 @@ fn seed_speech_voices(connection: &Connection) -> Result<(), CommandError> {
                 MICROSOFT_TTS_LANGUAGE_SUPPORT_URL,
                 now
             ])
-            .map_err(|error| command_error(format!("閸愭瑥鍙嗗顔胯拫鐠囶參鐓堕崚妤勩€冩径杈Е閿涙{error}")))?;
+            .map_err(|error| {
+                command_error(format!(
+                    "閸愭瑥鍙嗗顔胯拫鐠囶參鐓堕崚妤勩€冩径杈Е閿涙{error}"
+                ))
+            })?;
     }
     Ok(())
 }
@@ -4185,7 +4452,6 @@ fn text_preview(value: &str, max_chars: usize) -> String {
     preview.replace(['\r', '\n', '\t'], " ")
 }
 
-
 enum SourceReadResult {
     Ok(EpubBook),
     Err(CommandError),
@@ -4263,13 +4529,21 @@ fn read_txt_book(path: &Path) -> Result<EpubBook, CommandError> {
     })
 }
 
-fn build_local_book_materials_payload(book: &EpubBook, request: &BookMaterialsRequest) -> AiBookMaterialsPayload {
+fn build_local_book_materials_payload(
+    book: &EpubBook,
+    request: &BookMaterialsRequest,
+) -> AiBookMaterialsPayload {
     let source = build_source_packet(book);
-    let title = if book.overview.title.trim().is_empty() { "?????" } else { book.overview.title.trim() };
+    let title = if book.overview.title.trim().is_empty() {
+        "?????"
+    } else {
+        book.overview.title.trim()
+    };
     let mut narration = format!("???????{title}???????????????????????????????{source}");
     let min_chars = request.target_min_chars.max(1000);
     while count_han_chars(&narration) < min_chars {
-        narration.push_str("\n\n??????????????????????????????????????????????????????????????????????");
+        narration
+            .push_str("\n\n??????????????????????????????????????????????????????????????????????");
     }
     AiBookMaterialsPayload {
         video_title: format!("?{title}?30???????"),
@@ -4279,8 +4553,17 @@ fn build_local_book_materials_payload(book: &EpubBook, request: &BookMaterialsRe
     }
 }
 
-fn build_repair_prompt(payload: &AiBookMaterialsPayload, min_chars: usize, max_chars: usize) -> String {
-    build_narration_rewrite_prompt(payload, count_han_chars(&payload.narration), min_chars, max_chars)
+fn build_repair_prompt(
+    payload: &AiBookMaterialsPayload,
+    min_chars: usize,
+    max_chars: usize,
+) -> String {
+    build_narration_rewrite_prompt(
+        payload,
+        count_han_chars(&payload.narration),
+        min_chars,
+        max_chars,
+    )
 }
 
 fn tail_chars(value: &str, max_chars: usize) -> String {
@@ -4305,7 +4588,14 @@ fn build_book_materials_prompt(book: &EpubBook, request: &BookMaterialsRequest) 
 fn build_source_packet(book: &EpubBook) -> String {
     let mut packet = Vec::new();
     let total = book.chapters.len().max(1);
-    let mut selected_indexes = vec![0usize, total / 5, total * 2 / 5, total * 3 / 5, total * 4 / 5, total.saturating_sub(1)];
+    let mut selected_indexes = vec![
+        0usize,
+        total / 5,
+        total * 2 / 5,
+        total * 3 / 5,
+        total * 4 / 5,
+        total.saturating_sub(1),
+    ];
     selected_indexes.sort_unstable();
     selected_indexes.dedup();
     for index in selected_indexes {
@@ -4320,20 +4610,34 @@ fn build_source_packet(book: &EpubBook) -> String {
     }
     if packet.is_empty() {
         for chapter in book.chapters.iter().take(4) {
-            packet.push(format!("Chapter: {}\n{}", chapter.title, truncate_chars(&chapter.text.replace('\n', " "), 520)));
+            packet.push(format!(
+                "Chapter: {}\n{}",
+                chapter.title,
+                truncate_chars(&chapter.text.replace('\n', " "), 520)
+            ));
         }
     }
     packet.join("\n\n")
 }
 
-fn build_narration_rewrite_prompt(payload: &AiBookMaterialsPayload, current_chars: usize, min_chars: usize, max_chars: usize) -> String {
+fn build_narration_rewrite_prompt(
+    payload: &AiBookMaterialsPayload,
+    current_chars: usize,
+    min_chars: usize,
+    max_chars: usize,
+) -> String {
     format!(
         "Rewrite the JSON so narration is between {min_chars} and {max_chars} Chinese characters. Current narration Chinese chars: {current_chars}. Return only valid JSON with the same keys. Existing JSON:\n{}",
         serde_json::to_string(payload).unwrap_or_default()
     )
 }
 
-fn build_narration_extension_prompt(payload: &AiBookMaterialsPayload, current_chars: usize, min_chars: usize, max_chars: usize) -> String {
+fn build_narration_extension_prompt(
+    payload: &AiBookMaterialsPayload,
+    current_chars: usize,
+    min_chars: usize,
+    max_chars: usize,
+) -> String {
     let tail = tail_chars(&payload.narration, 700);
     format!(
         "Continue and expand this Chinese narration from {current_chars} to {min_chars}-{max_chars} Chinese characters. Return only the additional narration text, no markdown. Tail:\n{tail}"
@@ -4360,9 +4664,18 @@ fn merge_narration_extension(base: &str, extension: &str) -> String {
     }
 }
 
-fn build_local_narration_extension(payload: &AiBookMaterialsPayload, _current_chars: usize, min_chars: usize, max_chars: usize) -> String {
+fn build_local_narration_extension(
+    payload: &AiBookMaterialsPayload,
+    _current_chars: usize,
+    min_chars: usize,
+    max_chars: usize,
+) -> String {
     let mut output = String::new();
-    let seed = if payload.description.trim().is_empty() { payload.video_title.trim() } else { payload.description.trim() };
+    let seed = if payload.description.trim().is_empty() {
+        payload.video_title.trim()
+    } else {
+        payload.description.trim()
+    };
     while count_han_chars(&output) + count_han_chars(&payload.narration) < min_chars {
         if !output.is_empty() {
             output.push_str("\n\n");
@@ -4424,12 +4737,14 @@ fn is_han_char(ch: char) -> bool {
 }
 
 fn parse_book_materials_payload(content: &str) -> Result<AiBookMaterialsPayload, CommandError> {
-    let json =
-        extract_json_object(content).ok_or_else(|| command_error("AI 濞屸剝婀佹潻鏂挎礀閸欘垵袙閺嬫劗娈?JSON閵?"))?;
+    let json = extract_json_object(content)
+        .ok_or_else(|| command_error("AI 濞屸剝婀佹潻鏂挎礀閸欘垵袙閺嬫劗娈?JSON閵?"))?;
     let payload = serde_json::from_str::<AiBookMaterialsPayload>(&json)
         .map_err(|error| command_error(format!("AI JSON 鐟欙絾鐎芥径杈Е閿涙{error}")))?;
     if payload.video_title.trim().is_empty() {
-        return Err(command_error("AI 鏉╂柨娲栭惃鍕潒妫版垶鐖ｆ０妯硅礋缁屾亽鈧?"));
+        return Err(command_error(
+            "AI 鏉╂柨娲栭惃鍕潒妫版垶鐖ｆ０妯硅礋缁屾亽鈧?",
+        ));
     }
     if payload.narration.trim().is_empty() {
         return Err(command_error("AI 鏉╂柨娲栭惃鍕⒑閻х晫顭堟稉铏光敄閵?"));
@@ -4462,7 +4777,10 @@ fn split_subtitles(narration: &str) -> Vec<String> {
         if ch.is_whitespace() {
             continue;
         }
-        let should_break = matches!(ch, '?' | '?' | '?' | '.' | '!' | '?' | ';' | '?' | ',' | '?' | '\n' | '\r');
+        let should_break = matches!(
+            ch,
+            '?' | '?' | '?' | '.' | '!' | '?' | ';' | '?' | ',' | '?' | '\n' | '\r'
+        );
         if !should_break {
             current.push(ch);
         }
@@ -4517,13 +4835,11 @@ fn write_book_materials_package(
     trace_id: &str,
 ) -> Result<ExportBookMaterialsResult, CommandError> {
     let base_dir = resolve_export_base_dir(data, output_dir)?;
-    fs::create_dir_all(&base_dir)
-        .map_err(|error| command_error(format!("閸掓稑缂撶€电厧鍤惄顔肩秿婢惰精瑙﹂敍姝縠{error}")))?;
+    fs::create_dir_all(&base_dir).map_err(|error| {
+        command_error(format!("閸掓稑缂撶€电厧鍤惄顔肩秿婢惰精瑙﹂敍姝縠{error}"))
+    })?;
 
-    let folder_name = build_export_folder_name(materials);
-    let output_dir = base_dir.join(folder_name);
-    fs::create_dir_all(&output_dir)
-        .map_err(|error| command_error(format!("閸掓稑缂撶槐鐘虫綏閸栧懐娲拌ぐ鏇炪亼鐠愩儻绱皗{error}")))?;
+    let output_dir = base_dir;
 
     let mut files = Vec::new();
     write_material_file(&output_dir, &mut files, "title.txt", &materials.video_title)?;
@@ -4595,19 +4911,12 @@ fn write_book_materials_package(
     })
 }
 
-fn build_export_folder_name(materials: &BookMaterials) -> String {
-    let now = chrono::Local::now().format("%Y%m%d_%H%M%S").to_string();
-    let title = sanitize_file_name(&materials.overview.title);
-    if title.is_empty() {
-        format!("{now}_book_materials")
-    } else {
-        format!("{now}_{title}")
-    }
-}
-
 fn sanitize_file_name(value: &str) -> String {
-    let invalid_re = Regex::new(r#"[\/:*?"<>|
-	]+"#).expect("valid regex");
+    let invalid_re = Regex::new(
+        r#"[\/:*?"<>|
+	]+"#,
+    )
+    .expect("valid regex");
     let space_re = Regex::new(r#"\s+"#).expect("valid regex");
     let cleaned = invalid_re.replace_all(value.trim(), "_");
     let cleaned = space_re.replace_all(&cleaned, "_");
@@ -4633,7 +4942,11 @@ fn open_directory_in_explorer(path: &Path) -> Result<(), CommandError> {
     Command::new("explorer")
         .arg(path)
         .spawn()
-        .map_err(|error| command_error(format!("閹垫挸绱戦悽鐔稿灇缁辩姵娼楅弬鍥︽婢剁懓銇戠拹銉窗{error}")))?;
+        .map_err(|error| {
+            command_error(format!(
+                "閹垫挸绱戦悽鐔稿灇缁辩姵娼楅弬鍥︽婢剁懓銇戠拹銉窗{error}"
+            ))
+        })?;
     Ok(())
 }
 

@@ -23,6 +23,13 @@ def safe_stem(path: Path) -> str:
     return "".join(ch if ch.isalnum() or ch in ("-", "_") else "_" for ch in stem)[:80]
 
 
+def safe_output_name(value: str, fallback: str = "book") -> str:
+    value = str(value or "").strip() or fallback
+    value = re.sub(r'[\\/:*?"<>|\r\n\t]+', "_", value)
+    value = re.sub(r"\s+", "_", value)
+    return value.strip("._ ")[:80] or fallback
+
+
 def run(cmd: list[str], cwd: Path | None = None) -> None:
     completed = subprocess.run(
         cmd,
@@ -436,7 +443,7 @@ def build_aeneas_subtitles(material_root: Path, audio: Path, video_dir: Path, au
     chinese_lines = load_chinese_subtitle_lines(material_root)
     if not chinese_lines:
         raise RuntimeError("No Chinese subtitle lines found for aeneas alignment.")
-    aeneas_dir = material_root / "subtitles" / f"aeneas_{time.strftime('%Y%m%d_%H%M%S')}"
+    aeneas_dir = video_dir
     zh_srt, subtitle_manifest = run_aeneas_alignment(audio, chinese_lines, aeneas_dir, audio_language)
     zh_events = read_srt_events(zh_srt)
     english_lines = load_english_lines(material_root, len(zh_events))
@@ -448,8 +455,6 @@ def build_aeneas_subtitles(material_root: Path, audio: Path, video_dir: Path, au
     ass_file = video_dir / "hard_subtitle.aeneas.zh-en.ass"
     write_srt(srt_file, bilingual_events)
     write_ass(ass_file, bilingual_events)
-    shutil.copy2(srt_file, aeneas_dir / "hard_subtitle.aeneas.zh-en.srt")
-    shutil.copy2(ass_file, aeneas_dir / "hard_subtitle.aeneas.zh-en.ass")
     subtitle_manifest = {
         **subtitle_manifest,
         "subtitleTiming": "aeneas",
@@ -769,26 +774,26 @@ def migrate_visual_assets(material_root: Path, video_dir: Path) -> tuple[list[Pa
     if source_dir is None:
         return [], None, "none"
 
-    dest_dir = material_root / "visual_assets" / "originals" / f"{time.strftime('%Y%m%d_%H%M%S')}_app_cinematic_content_images"
+    dest_dir = video_dir
     dest_dir.mkdir(parents=True, exist_ok=True)
     copied: list[Path] = []
     for index, source in enumerate(image_candidates(source_dir)[:8], 1):
         suffix = source.suffix.lower() or ".png"
-        dest = dest_dir / f"{index:02d}_cinematic_background{suffix}"
+        dest = dest_dir / f"visual_{index:02d}_cinematic_background{suffix}"
         if source.resolve() != dest.resolve():
             shutil.copy2(source, dest)
         copied.append(dest)
 
     source_timeline = source_dir / "visual_timeline.json"
     if source_timeline.exists():
-        shutil.copy2(source_timeline, dest_dir / "source_visual_timeline.json")
+        shutil.copy2(source_timeline, video_dir / "source_visual_timeline.json")
     manifest = {
         "sourceKind": source_kind,
         "sourceDir": str(source_dir),
         "copiedAt": time.strftime("%Y-%m-%d %H:%M:%S"),
         "assets": [str(path) for path in copied],
     }
-    (dest_dir / "visual_assets_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    (video_dir / "visual_assets_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     return copied, dest_dir, source_kind
 
 
@@ -1076,7 +1081,7 @@ def main() -> int:
     material_root = find_material_root(epub, output_dir)
     if material_root is None:
         material_root = epub.parent / "output" / f"{safe_stem(epub)}_video_{time.strftime('%Y%m%d_%H%M%S')}"
-    video_dir = output_dir or (material_root / "video")
+    video_dir = output_dir or material_root
     video_dir.mkdir(parents=True, exist_ok=True)
 
     source_audio = newest_audio(material_root)
@@ -1095,6 +1100,7 @@ def main() -> int:
     ).strip()
     cover_kicker = cover_kicker_from_material(material, overview)
     subtitle_label = description.splitlines()[0].strip() if description else "Tonight's book"
+    output_stem = safe_output_name(extract_book_title(title, epub.stem) or epub.stem, safe_stem(epub))
 
     prepared_audio, duration_ms, stretch_ratio = prepare_narration_audio(
         source_audio,
@@ -1125,8 +1131,8 @@ def main() -> int:
         cover_kicker,
     )
     background_music = Path(args.background_music) if args.background_music else None
-    no_subtitle_video = video_dir / "no_subtitle_video.mp4"
-    hard_video = video_dir / "hard_subtitle_video.mp4"
+    no_subtitle_video = video_dir / f"{output_stem}_无字幕母版.mp4"
+    hard_video = video_dir / f"{output_stem}_中英双语字幕_精修版.mp4"
     render_no_subtitle_video(no_subtitle_video, cover, content_images, prepared_audio, background_music)
     render_hard_subtitle_video(hard_video, no_subtitle_video, ass_file)
 

@@ -803,7 +803,7 @@ a-book-in-30-minutes/src-tauri/target/x86_64-pc-windows-gnu/release/bundle/nsis
 - 2026-06-22 起，一键视频生成采用后台任务模式：前端点击“视频”后只负责把任务列表中对应记录刷新为“视频生成中”，并立即释放页面 busy 状态；长耗时的 Python 视频流水线由 Tauri 后台线程继续执行，实际进度和错误通过“操作日志”菜单查看。后台任务完成后回填 `material_tasks.status/progress/material_output_dir/message`，避免 WebView 长时间等待导致窗口未响应。
 - 2026-06-22 起，流水线任务列表独立展示视频状态、视频时长和视频文件大小。任务表新增 `video_status`、`video_progress`、`video_file`、`video_duration_ms`、`video_file_size`、`video_message`，视频后台任务启动时写入生成中，完成后优先记录硬字幕 MP4 的路径、时长和大小。
 - 2026-06-22 起，流水线任务列表不再使用横向滚动条。首列固定为复选框，不显示“源文件”等额外表头，也不渲染源文件大小等未定义列；任务名称列是唯一弹性列，窗口最大化时只调整任务名称宽度；任务名称显示最多 20 个字符，超过后显示前 18 个字符加 `...`，悬停显示完整文件名；任务列内容居左，其它列内容居中；格式、状态、进度、字数、音频、视频、时长和大小列使用固定宽度。
-- 2026-06-22 起，素材、音频、视频和字幕等产出物统一归档到源书所在目录下的 `output` 文件夹。新生成流程默认写入该目录；任务列表读取历史任务时会懒迁移已有 `material_output_dir`、`audio_output_dir`、`audio_file` 和 `video_file`，采用复制并回填任务表路径的方式保留旧文件，避免误删历史产物。
+- 2026-06-23 起，素材、音频、字幕、封面、视觉图、无字幕母版和最终视频等产出物直接归档到源书所在目录下的 `output` 文件夹根目录，不再为单个任务新建时间戳子文件夹，也不再固定创建 `audio`、`video`、`subtitles` 子目录。任务表中的 `material_output_dir` 和新回填的 `audio_output_dir` 指向这个 `output` 根目录；历史子目录只作为兼容读取来源，懒迁移时也复制到 `output` 根目录。
 - 2026-06-22 起，流水线页【视频】按钮是完整一键视频入口：优先使用勾选任务，其次当前任务或路径输入；如果缺少素材会先补生成素材，如果缺少音频会再补生成音频，最后启动视频后台任务。按钮可用状态按勾选、当前任务和输入路径综合判断，不再只依赖顶部素材路径输入框。
 - 2026-06-22 起，操作日志菜单默认只显示本次 app 启动后的日志；点击生成按钮后，如果前端有当前 `trace_id`，日志页只显示该按钮触发任务的日志，不再回退显示历史“最近一次生成任务”。
 - DOCX 和 PDF 目前只识别格式，正文解析暂未接入。
@@ -818,7 +818,7 @@ a-book-in-30-minutes/src-tauri/target/x86_64-pc-windows-gnu/release/bundle/nsis
 
 - 流水线任务列表拆分为素材进度、音频进度、视频进度；素材阶段达到 100% 时任务状态写入 `success`，界面显示已完成和 100%。
 - 顶部 `素材`、`音频`、`视频` 三个动作按钮统一为透明默认态；当前执行阶段才使用绿色高亮，素材按钮使用书籍图标。
-- EPUB 所在目录下统一使用 `output` 作为产物根目录。单个任务素材包内保存文本、标签、字幕、`materials.json`，音频保存到同一素材包下的 `audio` 子目录，视频保存到同一素材包下的 `video` 子目录。
+- EPUB 所在目录下统一使用 `output` 作为产物根目录。文本、标签、字幕、`materials.json`、旁白音频、aeneas SRT/ASS、封面、视觉图、无字幕母版和最终视频都直接保存在 `output` 根目录。
 - 点击 `视频` 是一键入口：没有素材先生成素材，没有音频先生成音频，最后启动后台视频流水线；前端只刷新任务列表状态，实际过程到操作日志查看。
 - 视频流水线不再写入固定 5 秒占位视频。脚本会读取素材包内最新音频，根据音频时长生成 MP4，并输出 `pipeline_manifest.json`。
 - 后端在视频任务成功落库前使用 `ffprobe` 读取音频和视频时长；音频超过 60 秒时，如果视频时长缺失或与音频差异超过 5 秒，任务标记为失败，不允许显示已完成。
@@ -826,7 +826,7 @@ a-book-in-30-minutes/src-tauri/target/x86_64-pc-windows-gnu/release/bundle/nsis
 - 当前版本升级为 `0.1.69`。
 ## 2026-06-23 两段式视频生成流程
 
-- 视频生成必须保留两段式流程：第一段先生成 `no_subtitle_video.mp4`，内容包含 5 秒封面、阅读背景图、旁白音频和循环背景音乐；第二段再以该无字幕母版为输入，烧录 ASS 硬字幕生成最终 `hard_subtitle_video.mp4`。
+- 视频生成必须保留两段式流程：第一段先生成 `<书名>_无字幕母版.mp4`，内容包含 5 秒封面、阅读背景图、旁白音频和循环背景音乐；第二段再以该无字幕母版为输入，烧录 ASS 硬字幕生成最终 `<书名>_中英双语字幕_精修版.mp4`，命名参考 `WWDC26_Keynotes_中英双语字幕_精修版.mp4`。
 - 字幕时间轴以旁白音频为主体，但整体向后偏移 `coverSeconds`，默认 5 秒，避免封面阶段提前出现正文字幕。
 - `visual_timeline.json` 必须同时记录封面片段和背景阅读片段，封面片段从 0 到 `coverSeconds`，背景片段从 `coverSeconds` 到最终视频结束。
 - `pipeline_manifest.json` 至少包含 `cover`、`background`、`visualTimeline`、`noSubtitleVideo`、`hardSubtitleVideo`、`hardSubtitleManifest`、`hardSubtitleSrt`、`narrationAudioForVideo`、`noSubtitleVideoDurationMs`、`videoDurationMs` 和 `coverSeconds`，供后端更新任务列表和日志追踪。
