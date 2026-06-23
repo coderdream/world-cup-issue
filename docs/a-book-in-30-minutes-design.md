@@ -819,6 +819,7 @@ a-book-in-30-minutes/src-tauri/target/x86_64-pc-windows-gnu/release/bundle/nsis
 - 流水线任务列表拆分为素材进度、音频进度、视频进度；素材阶段达到 100% 时任务状态写入 `success`，界面显示已完成和 100%。
 - 顶部 `素材`、`音频`、`视频` 三个动作按钮统一为透明默认态；当前执行阶段才使用绿色高亮，素材按钮使用书籍图标。
 - EPUB 所在目录下统一使用 `output` 作为产物根目录。文本、标签、字幕、`materials.json`、旁白音频、aeneas SRT/ASS、封面、视觉图、无字幕母版和最终视频都直接保存在 `output` 根目录。
+- 音频生成阶段也必须保持扁平化：完整旁白 mp3、分段 `part_*.mp3`、分段 `part_*.ssml`、`narration.ssml` 和 `audio_manifest.json` 均直接写入 `output` 根目录，不再创建时间戳音频目录、`parts` 子目录或 `ssml` 子目录。
 - Python 视频流水线即使单独运行且未显式传入 `--output-dir`，也必须默认使用 `epub.parent/output`，不得回退创建 `<书名>_video_时间戳` 子目录。
 - 点击 `视频` 是一键入口：没有素材先生成素材，没有音频先生成音频，最后启动后台视频流水线；前端只刷新任务列表状态，实际过程到操作日志查看。
 - 视频流水线不再写入固定 5 秒占位视频。脚本会读取素材包内最新音频，根据音频时长生成 MP4，并输出 `pipeline_manifest.json`。

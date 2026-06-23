@@ -2316,13 +2316,9 @@ async fn generate_audio_from_text(
     } else {
         file_stem
     };
-    let output_dir = base_dir.join(format!(
-        "{}_{}",
-        chrono::Local::now().format("%Y%m%d_%H%M%S"),
-        file_stem
-    ));
-    let parts_dir = output_dir.join("parts");
-    let ssml_dir = output_dir.join("ssml");
+    let output_dir = base_dir;
+    let parts_dir = output_dir.clone();
+    let ssml_dir = output_dir.clone();
     fs::create_dir_all(&output_dir).map_err(|error| {
         command_error(format!(
             "閸掓稑缂撻棅鎶筋暥鏉堟挸鍤惄顔肩秿婢惰精瑙﹂敍姝縠{error}"
