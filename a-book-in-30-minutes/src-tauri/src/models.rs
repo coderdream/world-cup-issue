@@ -318,6 +318,23 @@ pub struct GenerateBookVideoResult {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct GeneratePublishMaterialsRequest {
+    pub epub_path: String,
+    pub trace_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GeneratePublishMaterialsResult {
+    pub output_dir: String,
+    pub markdown_file: String,
+    pub title: String,
+    pub chapters: usize,
+    pub tags: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MaterialTaskProgressEvent {
     pub trace_id: String,
     pub path: String,

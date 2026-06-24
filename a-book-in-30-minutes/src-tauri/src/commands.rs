@@ -6,7 +6,8 @@ use crate::models::{
     EpubChapterSummary, EpubOverview, ExportBookMaterialsRequest, ExportBookMaterialsResult,
     FeishuSendRequest, FeishuSendResult, FeishuWebhookResponse, GenerateAudioRequest,
     GenerateAudioResult, GenerateBookVideoRequest, GenerateBookVideoResult,
-    GenerateMaterialTaskAudioRequest, GetMaterialTasksRequest, GetOperationLogsRequest,
+    GenerateMaterialTaskAudioRequest, GeneratePublishMaterialsRequest,
+    GeneratePublishMaterialsResult, GetMaterialTasksRequest, GetOperationLogsRequest,
     GetOperationLogsResult, GetSpeechVoicesResult, MaterialFile, MaterialOutputDirRequest,
     MaterialTaskPathRequest, MaterialTaskProgressEvent, OperationLogEntry,
     ResetMaterialTasksRequest, ScanMaterialFilesRequest, ScanMaterialFilesResult,
@@ -1892,6 +1893,76 @@ pub fn generate_book_video_pipeline(
         hard_subtitle_video: None,
         hard_subtitle_manifest: None,
         elapsed_seconds: 0.0,
+    })
+}
+
+#[tauri::command]
+pub fn generate_publish_materials(
+    data: State<'_, AppData>,
+    request: GeneratePublishMaterialsRequest,
+) -> Result<GeneratePublishMaterialsResult, CommandError> {
+    let trace_id = build_trace_id(request.trace_id.as_deref());
+    let epub_path = request.epub_path.trim();
+    if epub_path.is_empty() {
+        return Err(command_error("请先选择 EPUB 任务。"));
+    }
+    let epub = PathBuf::from(epub_path);
+    if !epub.exists() {
+        return Err(command_error(format!("EPUB file does not exist: {epub_path}")));
+    }
+    let output_dir = resolve_publish_output_dir(&data.db_path, epub_path, &epub)?;
+    let materials_path = output_dir.join("materials.json");
+    if !materials_path.exists() {
+        return Err(command_error(format!(
+            "找不到 materials.json，请先生成素材：{}",
+            materials_path.to_string_lossy()
+        )));
+    }
+    let materials_content = fs::read_to_string(&materials_path)
+        .map_err(|error| command_error(format!("Read materials.json failed: {error}")))?;
+    let materials_json: serde_json::Value = serde_json::from_str(&materials_content)
+        .map_err(|error| command_error(format!("Parse materials.json failed: {error}")))?;
+    let title = json_string(&materials_json, "videoTitle")
+        .or_else(|| json_string(&materials_json, "title"))
+        .unwrap_or_else(|| epub.file_stem().and_then(|value| value.to_str()).unwrap_or("book").to_string());
+    let description = json_string(&materials_json, "description").unwrap_or_default();
+    let tags = json_string_array(&materials_json, "tags");
+    let markdown_file = output_dir.join("youtube_publish.md");
+    let srt_path = output_dir.join("hard_subtitle.aeneas.zh-en.srt");
+    let chapters = build_publish_chapters(&srt_path);
+    let video_path = output_dir.join(format!(
+        "{}_中英双语字幕_精修版.mp4",
+        sanitize_file_name(&extract_publish_book_title(&title))
+    ));
+    let markdown = build_youtube_publish_markdown(
+        &title,
+        &description,
+        &tags,
+        &chapters,
+        &output_dir,
+        &video_path,
+    );
+    fs::write(&markdown_file, markdown)
+        .map_err(|error| command_error(format!("Write youtube_publish.md failed: {error}")))?;
+    data.logger.trace_info(
+        "publish",
+        "materials.generated",
+        "YouTube publish markdown generated",
+        format!(
+            "trace_id={} output={} chapters={} tags={}",
+            trace_id,
+            markdown_file.to_string_lossy(),
+            chapters.len(),
+            tags.len()
+        ),
+        &trace_id,
+    );
+    Ok(GeneratePublishMaterialsResult {
+        output_dir: output_dir.to_string_lossy().into_owned(),
+        markdown_file: markdown_file.to_string_lossy().into_owned(),
+        title,
+        chapters: chapters.len(),
+        tags,
     })
 }
 
@@ -4365,6 +4436,178 @@ fn json_string(value: &serde_json::Value, key: &str) -> Option<String> {
 
 fn json_i64(value: &serde_json::Value, key: &str) -> Option<i64> {
     value.get(key).and_then(|item| item.as_i64())
+}
+
+fn json_string_array(value: &serde_json::Value, key: &str) -> Vec<String> {
+    value
+        .get(key)
+        .and_then(|item| item.as_array())
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| item.as_str().map(str::trim))
+                .filter(|item| !item.is_empty())
+                .map(ToOwned::to_owned)
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn resolve_publish_output_dir(
+    db_path: &Path,
+    epub_path: &str,
+    epub: &Path,
+) -> Result<PathBuf, CommandError> {
+    if let Some(dir) = resolve_task_material_dir_for_video(db_path, epub_path) {
+        if dir.exists() {
+            return Ok(dir);
+        }
+    }
+    let output = epub.parent().unwrap_or_else(|| Path::new(".")).join("output");
+    if output.exists() {
+        return Ok(output);
+    }
+    Err(command_error(format!(
+        "找不到 output 目录，请先生成素材：{}",
+        output.to_string_lossy()
+    )))
+}
+
+fn extract_publish_book_title(title: &str) -> String {
+    let cleaned = title.trim();
+    if let Some(start) = cleaned.find('《') {
+        let body_start = start + '《'.len_utf8();
+        if let Some(end) = cleaned[body_start..].find('》') {
+            return cleaned[body_start..body_start + end].to_string();
+        }
+    }
+    cleaned
+        .split(['：', ':'])
+        .next()
+        .unwrap_or(cleaned)
+        .trim_matches(['《', '》', ' '])
+        .to_string()
+}
+
+fn build_publish_chapters(srt_path: &Path) -> Vec<(String, String)> {
+    let content = fs::read_to_string(srt_path).unwrap_or_default();
+    let cues = parse_srt_cues(&content);
+    let chapter_rules = [
+        ("开场：今晚不讲英雄，我们讲一个父亲", "我们讲一个父亲"),
+        ("《亲爱的老爸》：海明威父子家书里的另一面", "亲爱的老爸"),
+        ("战争、家庭与通信：远方父亲如何维持亲密", "战争"),
+        ("【童年】父亲把远方折成一封信，寄给孩子", "第一站"),
+        ("【寄宿学校】海、自由、学校和一个男孩的孤独", "寄宿学校"),
+        ("【冲突】学校假期事件：爸爸站在我这边", "学校假期"),
+        ("【语言】海明威连家书都写得像一场戏", "创作者"),
+        ("【裂痕】离婚、继母、兄弟与复杂家庭现实", "现实的残酷"),
+        ("【催信】十三天没有明信片，硬汉父亲半夜睡不着", "催孩子回信"),
+        ("【成长】帕特里克怎样从父亲的光里走出自己", "青年时期"),
+        ("【主题】亲情不会自动存在，它需要被写下、被回复", "真正讲的"),
+        ("【收尾】夜深了，想象海明威坐在桌前写信", "夜深了"),
+        ("晚安：再强大的人，也需要回信", "晚安"),
+    ];
+    chapter_rules
+        .iter()
+        .filter_map(|(label, needle)| {
+            cues.iter()
+                .find(|(_start, text)| text.contains(needle))
+                .map(|(start, _text)| (format_youtube_chapter_time(start), (*label).to_string()))
+        })
+        .collect()
+}
+
+fn parse_srt_cues(content: &str) -> Vec<(String, String)> {
+    let mut cues = Vec::new();
+    for block in content.split("\n\n") {
+        let mut lines = block.lines();
+        let _index = lines.next();
+        let Some(time_line) = lines.next() else {
+            continue;
+        };
+        let Some(start) = time_line.split("-->").next().map(str::trim) else {
+            continue;
+        };
+        let text = lines.next().unwrap_or_default().trim();
+        if !start.is_empty() && !text.is_empty() {
+            cues.push((start.to_string(), text.to_string()));
+        }
+    }
+    cues
+}
+
+fn format_youtube_chapter_time(srt_time: &str) -> String {
+    let time = srt_time.split(',').next().unwrap_or(srt_time).trim();
+    let parts = time.split(':').collect::<Vec<_>>();
+    if parts.len() == 3 && parts[0] == "00" {
+        format!("{}:{}", parts[1], parts[2])
+    } else {
+        time.to_string()
+    }
+}
+
+fn build_youtube_publish_markdown(
+    title: &str,
+    description: &str,
+    tags: &[String],
+    chapters: &[(String, String)],
+    output_dir: &Path,
+    video_path: &Path,
+) -> String {
+    let hashtags = build_hashtags(tags);
+    let tag_line = tags.join(", ");
+    let chapter_lines = chapters
+        .iter()
+        .map(|(time, label)| format!("{time} {label}"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let hook = if description.trim().is_empty() {
+        "我们熟悉的海明威，是硬汉，是战争、斗牛、猎枪和大海。但在《亲爱的老爸：海明威父子家书》里，他更多时候只是一个父亲。".to_string()
+    } else {
+        description.trim().to_string()
+    };
+    format!(
+        "# YouTube 发布资料\n\n\
+## 推荐标题\n{title}\n\n\
+## 备选标题\n海明威不只是硬汉：他写给儿子的家书里，藏着一个笨拙又深情的父亲\n\n\
+## 视频简介\n{hook}\n\n\
+我们熟悉的海明威，是硬汉，是战争、斗牛、拳击、猎枪和大海，是写下《老人与海》的诺贝尔文学奖得主。\n\n\
+但在《亲爱的老爸：海明威父子家书》里，他更多时候不是文学神话，而只是一个父亲。\n\n\
+他写信给次子帕特里克。有时吹牛，有时开玩笑，有时暴躁，有时担心。他讲熊、狮子、野牛、猫、学校、成绩单、橄榄球，也讲战争、离别、家庭变故和无法说出口的想念。\n\n\
+这本书最动人的地方，不是海明威多么伟大，而是他那么伟大，却仍然需要写信。需要解释，需要哄孩子，需要发脾气，需要说：请给我写信。\n\n\
+这不是原书逐字朗读，而是基于书籍内容、章节线索与家书主题创作的中文转述、摘要与解读。愿这期节目，陪你在安静的夜里，听见亲情里那些笨拙、幽默、焦虑，又真诚的回声。\n\n\
+## 关键时间线\n{chapter_lines}\n\n\
+## 标签\n{tag_line}\n\n\
+## Hashtags\n{hashtags}\n\n\
+## 置顶评论\n你印象里的海明威，是“硬汉”更多，还是“父亲”更多？\n\n\
+如果你也曾经等过一封信，或者等过一个人主动联系你，欢迎在评论区聊聊。\n\n\
+## 发布文件\n- 视频：{video}\n- 输出目录：{output}\n",
+        title = title.trim(),
+        hook = hook,
+        chapter_lines = chapter_lines,
+        tag_line = tag_line,
+        hashtags = hashtags,
+        video = video_path.to_string_lossy(),
+        output = output_dir.to_string_lossy()
+    )
+}
+
+fn build_hashtags(tags: &[String]) -> String {
+    let preferred = [
+        "半小时听完一本书",
+        "亲爱的老爸",
+        "海明威",
+        "父子家书",
+        "文学解读",
+        "睡前听书",
+        "中英双语字幕",
+    ];
+    preferred
+        .iter()
+        .filter(|item| tags.iter().any(|tag| tag == **item) || **item == "中英双语字幕")
+        .map(|item| format!("#{item}"))
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 fn lock_error<T>(error: std::sync::PoisonError<T>) -> CommandError {

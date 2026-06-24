@@ -147,6 +147,19 @@ export interface GenerateBookVideoResult {
   elapsedSeconds: number;
 }
 
+export interface GeneratePublishMaterialsRequest {
+  epubPath: string;
+  traceId?: string;
+}
+
+export interface GeneratePublishMaterialsResult {
+  outputDir: string;
+  markdownFile: string;
+  title: string;
+  chapters: number;
+  tags: string[];
+}
+
 export interface ToolTestResult {
   ok: boolean;
   message: string;

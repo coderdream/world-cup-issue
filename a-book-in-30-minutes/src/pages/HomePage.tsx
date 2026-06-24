@@ -10,6 +10,7 @@ import {
   ListVideo,
   Loader2,
   MessageSquareText,
+  Send,
   RefreshCw,
   Sparkles,
   Tags,
@@ -39,7 +40,7 @@ export function HomePage() {
   const { request, materials, scanResult, fileStatuses, selectedTaskPath, outputDir, error, copyState, exportState, activeTab, currentTraceId, busy, scanning, exporting } = workbench;
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; file: MaterialFile } | null>(null);
   const [selectedTaskPaths, setSelectedTaskPaths] = useState<string[]>([]);
-  const [activePipelineStage, setActivePipelineStage] = useState<"materials" | "audio" | "video" | null>(null);
+  const [activePipelineStage, setActivePipelineStage] = useState<"materials" | "audio" | "video" | "publish" | null>(null);
 
   useEffect(() => {
     void loadStoredTasks(settings.materialProfile.categoryName);
@@ -305,11 +306,15 @@ export function HomePage() {
           {busy && activePipelineStage === "video" ? <Loader2 className="spin" size={16} /> : <Video size={16} />}
           视频
         </button>
+        <button className={getPipelineStageClass("publish")} disabled={busy || !hasVideoPipelineTarget()} type="button" title="生成 YouTube 发布资料" onClick={() => void generatePublishMaterials()}>
+          {busy && activePipelineStage === "publish" ? <Loader2 className="spin" size={16} /> : <Send size={16} />}
+          发布
+        </button>
       </div>
     );
   }
 
-  function getPipelineStageClass(stage: "materials" | "audio" | "video") {
+  function getPipelineStageClass(stage: "materials" | "audio" | "video" | "publish") {
     return `pipeline-stage-btn${activePipelineStage === stage ? " active" : ""}`;
   }
 
@@ -525,6 +530,30 @@ export function HomePage() {
       updateWorkbench({ busy: false });
     }
   }
+
+  async function generatePublishMaterials() {
+    setActivePipelineStage("publish");
+    const target = getVideoPipelineTarget();
+    if (!target) {
+      updateWorkbench({ copyState: "", error: "请先勾选或选择 EPUB 任务。", exportState: "" });
+      return;
+    }
+    const traceId = `${createTraceId()}-publish`;
+    updateWorkbench({ busy: true, error: "", copyState: "", exportState: "正在生成发布资料 Markdown。", currentTraceId: traceId });
+    try {
+      const result = await frameworkApi.generatePublishMaterials({ epubPath: target.path, traceId });
+      updateWorkbench({
+        exportState: `发布资料已生成：${result.markdownFile}`,
+        error: ""
+      });
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : String(caught);
+      updateWorkbench({ error: message, exportState: "" });
+    } finally {
+      updateWorkbench({ busy: false });
+    }
+  }
+
   async function generateMaterials(path = request.epubPath) {
     const traceId = createTraceId();
     const requestWithTrace = {

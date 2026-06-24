@@ -865,4 +865,5 @@ a-book-in-30-minutes/src-tauri/target/x86_64-pc-windows-gnu/release/bundle/nsis
 - aeneas 单语字幕文件必须按配置语言输出，例如 `hard_subtitle.aeneas.cmn.srt` 和 `hard_subtitle.aeneas.cmn.lrc`；双语字幕必须同时输出 `hard_subtitle.aeneas.zh-en.srt`、`hard_subtitle.aeneas.zh-en.ass` 和 `hard_subtitle.aeneas.zh-en.lrc`。
 - 复用历史 aeneas ASS 时必须检测首条字幕开始时间：如果已经包含片头偏移，不得再次叠加；如果未包含片头偏移，才按当前 header 音频时长补齐。
 - 端到端验证必须检查 `pipeline_manifest.json` 中 `subtitleTiming` 为 `aeneas`，并抽查 ASS 首条字幕应在片头之后约 3 秒开始，而不是 6 秒或 10 秒。
+- 首页流水线按钮包含【素材】【音频】【视频】【发布】四步；【发布】读取当前任务 `output` 目录中的 `materials.json`、`hard_subtitle.aeneas.zh-en.srt` 和 `pipeline_manifest.json`，在同一 `output` 根目录生成 `youtube_publish.md`。Markdown 必须包含推荐标题、备选标题、视频简介、关键时间线、标签、Hashtags、置顶评论和发布文件路径，便于直接复制到 YouTube。
 - 后续迁移到 MacMini n8n 时，n8n 只应调用同一套命令行脚本；SSH 免密访问按 `D:\0030_codex\tools\ssh-免密登录排障与复用指南.md` 复用已生效 key，并通过环境变量或参数显式传入 ffmpeg、Python/aeneas、header 音频和背景音乐路径。

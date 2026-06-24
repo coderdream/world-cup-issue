@@ -62,6 +62,7 @@ pub fn run() {
             generate_audio,
             generate_material_task_audio,
             generate_book_video_pipeline,
+            generate_publish_materials,
             get_operation_logs,
             export_book_materials
         ])

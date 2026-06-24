@@ -14,6 +14,8 @@ import type {
   GenerateMaterialTaskAudioRequest,
   GenerateBookVideoRequest,
   GenerateBookVideoResult,
+  GeneratePublishMaterialsRequest,
+  GeneratePublishMaterialsResult,
   GetMaterialTasksRequest,
   GetSpeechVoicesResult,
   GetOperationLogsRequest,
@@ -85,6 +87,9 @@ export const frameworkApi = {
   },
   generateBookVideoPipeline(request: GenerateBookVideoRequest) {
     return callCommand<GenerateBookVideoResult>("generate_book_video_pipeline", { request });
+  },
+  generatePublishMaterials(request: GeneratePublishMaterialsRequest) {
+    return callCommand<GeneratePublishMaterialsResult>("generate_publish_materials", { request });
   },
   generateBookMaterials(request: BookMaterialsRequest) {
     return callCommand<BookMaterials>("generate_book_materials", { request });
