@@ -859,5 +859,6 @@ a-book-in-30-minutes/src-tauri/target/x86_64-pc-windows-gnu/release/bundle/nsis
 - 双语硬字幕时间轴必须优先由 aeneas 基于最终旁白音频重新对齐生成；人工估算字幕只能作为缺少 aeneas 环境时的失败前占位，不能标记为最终成片。
 - 当命令行传入 `--force-aeneas` 时，必须忽略输出目录中已经存在的 `.aeneas.zh-en.ass`，重新执行 aeneas 对齐，并重新生成 `hard_subtitle.aeneas.zh-en.srt` 与 `hard_subtitle.aeneas.zh-en.ass`。
 - aeneas 对齐优先在当前 Python 进程内执行；如果当前 Python 缺少 aeneas，则必须自动调用 `AENEAS_PYTHON` 或 `C:\Program Files\Python39\python.exe -m aeneas.tools.execute_task`，让默认 Python 继续负责 Pillow/视频渲染，Python39 只负责 aeneas 对齐。
+- 英文字幕文本可以来自 `subtitles_en.json` / `translation_cache.json`，也可以在条数完全一致时从已有双语 aeneas ASS 的 `English` 样式行抽取；最终时间戳仍必须以本次 aeneas 生成的中文 SRT 为准。
 - 复用历史 aeneas ASS 时必须检测首条字幕开始时间：如果已经包含 5 秒片头偏移，不得再次叠加；如果未包含片头偏移，才统一增加 `COVER_SECONDS`。
 - 端到端验证必须检查 `pipeline_manifest.json` 中 `subtitleTiming` 为 `aeneas`，并抽查 ASS 首条字幕应在片头之后约 5 秒开始，而不是 10 秒。

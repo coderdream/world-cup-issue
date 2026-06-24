@@ -386,6 +386,12 @@ def load_english_lines(material_root: Path, expected_count: int) -> list[str]:
                 f"but got {len(lines)}: {translation_cache}"
             )
 
+    existing_ass = find_existing_aeneas_ass(material_root)
+    if existing_ass:
+        lines = read_ass_style_lines(existing_ass, "English")
+        if len(lines) == expected_count and all(lines):
+            return lines
+
     raise RuntimeError(
         "English subtitles are required after aeneas alignment. "
         "Generate them with Codex/AI first and save subtitles_en.json or translation_cache.json."
@@ -562,6 +568,19 @@ def read_ass_dialogue_events(path: Path) -> list[tuple[int, int, str]]:
         text = parts[9].replace("\\N", "\n")
         events.setdefault((start, end), []).append(text)
     return [(start, end, "\n".join(lines)) for (start, end), lines in sorted(events.items())]
+
+
+def read_ass_style_lines(path: Path, style: str) -> list[str]:
+    lines: list[str] = []
+    marker = f",{style},"
+    for line in read_text(path).splitlines():
+        if not line.startswith("Dialogue:") or marker not in line:
+            continue
+        parts = line.split(",", 9)
+        if len(parts) < 10:
+            continue
+        lines.append(parts[9].replace("\\N", " ").strip())
+    return lines
 
 
 def parse_ass_time(value: str) -> int:
