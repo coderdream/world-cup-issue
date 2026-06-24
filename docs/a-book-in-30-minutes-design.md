@@ -829,15 +829,15 @@ a-book-in-30-minutes/src-tauri/target/x86_64-pc-windows-gnu/release/bundle/nsis
 - 当前版本升级为 `0.1.69`。
 ## 2026-06-23 两段式视频生成流程
 
-- 视频生成必须保留两段式流程：第一段先生成 `<书名>_无字幕母版.mp4`，内容包含 5 秒封面、阅读背景图、旁白音频和循环背景音乐；第二段再以该无字幕母版为输入，烧录 ASS 硬字幕生成最终 `<书名>_中英双语字幕_精修版.mp4`，命名参考 `WWDC26_Keynotes_中英双语字幕_精修版.mp4`。
-- 字幕时间轴以旁白音频为主体，但整体向后偏移 `coverSeconds`，默认 5 秒，避免封面阶段提前出现正文字幕。
+- 视频生成必须保留两段式流程：第一段先生成 `<书名>_无字幕母版.mp4`，内容包含 3 秒静态封面、阅读背景图、已前置 `header.mp3` 的旁白音频和循环背景音乐；第二段再以该无字幕母版为输入，烧录 ASS 硬字幕生成最终 `<书名>_中英双语字幕_精修版.mp4`，命名参考 `WWDC26_Keynotes_中英双语字幕_精修版.mp4`。
+- 字幕时间轴以已前置 `header.mp3` 的最终旁白音频为准，不再额外整体后移；aeneas 会自然把首条正文字幕对齐到 3 秒静音之后。
 - `visual_timeline.json` 必须同时记录封面片段和背景阅读片段，封面片段从 0 到 `coverSeconds`，背景片段从 `coverSeconds` 到最终视频结束。
 - `pipeline_manifest.json` 至少包含 `cover`、`background`、`visualTimeline`、`noSubtitleVideo`、`hardSubtitleVideo`、`hardSubtitleManifest`、`hardSubtitleSrt`、`narrationAudioForVideo`、`noSubtitleVideoDurationMs`、`videoDurationMs` 和 `coverSeconds`，供后端更新任务列表和日志追踪。
 - 后端完成校验优先比较 `noSubtitleVideo` 与 `hardSubtitleVideo` 的时长是否一致；当生成了硬字幕最终版时，不再用任务旧音频时长作为唯一基准，因为流程可能会把短音频拉伸到 30 分钟并额外增加封面片段。
 
 ## 2026-06-23 视频封面模板
 
-- 视频封面就是最终视频开头 5 秒的 16:9 封面画面，必须按用户确认的模板生成，不作为单独的静态海报方案分叉。
+- 视频封面就是最终视频开头 3 秒的 16:9 封面画面，必须按用户确认的模板生成，不作为单独的静态海报方案分叉。
 - 固定模板元素包括：左上“半小时听完一本书”栏目牌、右上 `VOL. 01` 标签、右侧竖向金线、右侧主书名、作者行、底部两行简介、底部横线、左下 `A BOOK IN 30 MINUTES` 和右下“睡前听书系列”。
 - 不同书籍只替换动态字段：书名从视频标题中的 `《...》` 或 EPUB 文件名抽取；作者优先读素材或 EPUB 元数据；分类文案优先从素材标签生成；简介优先使用视频简介第一段。
 - 书名必须自适应中文长度和换行，避免标点出现在第二行开头；以中文标点换行时封面主标题隐藏该分隔标点，让画面更接近模板示例。
@@ -855,10 +855,14 @@ a-book-in-30-minutes/src-tauri/target/x86_64-pc-windows-gnu/release/bundle/nsis
 - 生成最终视频后必须抽帧验证：封面帧、无字幕母版背景帧、硬字幕双语帧；同时使用 `ffprobe` 校验无字幕母版和硬字幕最终版时长一致。
 ## 2026-06-24 视频管线修正规则
 
-- 视频片头封面段必须保持静态渲染，不使用 `zoompan` 或任何逐帧缩放表达式，避免前 5 秒封面文字和矩形元素出现抖动。
+- 视频片头封面段必须保持静态渲染，不使用 `zoompan` 或任何逐帧缩放表达式，避免前 3 秒封面文字和矩形元素出现抖动。
+- 视频流水线必须使用固定 `header.mp3` 作为 3 秒无声片头音频。开发环境固定路径为 `a-book-in-30-minutes/tmp/assets/header.mp3`；打包或绿色版运行时也必须在 exe 同级或资源目录保留一份。脚本缺失该文件时可用 ffmpeg 生成同规格无声音频。
+- 视频生成前必须把 `header.mp3` 前置拼接到旁白音频，输出 `书名.mp3` 作为最终视频旁白音频；aeneas 和视频渲染都使用这个已带片头的音频，不再在字幕或视频阶段重复叠加静音偏移。
 - 双语硬字幕时间轴必须优先由 aeneas 基于最终旁白音频重新对齐生成；人工估算字幕只能作为缺少 aeneas 环境时的失败前占位，不能标记为最终成片。
 - 当命令行传入 `--force-aeneas` 时，必须忽略输出目录中已经存在的 `.aeneas.zh-en.ass`，重新执行 aeneas 对齐，并重新生成 `hard_subtitle.aeneas.zh-en.srt` 与 `hard_subtitle.aeneas.zh-en.ass`。
 - aeneas 对齐优先在当前 Python 进程内执行；如果当前 Python 缺少 aeneas，则必须自动调用 `AENEAS_PYTHON` 或 `C:\Program Files\Python39\python.exe -m aeneas.tools.execute_task`，让默认 Python 继续负责 Pillow/视频渲染，Python39 只负责 aeneas 对齐。
 - 英文字幕文本可以来自 `subtitles_en.json` / `translation_cache.json`，也可以在条数完全一致时从已有双语 aeneas ASS 的 `English` 样式行抽取；最终时间戳仍必须以本次 aeneas 生成的中文 SRT 为准。
-- 复用历史 aeneas ASS 时必须检测首条字幕开始时间：如果已经包含 5 秒片头偏移，不得再次叠加；如果未包含片头偏移，才统一增加 `COVER_SECONDS`。
-- 端到端验证必须检查 `pipeline_manifest.json` 中 `subtitleTiming` 为 `aeneas`，并抽查 ASS 首条字幕应在片头之后约 5 秒开始，而不是 10 秒。
+- aeneas 单语字幕文件必须按配置语言输出，例如 `hard_subtitle.aeneas.cmn.srt` 和 `hard_subtitle.aeneas.cmn.lrc`；双语字幕必须同时输出 `hard_subtitle.aeneas.zh-en.srt`、`hard_subtitle.aeneas.zh-en.ass` 和 `hard_subtitle.aeneas.zh-en.lrc`。
+- 复用历史 aeneas ASS 时必须检测首条字幕开始时间：如果已经包含片头偏移，不得再次叠加；如果未包含片头偏移，才按当前 header 音频时长补齐。
+- 端到端验证必须检查 `pipeline_manifest.json` 中 `subtitleTiming` 为 `aeneas`，并抽查 ASS 首条字幕应在片头之后约 3 秒开始，而不是 6 秒或 10 秒。
+- 后续迁移到 MacMini n8n 时，n8n 只应调用同一套命令行脚本；SSH 免密访问按 `D:\0030_codex\tools\ssh-免密登录排障与复用指南.md` 复用已生效 key，并通过环境变量或参数显式传入 ffmpeg、Python/aeneas、header 音频和背景音乐路径。

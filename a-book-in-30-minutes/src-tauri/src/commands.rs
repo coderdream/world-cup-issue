@@ -1948,6 +1948,9 @@ fn run_book_video_pipeline_background(
     if let Some(music_file) = find_background_music_file() {
         command.arg("--background-music").arg(music_file);
     }
+    if let Some(header_audio) = find_header_audio_file(&script) {
+        command.arg("--header-audio").arg(header_audio);
+    }
     if allow_placeholder_visuals {
         command.arg("--allow-placeholder-visuals");
     }
@@ -2253,6 +2256,23 @@ fn find_background_music_file() -> Option<PathBuf> {
         }
     }
     None
+}
+
+fn find_header_audio_file(script: &Path) -> Option<PathBuf> {
+    let mut candidates = Vec::new();
+    if let Some(parent) = script.parent() {
+        candidates.push(parent.join("assets").join("header.mp3"));
+        candidates.push(parent.join("header.mp3"));
+    }
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(parent) = exe.parent() {
+            candidates.push(parent.join("assets").join("header.mp3"));
+            candidates.push(parent.join("header.mp3"));
+        }
+    }
+    candidates
+        .into_iter()
+        .find(|path| path.is_file() && path.metadata().map(|meta| meta.len() > 0).unwrap_or(false))
 }
 
 async fn generate_audio_from_text(

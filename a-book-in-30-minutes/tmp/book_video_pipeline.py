@@ -16,7 +16,9 @@ WIDTH = 1920
 HEIGHT = 1080
 TARGET_MIN_SECONDS = 30 * 60
 MAX_SUBTITLE_LINE_CHARS = 18
-COVER_SECONDS = 5
+HEADER_SECONDS = 3
+HEADER_AUDIO_ENCODE_SECONDS = 2.976
+HEADER_AUDIO_DURATION_MS = 3000
 
 
 def safe_stem(path: Path) -> str:
@@ -73,15 +75,22 @@ def ffprobe_duration_ms(path: Path) -> int:
     return int(round(float(output.stdout.strip()) * 1000))
 
 
-def newest_audio(material_root: Path) -> Path | None:
+def newest_audio(material_root: Path, exclude_names: set[str] | None = None) -> Path | None:
+    exclude_names = exclude_names or set()
     root_candidates = []
     for pattern in ("*.mp3", "*.wav"):
-        root_candidates.extend(path for path in material_root.glob(pattern) if path.is_file())
+        root_candidates.extend(
+            path for path in material_root.glob(pattern)
+            if path.is_file() and path.name not in exclude_names and not path.name.startswith("_")
+        )
     if root_candidates:
         return max(root_candidates, key=lambda path: path.stat().st_mtime)
     nested_candidates = []
     for pattern in ("audio/**/*.mp3", "audio/**/*.wav"):
-        nested_candidates.extend(path for path in material_root.glob(pattern) if path.is_file())
+        nested_candidates.extend(
+            path for path in material_root.glob(pattern)
+            if path.is_file() and path.name not in exclude_names
+        )
     if not nested_candidates:
         return None
     return max(nested_candidates, key=lambda path: path.stat().st_mtime)
@@ -254,14 +263,15 @@ def offset_events(events: list[tuple[int, int, str]], offset_ms: int) -> list[tu
     return [(start + offset_ms, end + offset_ms, text) for start, end, text in events]
 
 
-def offset_events_for_cover_once(events: list[tuple[int, int, str]]) -> tuple[list[tuple[int, int, str]], int]:
+def offset_events_for_header_once(
+    events: list[tuple[int, int, str]], header_ms: int
+) -> tuple[list[tuple[int, int, str]], int]:
     if not events:
         return events, 0
-    cover_ms = COVER_SECONDS * 1000
     first_start = min(start for start, _, _ in events)
-    if first_start >= cover_ms - 500:
+    if first_start >= header_ms - 500:
         return events, 0
-    return offset_events(events, cover_ms), cover_ms
+    return offset_events(events, header_ms), header_ms
 
 
 def build_subtitle_events(lines: list[str], duration_ms: int, offset_ms: int = 0) -> list[tuple[int, int, str]]:
@@ -287,6 +297,17 @@ def write_srt(path: Path, events: list[tuple[int, int, str]]) -> None:
     for index, (start, end, text) in enumerate(events, 1):
         parts.append(f"{index}\n{format_srt_time(start)} --> {format_srt_time(end)}\n{text}\n")
     path.write_text("\n".join(parts), encoding="utf-8")
+
+
+def write_lrc(path: Path, events: list[tuple[int, int, str]]) -> None:
+    lines = []
+    for start, _, text in events:
+        minutes = start // 60_000
+        seconds = (start % 60_000) // 1000
+        centis = (start % 1000) // 10
+        body = " / ".join(part.strip() for part in text.replace("\\N", "\n").splitlines() if part.strip())
+        lines.append(f"[{minutes:02d}:{seconds:02d}.{centis:02d}]{body}")
+    path.write_text("\n".join(lines) + ("\n" if lines else ""), encoding="utf-8")
 
 
 def ass_escape(text: str) -> str:
@@ -512,15 +533,18 @@ def build_aeneas_subtitles(
     video_dir: Path,
     audio_language: str,
     force_aeneas: bool,
+    subtitle_offset_ms: int,
 ) -> tuple[Path, Path, list[tuple[int, int, str]], dict]:
     existing_ass = None if force_aeneas else find_existing_aeneas_ass(material_root)
     if existing_ass:
         ass_file = video_dir / "hard_subtitle.aeneas.zh-en.ass"
         raw_events = read_ass_dialogue_events(existing_ass)
-        events, delay_ms = offset_events_for_cover_once(raw_events)
+        events, delay_ms = offset_events_for_header_once(raw_events, subtitle_offset_ms)
         write_ass(ass_file, events)
         srt_file = video_dir / "hard_subtitle.aeneas.zh-en.srt"
+        lrc_file = video_dir / "hard_subtitle.aeneas.zh-en.lrc"
         write_srt(srt_file, events)
+        write_lrc(lrc_file, events)
         return ass_file, srt_file, events, {
             "subtitleTiming": "existing_aeneas_ass",
             "sourceAss": str(existing_ass),
@@ -528,6 +552,7 @@ def build_aeneas_subtitles(
             "sourceFirstCueMs": raw_events[0][0] if raw_events else None,
             "firstCueMs": events[0][0] if events else None,
             "delayMs": delay_ms,
+            "zhEnLrc": str(lrc_file),
         }
 
     chinese_lines = load_chinese_subtitle_lines(material_root)
@@ -536,20 +561,32 @@ def build_aeneas_subtitles(
     aeneas_dir = video_dir
     zh_srt, subtitle_manifest = run_aeneas_alignment(audio, chinese_lines, aeneas_dir, audio_language)
     zh_events = read_srt_events(zh_srt)
+    aligned_events = offset_events(zh_events, subtitle_offset_ms) if subtitle_offset_ms else zh_events
+    single_srt_file = video_dir / f"hard_subtitle.aeneas.{audio_language}.srt"
+    single_lrc_file = video_dir / f"hard_subtitle.aeneas.{audio_language}.lrc"
+    write_srt(single_srt_file, aligned_events)
+    write_lrc(single_lrc_file, aligned_events)
     english_lines = load_english_lines(material_root, len(zh_events))
     bilingual_events = [
-        (start + COVER_SECONDS * 1000, end + COVER_SECONDS * 1000, f"{zh}\n{en}")
+        (start + subtitle_offset_ms, end + subtitle_offset_ms, f"{zh}\n{en}")
         for (start, end, zh), en in zip(zh_events, english_lines)
     ]
     srt_file = video_dir / "hard_subtitle.aeneas.zh-en.srt"
     ass_file = video_dir / "hard_subtitle.aeneas.zh-en.ass"
+    lrc_file = video_dir / "hard_subtitle.aeneas.zh-en.lrc"
     write_srt(srt_file, bilingual_events)
     write_ass(ass_file, bilingual_events)
+    write_lrc(lrc_file, bilingual_events)
     subtitle_manifest = {
         **subtitle_manifest,
         "subtitleTiming": "aeneas",
+        "sourceLanguage": audio_language,
+        "singleLanguageSrt": str(single_srt_file),
+        "singleLanguageLrc": str(single_lrc_file),
         "zhEnSrt": str(srt_file),
         "zhEnAss": str(ass_file),
+        "zhEnLrc": str(lrc_file),
+        "subtitleOffsetMs": subtitle_offset_ms,
         "dialogueCount": len(bilingual_events) * 2,
     }
     return ass_file, srt_file, bilingual_events, subtitle_manifest
@@ -636,6 +673,66 @@ def prepare_narration_audio(source: Path, output: Path, target_min_seconds: int)
         ]
     )
     return output, ffprobe_duration_ms(output), target_seconds / source_seconds
+
+
+def default_header_audio_path() -> Path:
+    return Path(__file__).resolve().parent / "assets" / "header.mp3"
+
+
+def ensure_header_audio(path: Path, seconds: int = HEADER_SECONDS) -> Path:
+    if path.exists() and path.stat().st_size > 0 and ffprobe_duration_ms(path) == HEADER_AUDIO_DURATION_MS:
+        return path
+    ffmpeg = shutil.which("ffmpeg")
+    if not ffmpeg:
+        raise RuntimeError("ffmpeg was not found, so header.mp3 cannot be generated.")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    run(
+        [
+            ffmpeg,
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            f"anullsrc=r=48000:cl=stereo",
+            "-t",
+            f"{HEADER_AUDIO_ENCODE_SECONDS:.3f}",
+            "-c:a",
+            "libmp3lame",
+            "-b:a",
+            "160k",
+            str(path),
+        ]
+    )
+    return path
+
+
+def prepend_header_audio(header: Path, narration: Path, output: Path) -> Path:
+    ffmpeg = shutil.which("ffmpeg")
+    if not ffmpeg:
+        raise RuntimeError("ffmpeg was not found, so audio cannot be combined.")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    run(
+        [
+            ffmpeg,
+            "-y",
+            "-i",
+            str(header),
+            "-i",
+            str(narration),
+            "-filter_complex",
+            "[0:a]aresample=48000,apad=whole_dur=3.000,atrim=duration=3.000,asetpts=PTS-STARTPTS[h];"
+            "[1:a]aresample=48000,asetpts=PTS-STARTPTS[n];"
+            "[h][n]concat=n=2:v=0:a=1[a]",
+            "-map",
+            "[a]",
+            "-c:a",
+            "libmp3lame",
+            "-b:a",
+            "160k",
+            str(output),
+        ]
+    )
+    return output
 
 
 def ffmpeg_text_escape(value: str) -> str:
@@ -1022,21 +1119,22 @@ def render_no_subtitle_video(
     content_images: list[Path],
     audio: Path,
     background_music: Path | None,
+    header_seconds: float,
 ) -> None:
     ffmpeg = shutil.which("ffmpeg")
     if not ffmpeg:
         raise RuntimeError("ffmpeg was not found, so the video cannot be generated.")
     audio_seconds = ffprobe_duration_ms(audio) / 1000.0
-    total_seconds = COVER_SECONDS + audio_seconds
+    total_seconds = audio_seconds
     images = [cover, *content_images]
     if not content_images:
         raise RuntimeError("No visual images were prepared for video rendering.")
-    body_segment = audio_seconds / max(1, len(content_images))
+    body_segment = max(0.1, (audio_seconds - header_seconds) / max(1, len(content_images)))
     cmd = [
         ffmpeg,
         "-y",
     ]
-    durations = [float(COVER_SECONDS), *([body_segment] * len(content_images))]
+    durations = [float(header_seconds), *([body_segment] * len(content_images))]
     for image, duration in zip(images, durations):
         cmd.extend(
             [
@@ -1084,13 +1182,11 @@ def render_no_subtitle_video(
     if background_music and background_music.is_file():
         bgm_index = audio_index + 1
         audio_mix = (
-            f"aevalsrc=0:d={COVER_SECONDS:.3f}:s=48000[silence];"
-            f"[silence][{audio_index}:a]concat=n=2:v=0:a=1[narr];"
             f"[{bgm_index}:a]volume=0.10[bgm];"
-            "[narr][bgm]amix=inputs=2:duration=first:dropout_transition=2[a]"
+            f"[{audio_index}:a][bgm]amix=inputs=2:duration=first:dropout_transition=2[a]"
         )
     else:
-        audio_mix = f"aevalsrc=0:d={COVER_SECONDS:.3f}:s=48000[silence];[silence][{audio_index}:a]concat=n=2:v=0:a=1[a]"
+        audio_mix = f"[{audio_index}:a]anull[a]"
     cmd.extend(
         [
             "-filter_complex",
@@ -1107,9 +1203,17 @@ def render_no_subtitle_video(
     run(cmd, cwd=output.parent)
 
 
-def build_visual_timeline(path: Path, cover: Path, content_images: list[Path], duration_ms: int, source_dir: Path | None, source_kind: str) -> None:
-    body_start = COVER_SECONDS * 1000
-    body_duration = max(0, duration_ms)
+def build_visual_timeline(
+    path: Path,
+    cover: Path,
+    content_images: list[Path],
+    duration_ms: int,
+    source_dir: Path | None,
+    source_kind: str,
+    header_ms: int,
+) -> None:
+    body_start = header_ms
+    body_duration = max(0, duration_ms - header_ms)
     segment_duration = body_duration / max(1, len(content_images))
     segments = [
         {
@@ -1180,6 +1284,7 @@ def main() -> int:
     parser.add_argument("--allow-placeholder-visuals", action="store_true")
     parser.add_argument("--output-dir")
     parser.add_argument("--background-music")
+    parser.add_argument("--header-audio")
     parser.add_argument("--force-aeneas", action="store_true")
     args = parser.parse_args()
 
@@ -1194,10 +1299,6 @@ def main() -> int:
     video_dir = output_dir or material_root
     video_dir.mkdir(parents=True, exist_ok=True)
 
-    source_audio = newest_audio(material_root)
-    if source_audio is None:
-        raise RuntimeError(f"No audio file was found for video generation: {material_root / 'audio'}")
-
     material = read_material_json(material_root)
     title = str(material.get("videoTitle") or read_text(material_root / "title.txt", epub.stem)).strip()
     description = str(material.get("description") or read_text(material_root / "description.txt", "")).strip()
@@ -1211,18 +1312,29 @@ def main() -> int:
     cover_kicker = cover_kicker_from_material(material, overview)
     subtitle_label = description.splitlines()[0].strip() if description else "Tonight's book"
     output_stem = safe_output_name(extract_book_title(title, epub.stem) or epub.stem, safe_stem(epub))
+    final_audio = video_dir / f"{output_stem}.mp3"
 
-    prepared_audio, duration_ms, stretch_ratio = prepare_narration_audio(
+    source_audio = newest_audio(material_root, {final_audio.name})
+    if source_audio is None:
+        raise RuntimeError(f"No audio file was found for video generation: {material_root / 'audio'}")
+
+    narration_audio, narration_duration_ms, stretch_ratio = prepare_narration_audio(
         source_audio,
         video_dir / "narration_for_video.mp3",
         TARGET_MIN_SECONDS,
     )
+    header_audio = ensure_header_audio(Path(args.header_audio) if args.header_audio else default_header_audio_path())
+    header_duration_ms = HEADER_AUDIO_DURATION_MS
+    header_seconds = header_duration_ms / 1000.0
+    prepared_audio = prepend_header_audio(header_audio, narration_audio, final_audio)
+    duration_ms = ffprobe_duration_ms(prepared_audio)
     ass_file, srt_file, events, subtitle_manifest = build_aeneas_subtitles(
         material_root,
-        prepared_audio,
+        narration_audio,
         video_dir,
         args.audio_language,
         args.force_aeneas,
+        header_duration_ms,
     )
 
     content_images, visual_source_dir, visual_source_kind = migrate_visual_assets(material_root, video_dir)
@@ -1244,7 +1356,7 @@ def main() -> int:
     background_music = Path(args.background_music) if args.background_music else None
     no_subtitle_video = video_dir / f"{output_stem}_无字幕母版.mp4"
     hard_video = video_dir / f"{output_stem}_中英双语字幕_精修版.mp4"
-    render_no_subtitle_video(no_subtitle_video, cover, content_images, prepared_audio, background_music)
+    render_no_subtitle_video(no_subtitle_video, cover, content_images, prepared_audio, background_music, header_seconds)
     render_hard_subtitle_video(hard_video, no_subtitle_video, ass_file)
 
     no_subtitle_duration_ms = ffprobe_duration_ms(no_subtitle_video)
@@ -1266,18 +1378,31 @@ def main() -> int:
         "subtitleTiming": subtitle_manifest.get("subtitleTiming"),
         "subtitleManifest": subtitle_manifest,
         "narrationAudioForVideo": str(prepared_audio),
+        "narrationAudioWithoutHeader": str(narration_audio),
+        "headerAudio": str(header_audio),
         "sourceAudio": str(source_audio),
         "backgroundMusic": str(background_music) if background_music and background_music.is_file() else None,
         "sourceAudioDurationMs": ffprobe_duration_ms(source_audio),
+        "narrationAudioWithoutHeaderDurationMs": narration_duration_ms,
+        "headerAudioDurationMs": header_duration_ms,
         "narrationAudioForVideoDurationMs": duration_ms,
         "noSubtitleVideoDurationMs": no_subtitle_duration_ms,
         "videoDurationMs": video_duration_ms,
-        "coverSeconds": COVER_SECONDS,
+        "coverSeconds": header_seconds,
         "subtitleCount": len(events),
         "stretchRatio": stretch_ratio,
+        "subtitleAlignmentAudio": str(narration_audio),
         "elapsedSeconds": 0.0,
     }
-    build_visual_timeline(video_dir / "visual_timeline.json", cover, content_images, duration_ms, visual_source_dir, visual_source_kind)
+    build_visual_timeline(
+        video_dir / "visual_timeline.json",
+        cover,
+        content_images,
+        duration_ms,
+        visual_source_dir,
+        visual_source_kind,
+        header_duration_ms,
+    )
     manifest.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps(result, ensure_ascii=False))
     return 0
