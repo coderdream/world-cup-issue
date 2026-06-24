@@ -1864,6 +1864,7 @@ pub fn generate_book_video_pipeline(
 
     let db_path = data.db_path.clone();
     let logger = data.logger.clone();
+    let settings = data.settings.lock().map_err(lock_error)?.clone();
     let epub_path_owned = epub_path.to_string();
     let allow_placeholder_visuals = request.allow_placeholder_visuals.unwrap_or(true);
     let trace_id_for_task = trace_id.clone();
@@ -1877,6 +1878,7 @@ pub fn generate_book_video_pipeline(
             pipeline_root,
             script,
             python,
+            settings,
             allow_placeholder_visuals,
         );
     });
@@ -1903,6 +1905,7 @@ fn run_book_video_pipeline_background(
     pipeline_root: PathBuf,
     script: PathBuf,
     python: String,
+    settings: AppSettings,
     allow_placeholder_visuals: bool,
 ) {
     let started = Instant::now();
@@ -1936,6 +1939,10 @@ fn run_book_video_pipeline_background(
     command
         .current_dir(&pipeline_root)
         .env("PYTHONIOENCODING", "UTF-8")
+        .env("ABOOK_AI_BASE_URL", settings.ai_profile.base_url.trim())
+        .env("ABOOK_AI_API_KEY", settings.ai_profile.api_key.trim())
+        .env("ABOOK_AI_MODEL", settings.ai_profile.model.trim())
+        .env("ABOOK_SUBTITLE_SOURCE_LANGUAGE", "cmn")
         .arg(&script)
         .arg("--epub")
         .arg(&epub)

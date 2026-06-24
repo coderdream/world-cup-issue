@@ -7,6 +7,8 @@ import shutil
 import subprocess
 import sys
 import time
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageEnhance, ImageFont
@@ -361,7 +363,137 @@ def find_existing_aeneas_ass(material_root: Path) -> Path | None:
     return max(candidates, key=lambda path: path.stat().st_mtime)
 
 
-def load_english_lines(material_root: Path, expected_count: int) -> list[str]:
+def normalize_chat_base_url(base_url: str) -> str:
+    base = base_url.strip().rstrip("/")
+    if not base:
+        return ""
+    if base.endswith("/chat/completions"):
+        return base
+    return f"{base}/chat/completions"
+
+
+def parse_json_array_from_ai_response(content: str) -> list[str]:
+    text = content.strip()
+    if text.startswith("```"):
+        text = re.sub(r"^```(?:json)?\s*", "", text, flags=re.IGNORECASE)
+        text = re.sub(r"\s*```$", "", text).strip()
+    match = re.search(r"\[[\s\S]*\]", text)
+    if match:
+        text = match.group(0)
+    data = json.loads(text)
+    if not isinstance(data, list):
+        raise RuntimeError("AI subtitle translation response must be a JSON array.")
+    lines = [str(item).strip() for item in data]
+    if not all(lines):
+        raise RuntimeError("AI subtitle translation response contains empty lines.")
+    return lines
+
+
+def chat_completion_text(base_url: str, api_key: str, model: str, messages: list[dict], timeout: int = 600) -> str:
+    url = normalize_chat_base_url(base_url)
+    if not url or not api_key.strip() or not model.strip():
+        raise RuntimeError("AI translation requires ABOOK_AI_BASE_URL, ABOOK_AI_API_KEY and ABOOK_AI_MODEL.")
+    payload = json.dumps(
+        {
+            "model": model.strip(),
+            "messages": messages,
+            "temperature": 0.2,
+            "stream": False,
+        },
+        ensure_ascii=False,
+    ).encode("utf-8")
+    request = urllib.request.Request(
+        url,
+        data=payload,
+        headers={
+            "Authorization": f"Bearer {api_key.strip()}",
+            "Content-Type": "application/json; charset=utf-8",
+            "Accept": "application/json",
+            "User-Agent": "A-Book-in-30-Minutes/0.1 Subtitle-Translator",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            response_text = response.read().decode("utf-8", errors="replace")
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"AI subtitle translation failed: HTTP {exc.code} {detail[:1000]}") from exc
+    except urllib.error.URLError as exc:
+        raise RuntimeError(f"AI subtitle translation failed: {exc}") from exc
+    data = json.loads(response_text)
+    choices = data.get("choices") if isinstance(data, dict) else None
+    if not choices:
+        raise RuntimeError(f"AI subtitle translation returned no choices: {response_text[:1000]}")
+    message = choices[0].get("message") if isinstance(choices[0], dict) else None
+    content = message.get("content") if isinstance(message, dict) else None
+    if isinstance(content, list):
+        content = "".join(str(item.get("text") if isinstance(item, dict) else item) for item in content)
+    if not str(content or "").strip():
+        raise RuntimeError(f"AI subtitle translation returned empty content: {response_text[:1000]}")
+    return str(content)
+
+
+def generate_english_lines_with_ai(material_root: Path, source_lines: list[str]) -> list[str]:
+    base_url = os.environ.get("ABOOK_AI_BASE_URL", "").strip()
+    api_key = os.environ.get("ABOOK_AI_API_KEY", "").strip()
+    model = os.environ.get("ABOOK_AI_MODEL", "").strip()
+    if not (base_url and api_key and model):
+        raise RuntimeError(
+            "English subtitles are required after aeneas alignment. "
+            "No valid subtitles_en.json/translation_cache.json/existing bilingual ASS was found, "
+            "and AI translation is not configured. Set ABOOK_AI_BASE_URL, ABOOK_AI_API_KEY and "
+            "ABOOK_AI_MODEL, or generate translation_cache.json with Codex/AI first."
+        )
+
+    system_prompt = (
+        "You are Codex translating subtitle cues for a bilingual listening-video. "
+        "Translate each source cue idiomatically into natural English. Preserve cue count and order. "
+        "Return only a JSON array of strings, with no markdown and no extra keys."
+    )
+    translated: list[str] = []
+    batch_size = int(os.environ.get("ABOOK_TRANSLATE_BATCH_SIZE", "60") or "60")
+    for start in range(0, len(source_lines), batch_size):
+        batch = source_lines[start : start + batch_size]
+        user_prompt = (
+            f"Translate these subtitle cues into English. Return exactly {len(batch)} strings as JSON.\n"
+            + json.dumps(batch, ensure_ascii=False)
+        )
+        content = chat_completion_text(
+            base_url,
+            api_key,
+            model,
+            [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+        )
+        batch_lines = parse_json_array_from_ai_response(content)
+        if len(batch_lines) != len(batch):
+            raise RuntimeError(
+                f"AI subtitle translation count mismatch for batch {start + 1}: "
+                f"expected {len(batch)}, got {len(batch_lines)}"
+            )
+        translated.extend(batch_lines)
+
+    cache = {
+        "provider": "openai_compatible",
+        "model": model,
+        "sourceLanguage": os.environ.get("ABOOK_SUBTITLE_SOURCE_LANGUAGE", "cmn"),
+        "targetLanguage": "eng",
+        "generatedAt": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "items": [
+            {"index": index + 1, "source": source, "en": english}
+            for index, (source, english) in enumerate(zip(source_lines, translated))
+        ],
+    }
+    (material_root / "translation_cache.json").write_text(
+        json.dumps(cache, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    return translated
+
+
+def load_english_lines(material_root: Path, expected_count: int, source_lines: list[str] | None = None) -> list[str]:
     english_cache = material_root / "subtitles_en.json"
     if english_cache.exists():
         try:
@@ -413,10 +545,10 @@ def load_english_lines(material_root: Path, expected_count: int) -> list[str]:
         if len(lines) == expected_count and all(lines):
             return lines
 
-    raise RuntimeError(
-        "English subtitles are required after aeneas alignment. "
-        "Generate them with Codex/AI first and save subtitles_en.json or translation_cache.json."
-    )
+    if source_lines is not None:
+        return generate_english_lines_with_ai(material_root, source_lines)
+
+    raise RuntimeError("English subtitles are required after aeneas alignment.")
 
 
 def run_aeneas_alignment(audio: Path, subtitle_lines: list[str], output_dir: Path, audio_language: str) -> tuple[Path, dict]:
@@ -566,7 +698,7 @@ def build_aeneas_subtitles(
     single_lrc_file = video_dir / f"hard_subtitle.aeneas.{audio_language}.lrc"
     write_srt(single_srt_file, aligned_events)
     write_lrc(single_lrc_file, aligned_events)
-    english_lines = load_english_lines(material_root, len(zh_events))
+    english_lines = load_english_lines(material_root, len(zh_events), chinese_lines)
     bilingual_events = [
         (start + subtitle_offset_ms, end + subtitle_offset_ms, f"{zh}\n{en}")
         for (start, end, zh), en in zip(zh_events, english_lines)
@@ -1286,6 +1418,7 @@ def main() -> int:
     parser.add_argument("--background-music")
     parser.add_argument("--header-audio")
     parser.add_argument("--force-aeneas", action="store_true")
+    parser.add_argument("--audio-subtitle-only", action="store_true")
     args = parser.parse_args()
 
     epub = Path(args.epub)
@@ -1337,6 +1470,48 @@ def main() -> int:
         header_duration_ms,
     )
 
+    manifest = video_dir / "pipeline_manifest.json"
+    base_result = {
+        "materialDir": str(material_root),
+        "pipelineManifest": str(manifest),
+        "hardSubtitleManifest": str(ass_file),
+        "hardSubtitleSrt": str(srt_file),
+        "subtitleTiming": subtitle_manifest.get("subtitleTiming"),
+        "subtitleManifest": subtitle_manifest,
+        "narrationAudioForVideo": str(prepared_audio),
+        "narrationAudioWithoutHeader": str(narration_audio),
+        "headerAudio": str(header_audio),
+        "sourceAudio": str(source_audio),
+        "sourceAudioDurationMs": ffprobe_duration_ms(source_audio),
+        "narrationAudioWithoutHeaderDurationMs": narration_duration_ms,
+        "headerAudioDurationMs": header_duration_ms,
+        "narrationAudioForVideoDurationMs": duration_ms,
+        "coverSeconds": header_seconds,
+        "subtitleCount": len(events),
+        "stretchRatio": stretch_ratio,
+        "subtitleAlignmentAudio": str(narration_audio),
+        "elapsedSeconds": 0.0,
+        "audioSubtitleOnly": bool(args.audio_subtitle_only),
+    }
+    if args.audio_subtitle_only:
+        result = {
+            **base_result,
+            "cover": None,
+            "background": None,
+            "visualAssetsDir": None,
+            "visualSourceKind": None,
+            "visualAssetCount": 0,
+            "visualTimeline": None,
+            "noSubtitleVideo": None,
+            "hardSubtitleVideo": None,
+            "backgroundMusic": None,
+            "noSubtitleVideoDurationMs": None,
+            "videoDurationMs": None,
+        }
+        manifest.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+        print(json.dumps(result, ensure_ascii=False))
+        return 0
+
     content_images, visual_source_dir, visual_source_kind = migrate_visual_assets(material_root, video_dir)
     if not content_images:
         if not args.allow_placeholder_visuals:
@@ -1361,10 +1536,8 @@ def main() -> int:
 
     no_subtitle_duration_ms = ffprobe_duration_ms(no_subtitle_video)
     video_duration_ms = ffprobe_duration_ms(hard_video)
-    manifest = video_dir / "pipeline_manifest.json"
     result = {
-        "materialDir": str(material_root),
-        "pipelineManifest": str(manifest),
+        **base_result,
         "cover": str(cover),
         "background": str(content_images[0]) if content_images else None,
         "visualAssetsDir": str(visual_source_dir) if visual_source_dir else None,
@@ -1373,26 +1546,9 @@ def main() -> int:
         "visualTimeline": str(video_dir / "visual_timeline.json"),
         "noSubtitleVideo": str(no_subtitle_video),
         "hardSubtitleVideo": str(hard_video),
-        "hardSubtitleManifest": str(ass_file),
-        "hardSubtitleSrt": str(srt_file),
-        "subtitleTiming": subtitle_manifest.get("subtitleTiming"),
-        "subtitleManifest": subtitle_manifest,
-        "narrationAudioForVideo": str(prepared_audio),
-        "narrationAudioWithoutHeader": str(narration_audio),
-        "headerAudio": str(header_audio),
-        "sourceAudio": str(source_audio),
         "backgroundMusic": str(background_music) if background_music and background_music.is_file() else None,
-        "sourceAudioDurationMs": ffprobe_duration_ms(source_audio),
-        "narrationAudioWithoutHeaderDurationMs": narration_duration_ms,
-        "headerAudioDurationMs": header_duration_ms,
-        "narrationAudioForVideoDurationMs": duration_ms,
         "noSubtitleVideoDurationMs": no_subtitle_duration_ms,
         "videoDurationMs": video_duration_ms,
-        "coverSeconds": header_seconds,
-        "subtitleCount": len(events),
-        "stretchRatio": stretch_ratio,
-        "subtitleAlignmentAudio": str(narration_audio),
-        "elapsedSeconds": 0.0,
     }
     build_visual_timeline(
         video_dir / "visual_timeline.json",

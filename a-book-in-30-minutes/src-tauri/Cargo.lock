@@ -4,7 +4,7 @@ version = 3
 
 [[package]]
 name = "a_book_in_30_minutes"
-version = "0.1.81"
+version = "0.1.82"
 dependencies = [
  "base64 0.22.1",
  "chrono",

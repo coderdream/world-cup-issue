@@ -857,11 +857,11 @@ a-book-in-30-minutes/src-tauri/target/x86_64-pc-windows-gnu/release/bundle/nsis
 
 - 视频片头封面段必须保持静态渲染，不使用 `zoompan` 或任何逐帧缩放表达式，避免前 3 秒封面文字和矩形元素出现抖动。
 - 视频流水线必须使用固定 `header.mp3` 作为 3 秒无声片头音频。开发环境固定路径为 `a-book-in-30-minutes/tmp/assets/header.mp3`；打包或绿色版运行时也必须在 exe 同级或资源目录保留一份。脚本缺失该文件时可用 ffmpeg 生成同规格无声音频。
-- 视频生成前必须把 `header.mp3` 前置拼接到旁白音频，输出 `书名.mp3` 作为最终视频旁白音频；aeneas 和视频渲染都使用这个已带片头的音频，不再在字幕或视频阶段重复叠加静音偏移。
-- 双语硬字幕时间轴必须优先由 aeneas 基于最终旁白音频重新对齐生成；人工估算字幕只能作为缺少 aeneas 环境时的失败前占位，不能标记为最终成片。
+- 视频生成前必须把 `header.mp3` 前置拼接到旁白音频，输出 `书名.mp3` 作为最终视频旁白音频；视频渲染使用这个已带片头的音频。aeneas 对齐使用原始旁白音频，再在写出 SRT/ASS/LRC 时统一增加精确 `3000ms` 偏移，避免 3 秒静音片头误吸收第一句字幕。
+- 双语硬字幕时间轴必须优先由 aeneas 基于原始旁白音频重新对齐生成，并在输出阶段补齐片头偏移；人工估算字幕只能作为缺少 aeneas 环境时的失败前占位，不能标记为最终成片。
 - 当命令行传入 `--force-aeneas` 时，必须忽略输出目录中已经存在的 `.aeneas.zh-en.ass`，重新执行 aeneas 对齐，并重新生成 `hard_subtitle.aeneas.zh-en.srt` 与 `hard_subtitle.aeneas.zh-en.ass`。
 - aeneas 对齐优先在当前 Python 进程内执行；如果当前 Python 缺少 aeneas，则必须自动调用 `AENEAS_PYTHON` 或 `C:\Program Files\Python39\python.exe -m aeneas.tools.execute_task`，让默认 Python 继续负责 Pillow/视频渲染，Python39 只负责 aeneas 对齐。
-- 英文字幕文本可以来自 `subtitles_en.json` / `translation_cache.json`，也可以在条数完全一致时从已有双语 aeneas ASS 的 `English` 样式行抽取；最终时间戳仍必须以本次 aeneas 生成的中文 SRT 为准。
+- 英文字幕文本优先来自 `subtitles_en.json` / `translation_cache.json`，也可以在条数完全一致时从已有双语 aeneas ASS 的 `English` 样式行抽取；如果都不存在，Tauri 必须把设置中的 OpenAI 兼容 `baseURL`、`model`、`apiKey` 通过环境变量传给视频脚本，由脚本调用 Codex/AI 自动意译并写入 `translation_cache.json`。最终时间戳仍必须以本次 aeneas 生成的单语 SRT 为准。
 - aeneas 单语字幕文件必须按配置语言输出，例如 `hard_subtitle.aeneas.cmn.srt` 和 `hard_subtitle.aeneas.cmn.lrc`；双语字幕必须同时输出 `hard_subtitle.aeneas.zh-en.srt`、`hard_subtitle.aeneas.zh-en.ass` 和 `hard_subtitle.aeneas.zh-en.lrc`。
 - 复用历史 aeneas ASS 时必须检测首条字幕开始时间：如果已经包含片头偏移，不得再次叠加；如果未包含片头偏移，才按当前 header 音频时长补齐。
 - 端到端验证必须检查 `pipeline_manifest.json` 中 `subtitleTiming` 为 `aeneas`，并抽查 ASS 首条字幕应在片头之后约 3 秒开始，而不是 6 秒或 10 秒。
