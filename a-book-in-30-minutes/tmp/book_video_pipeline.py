@@ -5,6 +5,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -392,15 +393,6 @@ def load_english_lines(material_root: Path, expected_count: int) -> list[str]:
 
 
 def run_aeneas_alignment(audio: Path, subtitle_lines: list[str], output_dir: Path, audio_language: str) -> tuple[Path, dict]:
-    try:
-        from aeneas.executetask import ExecuteTask
-        from aeneas.task import Task
-    except Exception as exc:
-        raise RuntimeError(
-            "aeneas.tools is required for final subtitle timing. "
-            "Install/configure aeneas instead of falling back to estimated subtitle timing."
-        ) from exc
-
     output_dir.mkdir(parents=True, exist_ok=True)
     text_file = output_dir / "aeneas_input.txt"
     srt_file = output_dir / "hard_subtitle.aeneas.chn.srt"
@@ -413,6 +405,16 @@ def run_aeneas_alignment(audio: Path, subtitle_lines: list[str], output_dir: Pat
         "task_adjust_boundary_algorithm=percent|"
         "task_adjust_boundary_percent_value=50"
     )
+    try:
+        from aeneas.executetask import ExecuteTask
+        from aeneas.task import Task
+    except Exception as exc:
+        run_aeneas_alignment_subprocess(audio, text_file, srt_file, config, exc)
+        events = read_srt_events(srt_file)
+        return srt_file, write_aeneas_manifest(
+            output_dir, audio, text_file, srt_file, events, language, len(subtitle_lines)
+        )
+
     task = Task(config_string=config)
     task.audio_file_path_absolute = str(audio)
     task.text_file_path_absolute = str(text_file)
@@ -420,9 +422,67 @@ def run_aeneas_alignment(audio: Path, subtitle_lines: list[str], output_dir: Pat
     ExecuteTask(task).execute()
     task.output_sync_map_file()
     events = read_srt_events(srt_file)
-    if len(events) != len(subtitle_lines):
+    return srt_file, write_aeneas_manifest(
+        output_dir, audio, text_file, srt_file, events, language, len(subtitle_lines)
+    )
+
+
+def run_aeneas_alignment_subprocess(
+    audio: Path,
+    text_file: Path,
+    srt_file: Path,
+    config: str,
+    import_error: Exception,
+) -> None:
+    candidates = []
+    env_python = os.environ.get("AENEAS_PYTHON")
+    if env_python:
+        candidates.append(Path(env_python))
+    candidates.extend(
+        [
+            Path(r"C:\Program Files\Python39\python.exe"),
+            Path(r"C:\Program Files (x86)\Python39\python.exe"),
+        ]
+    )
+    for python_exe in candidates:
+        if not python_exe.is_file() or Path(sys.executable).resolve() == python_exe.resolve():
+            continue
+        completed = subprocess.run(
+            [
+                str(python_exe),
+                "-m",
+                "aeneas.tools.execute_task",
+                str(audio),
+                str(text_file),
+                config,
+                str(srt_file),
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            encoding="utf-8",
+            errors="ignore",
+        )
+        if completed.returncode == 0 and srt_file.is_file():
+            return
+    raise RuntimeError(
+        "aeneas.tools is required for final subtitle timing. "
+        "Current Python cannot import aeneas, and no working AENEAS_PYTHON/Python39 fallback completed."
+    ) from import_error
+
+
+def write_aeneas_manifest(
+    output_dir: Path,
+    audio: Path,
+    text_file: Path,
+    srt_file: Path,
+    events: list[tuple[int, int, str]],
+    language: str,
+    expected_count: int,
+) -> dict:
+    if len(events) != expected_count:
         raise RuntimeError(
-            f"aeneas cue count mismatch: expected {len(subtitle_lines)}, got {len(events)} from {srt_file}"
+            f"aeneas cue count mismatch: expected {expected_count}, got {len(events)} from {srt_file}"
         )
     manifest = {
         "audioLanguage": language,
@@ -437,7 +497,7 @@ def run_aeneas_alignment(audio: Path, subtitle_lines: list[str], output_dir: Pat
         json.dumps(manifest, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
-    return srt_file, manifest
+    return manifest
 
 
 def build_aeneas_subtitles(
