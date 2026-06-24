@@ -853,3 +853,10 @@ a-book-in-30-minutes/src-tauri/target/x86_64-pc-windows-gnu/release/bundle/nsis
 - ASS 样式参考 `D:\04_GitHub\yt-download` 的 Apple 双语字幕：中文使用米白大字、加粗、黑描边和阴影，英文使用橙色较小字号、加粗、黑描边和阴影，英文位于中文下方。
 - 当前 1920x1080 视频使用 `Chinese` 和 `English` 两个独立 Style；中文底边距高于英文，避免两行重叠。只有中文行时仍使用 `Chinese` 样式；有英文行时必须输出成对 Dialogue。
 - 生成最终视频后必须抽帧验证：封面帧、无字幕母版背景帧、硬字幕双语帧；同时使用 `ffprobe` 校验无字幕母版和硬字幕最终版时长一致。
+## 2026-06-24 视频管线修正规则
+
+- 视频片头封面段必须保持静态渲染，不使用 `zoompan` 或任何逐帧缩放表达式，避免前 5 秒封面文字和矩形元素出现抖动。
+- 双语硬字幕时间轴必须优先由 aeneas 基于最终旁白音频重新对齐生成；人工估算字幕只能作为缺少 aeneas 环境时的失败前占位，不能标记为最终成片。
+- 当命令行传入 `--force-aeneas` 时，必须忽略输出目录中已经存在的 `.aeneas.zh-en.ass`，重新执行 aeneas 对齐，并重新生成 `hard_subtitle.aeneas.zh-en.srt` 与 `hard_subtitle.aeneas.zh-en.ass`。
+- 复用历史 aeneas ASS 时必须检测首条字幕开始时间：如果已经包含 5 秒片头偏移，不得再次叠加；如果未包含片头偏移，才统一增加 `COVER_SECONDS`。
+- 端到端验证必须检查 `pipeline_manifest.json` 中 `subtitleTiming` 为 `aeneas`，并抽查 ASS 首条字幕应在片头之后约 5 秒开始，而不是 10 秒。

@@ -253,6 +253,16 @@ def offset_events(events: list[tuple[int, int, str]], offset_ms: int) -> list[tu
     return [(start + offset_ms, end + offset_ms, text) for start, end, text in events]
 
 
+def offset_events_for_cover_once(events: list[tuple[int, int, str]]) -> tuple[list[tuple[int, int, str]], int]:
+    if not events:
+        return events, 0
+    cover_ms = COVER_SECONDS * 1000
+    first_start = min(start for start, _, _ in events)
+    if first_start >= cover_ms - 500:
+        return events, 0
+    return offset_events(events, cover_ms), cover_ms
+
+
 def build_subtitle_events(lines: list[str], duration_ms: int, offset_ms: int = 0) -> list[tuple[int, int, str]]:
     if not lines:
         return []
@@ -430,11 +440,18 @@ def run_aeneas_alignment(audio: Path, subtitle_lines: list[str], output_dir: Pat
     return srt_file, manifest
 
 
-def build_aeneas_subtitles(material_root: Path, audio: Path, video_dir: Path, audio_language: str) -> tuple[Path, Path, list[tuple[int, int, str]], dict]:
-    existing_ass = find_existing_aeneas_ass(material_root)
+def build_aeneas_subtitles(
+    material_root: Path,
+    audio: Path,
+    video_dir: Path,
+    audio_language: str,
+    force_aeneas: bool,
+) -> tuple[Path, Path, list[tuple[int, int, str]], dict]:
+    existing_ass = None if force_aeneas else find_existing_aeneas_ass(material_root)
     if existing_ass:
         ass_file = video_dir / "hard_subtitle.aeneas.zh-en.ass"
-        events = offset_events(read_ass_dialogue_events(existing_ass), COVER_SECONDS * 1000)
+        raw_events = read_ass_dialogue_events(existing_ass)
+        events, delay_ms = offset_events_for_cover_once(raw_events)
         write_ass(ass_file, events)
         srt_file = video_dir / "hard_subtitle.aeneas.zh-en.srt"
         write_srt(srt_file, events)
@@ -442,7 +459,9 @@ def build_aeneas_subtitles(material_root: Path, audio: Path, video_dir: Path, au
             "subtitleTiming": "existing_aeneas_ass",
             "sourceAss": str(existing_ass),
             "cueCount": len(events),
-            "delayMs": COVER_SECONDS * 1000,
+            "sourceFirstCueMs": raw_events[0][0] if raw_events else None,
+            "firstCueMs": events[0][0] if events else None,
+            "delayMs": delay_ms,
         }
 
     chinese_lines = load_chinese_subtitle_lines(material_root)
@@ -968,13 +987,19 @@ def render_no_subtitle_video(
         frames = max(1, int(round(duration * 30)))
         zoom_direction = "+" if index % 2 == 0 else "-"
         zoom_expr = "min(zoom+0.00012,1.08)" if zoom_direction == "+" else "max(zoom-0.00008,1.0)"
-        video_filters.append(
+        motion_filter = (
+            "fps=30,"
+            if index == 0
+            else f"zoompan=z='{zoom_expr}':d={frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s={WIDTH}x{HEIGHT}:fps=30,"
+        )
+        filter_chain = (
             f"[{index}:v]scale={WIDTH}:{HEIGHT}:force_original_aspect_ratio=increase,"
             f"crop={WIDTH}:{HEIGHT},"
             "eq=brightness=-0.02:saturation=0.92:contrast=1.04,"
-            f"zoompan=z='{zoom_expr}':d={frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s={WIDTH}x{HEIGHT}:fps=30,"
+            f"{motion_filter}"
             f"trim=duration={duration:.3f},setpts=PTS-STARTPTS[v{index}]"
         )
+        video_filters.append(filter_chain)
         video_labels.append(f"[v{index}]")
     video_concat = "".join(video_labels) + f"concat=n={len(images)}:v=1:a=0[v]"
     if background_music and background_music.is_file():
@@ -1076,6 +1101,7 @@ def main() -> int:
     parser.add_argument("--allow-placeholder-visuals", action="store_true")
     parser.add_argument("--output-dir")
     parser.add_argument("--background-music")
+    parser.add_argument("--force-aeneas", action="store_true")
     args = parser.parse_args()
 
     epub = Path(args.epub)
@@ -1117,6 +1143,7 @@ def main() -> int:
         prepared_audio,
         video_dir,
         args.audio_language,
+        args.force_aeneas,
     )
 
     content_images, visual_source_dir, visual_source_kind = migrate_visual_assets(material_root, video_dir)
