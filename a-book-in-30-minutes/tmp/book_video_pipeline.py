@@ -73,12 +73,17 @@ def ffprobe_duration_ms(path: Path) -> int:
 
 
 def newest_audio(material_root: Path) -> Path | None:
-    candidates = []
-    for pattern in ("audio/**/*.mp3", "audio/**/*.wav", "*.mp3", "*.wav"):
-        candidates.extend(path for path in material_root.glob(pattern) if path.is_file())
-    if not candidates:
+    root_candidates = []
+    for pattern in ("*.mp3", "*.wav"):
+        root_candidates.extend(path for path in material_root.glob(pattern) if path.is_file())
+    if root_candidates:
+        return max(root_candidates, key=lambda path: path.stat().st_mtime)
+    nested_candidates = []
+    for pattern in ("audio/**/*.mp3", "audio/**/*.wav"):
+        nested_candidates.extend(path for path in material_root.glob(pattern) if path.is_file())
+    if not nested_candidates:
         return None
-    return max(candidates, key=lambda path: path.stat().st_mtime)
+    return max(nested_candidates, key=lambda path: path.stat().st_mtime)
 
 
 def find_material_root(epub: Path, output_dir: Path | None) -> Path | None:
