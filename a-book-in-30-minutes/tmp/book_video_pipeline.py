@@ -79,11 +79,24 @@ def ffprobe_duration_ms(path: Path) -> int:
 
 def newest_audio(material_root: Path, exclude_names: set[str] | None = None) -> Path | None:
     exclude_names = exclude_names or set()
+    excluded_names = {name.lower() for name in exclude_names}
+
+    def is_generated_audio(path: Path) -> bool:
+        lower_name = path.name.lower()
+        lower_stem = path.stem.lower()
+        if lower_name in excluded_names or lower_name.startswith("_"):
+            return True
+        if lower_stem.startswith(("hard_subtitle", "narration_for_video")):
+            return True
+        if lower_stem.endswith(("_无字幕母版", "_中英双语字幕_精修版")):
+            return True
+        return False
+
     root_candidates = []
     for pattern in ("*.mp3", "*.wav"):
         root_candidates.extend(
             path for path in material_root.glob(pattern)
-            if path.is_file() and path.name not in exclude_names and not path.name.startswith("_")
+            if path.is_file() and not is_generated_audio(path)
         )
     if root_candidates:
         return max(root_candidates, key=lambda path: path.stat().st_mtime)
@@ -91,7 +104,7 @@ def newest_audio(material_root: Path, exclude_names: set[str] | None = None) -> 
     for pattern in ("audio/**/*.mp3", "audio/**/*.wav"):
         nested_candidates.extend(
             path for path in material_root.glob(pattern)
-            if path.is_file() and path.name not in exclude_names
+            if path.is_file() and not is_generated_audio(path)
         )
     if not nested_candidates:
         return None
