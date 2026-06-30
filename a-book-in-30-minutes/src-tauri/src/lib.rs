@@ -11,6 +11,16 @@ use tauri::{
     Manager,
 };
 
+pub fn run_e2e_materials_cli(epub_path: &str) -> Result<(), String> {
+    tauri::async_runtime::block_on(commands::run_e2e_materials_cli(epub_path))
+        .map_err(|error| error.message)
+}
+
+pub fn run_e2e_audio_cli(epub_path: &str) -> Result<(), String> {
+    tauri::async_runtime::block_on(commands::run_e2e_audio_cli(epub_path))
+        .map_err(|error| error.message)
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
@@ -49,6 +59,7 @@ pub fn run() {
             generate_book_materials,
             scan_material_files,
             get_material_tasks,
+            get_material_task,
             update_material_task_status,
             remove_material_task,
             reset_material_tasks,

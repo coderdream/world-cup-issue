@@ -747,8 +747,18 @@ export function HomePage() {
 
   async function loadStoredTasks(category: string) {
     try {
-      const result = await frameworkApi.getMaterialTasks({ category });
+      const categoryResult = await frameworkApi.getMaterialTasks({ category });
       const requestPath = useAppStore.getState().materialsWorkbench.request.epubPath.trim();
+      const hasRequestTask = Boolean(requestPath) && categoryResult.files.some((file) => file.path === requestPath);
+      const requestTask = hasRequestTask || !requestPath
+        ? null
+        : await frameworkApi.getMaterialTask({ path: requestPath });
+      const result = hasRequestTask || !requestPath
+        ? categoryResult
+        : {
+            ...categoryResult,
+            files: [requestTask ?? materialFileFromPath(requestPath), ...categoryResult.files]
+          };
       const selectedPatch = requestPath && result.files.some((file) => file.path === requestPath)
         ? { selectedTaskPath: requestPath }
         : {};

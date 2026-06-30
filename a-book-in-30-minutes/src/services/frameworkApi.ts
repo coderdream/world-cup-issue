@@ -100,6 +100,9 @@ export const frameworkApi = {
   getMaterialTasks(request: GetMaterialTasksRequest = {}) {
     return callCommand<ScanMaterialFilesResult>("get_material_tasks", { request });
   },
+  getMaterialTask(request: MaterialTaskPathRequest) {
+    return callCommand<MaterialFile | null>("get_material_task", { request });
+  },
   updateMaterialTaskStatus(request: UpdateMaterialTaskStatusRequest) {
     return callCommand<MaterialFile>("update_material_task_status", { request });
   },

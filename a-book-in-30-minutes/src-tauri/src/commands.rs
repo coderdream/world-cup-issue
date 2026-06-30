@@ -1434,6 +1434,26 @@ pub fn get_material_tasks(
 }
 
 #[tauri::command]
+pub fn get_material_task(
+    data: State<'_, AppData>,
+    request: MaterialTaskPathRequest,
+) -> Result<Option<MaterialFile>, CommandError> {
+    let path = request.path.trim();
+    if path.is_empty() {
+        return Ok(None);
+    }
+    let connection = Connection::open(&data.db_path)
+        .map_err(|error| command_error(format!("Open material task database failed: {error}")))?;
+    ensure_material_tasks_table(&connection)?;
+    let mut file = load_material_task_by_path(&connection, path)?;
+    if let Some(file) = file.as_mut() {
+        normalize_loaded_task_for_manual_resume(file);
+        let _ = migrate_task_outputs_to_source_output(&connection, file);
+    }
+    Ok(file)
+}
+
+#[tauri::command]
 pub fn update_material_task_status(
     data: State<'_, AppData>,
     request: UpdateMaterialTaskStatusRequest,
@@ -1451,6 +1471,12 @@ pub fn update_material_task_status(
     let progress = clamp_task_progress(request.progress);
     let status = normalize_task_status(&request.status);
     let message = request.message.unwrap_or_default();
+    let category = normalize_material_category(
+        request
+            .category
+            .as_deref()
+            .unwrap_or(DEFAULT_MATERIAL_CATEGORY),
+    );
     let now = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
     connection
         .execute(
@@ -1461,7 +1487,8 @@ pub fn update_material_task_status(
                 narration_chars = ?4,
                 material_output_dir = COALESCE(?5, material_output_dir),
                 message = ?6,
-                updated_at = ?7
+                category = ?7,
+                updated_at = ?8
             WHERE path = ?1
             "#,
             params![
@@ -1471,16 +1498,13 @@ pub fn update_material_task_status(
                 request.narration_chars,
                 request.material_output_dir,
                 message,
+                category,
                 now
             ],
         )
         .map_err(|error| command_error(format!("Update material task status failed: {error}")))?;
     if connection.changes() == 0 {
-        let category = request
-            .category
-            .as_deref()
-            .unwrap_or(DEFAULT_MATERIAL_CATEGORY);
-        upsert_material_task(&connection, &material_file_from_path(path, category)?)?;
+        upsert_material_task(&connection, &material_file_from_path(path, &category)?)?;
         connection
             .execute(
                 r#"
@@ -1490,7 +1514,8 @@ pub fn update_material_task_status(
                     narration_chars = ?4,
                     material_output_dir = COALESCE(?5, material_output_dir),
                     message = ?6,
-                    updated_at = ?7
+                    category = ?7,
+                    updated_at = ?8
                 WHERE path = ?1
                 "#,
                 params![
@@ -1500,6 +1525,7 @@ pub fn update_material_task_status(
                     request.narration_chars,
                     request.material_output_dir,
                     message,
+                    category,
                     now
                 ],
             )
