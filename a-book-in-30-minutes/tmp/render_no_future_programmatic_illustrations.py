@@ -14,6 +14,7 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont
 BOOK_FOLDER = "001\u6ca1\u6709\u5bbd\u6055\u5c31\u6ca1\u6709\u672a\u6765"
 W, H = 1920, 1080
 SUBTITLE_SAFE_Y = 770
+ANTIALIAS_SCALE = 2
 
 PAPER = (244, 235, 215)
 CREAM = (250, 245, 231)
@@ -96,6 +97,14 @@ def grain(image: Image.Image) -> Image.Image:
     return out.convert("RGB")
 
 
+def antialias_finish(image: Image.Image) -> Image.Image:
+    """Smooth hard vector edges while keeping the hand-drawn look readable."""
+    large = image.resize((W * ANTIALIAS_SCALE, H * ANTIALIAS_SCALE), Image.Resampling.LANCZOS)
+    large = large.filter(ImageFilter.GaussianBlur(radius=0.25))
+    smoothed = large.resize((W, H), Image.Resampling.LANCZOS)
+    return smoothed.filter(ImageFilter.UnsharpMask(radius=0.8, percent=70, threshold=4))
+
+
 def soft_rect(draw: ImageDraw.ImageDraw, xy, fill, outline=None, width=3, radius=18):
     draw.rounded_rectangle(xy, radius=radius, fill=fill, outline=outline, width=width)
 
@@ -107,6 +116,26 @@ def line(draw: ImageDraw.ImageDraw, points, fill=INK, width=5):
 def shadow(draw: ImageDraw.ImageDraw, xy, alpha_fill=(68, 54, 42)):
     x1, y1, x2, y2 = xy
     draw.ellipse((x1, y1, x2, y2), fill=tuple(max(0, c - 10) for c in alpha_fill))
+
+
+def limb(draw: ImageDraw.ImageDraw, start, end, width: int, fill, outline=INK):
+    x1, y1 = start
+    x2, y2 = end
+    draw.line((x1, y1, x2, y2), fill=outline, width=width + 4)
+    draw.line((x1, y1, x2, y2), fill=fill, width=width)
+    r = max(2, width // 2)
+    draw.ellipse((x1 - r, y1 - r, x1 + r, y1 + r), fill=fill, outline=None)
+    draw.ellipse((x2 - r, y2 - r, x2 + r, y2 + r), fill=fill, outline=None)
+
+
+def shoe(draw: ImageDraw.ImageDraw, x: int, y: int, scale: float, direction: int = 1):
+    w = int(34 * scale)
+    h = int(14 * scale)
+    if direction < 0:
+        box = (x - w, y - h, x + int(6 * scale), y + h)
+    else:
+        box = (x - int(6 * scale), y - h, x + w, y + h)
+    draw.rounded_rectangle(box, radius=max(2, int(6 * scale)), fill=(48, 45, 40), outline=INK, width=max(1, int(2 * scale)))
 
 
 def person(draw: ImageDraw.ImageDraw, x: int, y: int, scale: float = 1.0, skin=SKIN_MED, clothes=TEAL, pose="stand", hair=INK):
@@ -132,19 +161,27 @@ def person(draw: ImageDraw.ImageDraw, x: int, y: int, scale: float = 1.0, skin=S
     draw.line((x - body_w // 2 + 14, y - body_h + 58 * scale, x + body_w // 2 - 14, y - body_h + 58 * scale), fill=darker, width=max(2, int(2 * scale)))
     draw.line((x, y - body_h + int(34 * scale), x, y - int(10 * scale)), fill=darker, width=max(1, int(2 * scale)))
     if pose == "sit":
-        draw.rounded_rectangle((x - int(66 * scale), y - int(4 * scale), x - int(8 * scale), y + int(38 * scale)), radius=int(15 * scale), fill=darker, outline=INK, width=line_w)
-        draw.rounded_rectangle((x + int(8 * scale), y - int(4 * scale), x + int(66 * scale), y + int(38 * scale)), radius=int(15 * scale), fill=darker, outline=INK, width=line_w)
-        line(draw, [(x - int(48 * scale), y + int(32 * scale)), (x - int(86 * scale), y + int(68 * scale))], INK, line_w)
-        line(draw, [(x + int(48 * scale), y + int(32 * scale)), (x + int(86 * scale), y + int(68 * scale))], INK, line_w)
+        draw.rounded_rectangle((x - int(68 * scale), y - int(6 * scale), x - int(6 * scale), y + int(34 * scale)), radius=int(17 * scale), fill=darker, outline=INK, width=line_w)
+        draw.rounded_rectangle((x + int(6 * scale), y - int(6 * scale), x + int(68 * scale), y + int(34 * scale)), radius=int(17 * scale), fill=darker, outline=INK, width=line_w)
+        limb(draw, (x - int(45 * scale), y + int(28 * scale)), (x - int(84 * scale), y + int(62 * scale)), max(5, int(13 * scale)), darker)
+        limb(draw, (x + int(45 * scale), y + int(28 * scale)), (x + int(84 * scale), y + int(62 * scale)), max(5, int(13 * scale)), darker)
+        shoe(draw, x - int(85 * scale), y + int(64 * scale), scale, -1)
+        shoe(draw, x + int(85 * scale), y + int(64 * scale), scale, 1)
     else:
-        draw.rounded_rectangle((x - int(36 * scale), y - int(3 * scale), x - int(4 * scale), y + int(88 * scale)), radius=int(14 * scale), fill=darker, outline=INK, width=line_w)
-        draw.rounded_rectangle((x + int(4 * scale), y - int(3 * scale), x + int(36 * scale), y + int(88 * scale)), radius=int(14 * scale), fill=darker, outline=INK, width=line_w)
+        draw.rounded_rectangle((x - int(39 * scale), y - int(3 * scale), x - int(6 * scale), y + int(82 * scale)), radius=int(15 * scale), fill=darker, outline=INK, width=line_w)
+        draw.rounded_rectangle((x + int(6 * scale), y - int(3 * scale), x + int(39 * scale), y + int(82 * scale)), radius=int(15 * scale), fill=darker, outline=INK, width=line_w)
+        limb(draw, (x - int(22 * scale), y + int(76 * scale)), (x - int(34 * scale), y + int(115 * scale)), max(5, int(12 * scale)), darker)
+        limb(draw, (x + int(22 * scale), y + int(76 * scale)), (x + int(34 * scale), y + int(115 * scale)), max(5, int(12 * scale)), darker)
+        shoe(draw, x - int(35 * scale), y + int(116 * scale), scale, -1)
+        shoe(draw, x + int(35 * scale), y + int(116 * scale), scale, 1)
     arm_y = y - body_h + int(36 * scale)
     for side in (-1, 1):
-        elbow = (x + side * int(70 * scale), y - int(66 * scale))
-        hand = (x + side * int(84 * scale), y - int(38 * scale))
-        line(draw, [(x + side * body_w // 2, arm_y), elbow, hand], INK, line_w)
-        draw.ellipse((hand[0] - int(7 * scale), hand[1] - int(7 * scale), hand[0] + int(7 * scale), hand[1] + int(7 * scale)), fill=skin, outline=INK, width=max(1, int(2 * scale)))
+        shoulder = (x + side * body_w // 2, arm_y)
+        elbow = (x + side * int(66 * scale), y - int(68 * scale))
+        hand = (x + side * int(82 * scale), y - int(42 * scale))
+        limb(draw, shoulder, elbow, max(4, int(12 * scale)), lighter)
+        limb(draw, elbow, hand, max(4, int(11 * scale)), lighter)
+        draw.ellipse((hand[0] - int(9 * scale), hand[1] - int(9 * scale), hand[0] + int(9 * scale), hand[1] + int(9 * scale)), fill=skin, outline=INK, width=max(1, int(2 * scale)))
 
 
 def table(draw, x, y, w, h, fill=(168, 122, 76)):
@@ -249,6 +286,67 @@ def patterned_rug(draw, x, y, w, h):
         draw.arc((x + 40 + i * 36, y + 12, x + w - 40 - i * 36, y + h - 12), 0, 180, fill=(174, 151, 115), width=2)
 
 
+def floor_boards(draw, y=640, color=(221, 207, 180)):
+    draw.rectangle((0, y, W, SUBTITLE_SAFE_Y), fill=color)
+    for offset in range(-260, W, 180):
+        line(draw, [(offset, y + 8), (offset + 360, SUBTITLE_SAFE_Y - 18)], (201, 184, 154), 2)
+    draw.line((0, y, W, y), fill=(194, 176, 148), width=3)
+
+
+def wall_shelf(draw, x, y, w, books=6):
+    draw.rounded_rectangle((x, y, x + w, y + 16), radius=5, fill=(131, 92, 59), outline=INK, width=3)
+    colors = [TEAL, RUST, OCHRE, BLUE, OLIVE, CLAY]
+    bx = x + 18
+    for i in range(books):
+        bw = 22 + (i % 3) * 8
+        bh = 62 + (i % 4) * 9
+        draw.rounded_rectangle((bx, y - bh, bx + bw, y), radius=3, fill=colors[i % len(colors)], outline=INK, width=2)
+        draw.line((bx + 5, y - bh + 9, bx + bw - 5, y - bh + 9), fill=(238, 226, 196), width=2)
+        bx += bw + 9
+    tea_cup(draw, x + w - 92, y - 48, 0.5)
+
+
+def curtain(draw, x, y, w, h, side="left", fill=(196, 145, 98)):
+    if side == "left":
+        pts = [(x, y), (x + w, y + 20), (x + int(w * 0.7), y + h), (x + 10, y + h - 12)]
+    else:
+        pts = [(x + w, y), (x, y + 20), (x + int(w * 0.3), y + h), (x + w - 10, y + h - 12)]
+    draw.polygon(pts, fill=fill, outline=INK)
+    for i in range(1, 4):
+        px = x + i * w // 4
+        draw.line((px, y + 18, px - (8 if side == "left" else -8), y + h - 18), fill=tuple(max(0, c - 28) for c in fill), width=3)
+
+
+def loose_notes(draw, x, y, count=5):
+    for i in range(count):
+        px = x + (i % 3) * 70
+        py = y + (i // 3) * 52
+        soft_rect(draw, (px, py, px + 54, py + 38), WHITE_CLOTH, (174, 159, 132), 2, 4)
+        draw.line((px + 9, py + 13, px + 45, py + 13), fill=(170, 160, 140), width=2)
+        draw.line((px + 9, py + 24, px + 35, py + 24), fill=(170, 160, 140), width=2)
+
+
+def candle_group(draw, x, y, count=4, scale=1.0):
+    for i in range(count):
+        px = x + int(i * 54 * scale)
+        h = int((58 + (i % 3) * 18) * scale)
+        draw.rounded_rectangle((px, y - h, px + int(24 * scale), y), radius=int(7 * scale), fill=(238, 225, 190), outline=INK, width=max(2, int(3 * scale)))
+        draw.polygon([(px + int(12 * scale), y - h - int(28 * scale)), (px + int(3 * scale), y - h - int(6 * scale)), (px + int(21 * scale), y - h - int(6 * scale))], fill=(246, 194, 76), outline=INK)
+        draw.ellipse((px - int(8 * scale), y - int(3 * scale), px + int(32 * scale), y + int(9 * scale)), fill=(201, 184, 150), outline=INK, width=2)
+
+
+def shrubs(draw, y, count=12):
+    for i in range(count):
+        x = 30 + i * (W - 80) // max(1, count - 1)
+        draw.ellipse((x - 32, y - 28 - (i % 2) * 9, x + 36, y + 18), fill=(69, 117, 83), outline=None)
+        line(draw, [(x - 20, y + 12), (x - 54, y + 25)], (106, 124, 89), 2)
+
+
+def picture_wall(draw, x, y, count=3):
+    for i in range(count):
+        framed_photo(draw, x + i * 118, y + (i % 2) * 18, 86, 66, tint=[(194, 174, 132), (174, 190, 185), (207, 184, 151)][i % 3])
+
+
 def lamp_glow(draw, cx, cy, r):
     for i in range(5, 0, -1):
         color = (245, 218 - i * 7, 126 - i * 3)
@@ -261,8 +359,13 @@ def label(draw, text: str, x: int, y: int):
 
 
 def scene_1(draw):
+    floor_boards(draw, 642, (221, 207, 181))
     sun_or_moon(draw, 570, 385, 38, (237, 200, 91))
     window(draw, 1240, 110, 430, 300, sky=(45, 74, 96))
+    curtain(draw, 1214, 105, 72, 326, "left", fill=(159, 117, 88))
+    curtain(draw, 1628, 105, 72, 326, "right", fill=(159, 117, 88))
+    wall_shelf(draw, 195, 315, 310, 7)
+    picture_wall(draw, 690, 250, 3)
     table(draw, 320, 585, 920, 74)
     soft_rect(draw, (520, 438, 620, 610), OCHRE, INK, 4, 28)
     lamp_glow(draw, 570, 385, 130)
@@ -270,6 +373,7 @@ def scene_1(draw):
     soft_rect(draw, (790, 508, 1040, 578), (219, 208, 184), INK, 4, 12)
     draw.line((815, 540, 1015, 540), fill=MUTED, width=3)
     paper_stack(draw, 850, 430, 170, 92, 2)
+    loose_notes(draw, 1025, 420, 5)
     tea_cup(draw, 1118, 518, 0.9)
     framed_photo(draw, 680, 470, 96, 72)
     patterned_rug(draw, 390, 680, 760, 70)
@@ -282,10 +386,14 @@ def scene_1(draw):
 def scene_2(draw):
     hills(draw, 330)
     distant_town(draw, 520, 1240)
+    shrubs(draw, 548, 15)
     draw.rectangle((0, 575, W, SUBTITLE_SAFE_Y), fill=(214, 196, 158))
+    for x in range(80, 1600, 165):
+        draw.rectangle((x, 600, x + 105, 640), fill=(197, 178, 139), outline=(162, 141, 107), width=2)
     for x in (360, 560, 760, 960, 1160):
         line(draw, [(x, 360), (x, SUBTITLE_SAFE_Y)], INK, 8)
     line(draw, [(250, 470), (1350, 470)], INK, 8)
+    line(draw, [(250, 535), (1350, 535)], (72, 79, 78), 4)
     soft_rect(draw, (1180, 455, 1425, 555), (78, 92, 101), INK, 4, 18)
     draw.ellipse((1210, 540, 1265, 595), fill=INK)
     draw.ellipse((1350, 540, 1405, 595), fill=INK)
@@ -298,12 +406,14 @@ def scene_2(draw):
         person(draw, x, 670, 0.67, skin=[SKIN_DARK, SKIN_MED, SKIN_LIGHT][i % 3], clothes=[TEAL, OCHRE, RUST][i % 3], hair=[INK, (82, 59, 42), (66, 54, 43)][i % 3])
         soft_rect(draw, (x + 35, 525, x + 95, 570), WHITE_CLOTH, INK, 3, 5)
     paper_stack(draw, 1165, 620, 120, 70, 2)
+    loose_notes(draw, 1450, 585, 4)
 
 
 def scene_3(draw):
     hills(draw, 300)
     sun_or_moon(draw, 1500, 185, 30, (240, 199, 92))
     road(draw, (960, 515), (960, 1080))
+    shrubs(draw, 560, 14)
     soft_rect(draw, (740, 420, 1180, 535), (218, 205, 178), INK, 5, 12)
     soft_rect(draw, (900, 450, 1010, 520), WHITE_CLOTH, INK, 4, 7)
     soft_rect(draw, (1035, 455, 1115, 520), (190, 175, 135), INK, 3, 6)
@@ -311,6 +421,8 @@ def scene_3(draw):
     tea_cup(draw, 1135, 470, 0.62)
     for i, x in enumerate(range(280, 1530, 155)):
         person(draw, x, 660 + (i % 2) * 16, 0.62, skin=[SKIN_DARK, SKIN_MED, SKIN_LIGHT][i % 3], clothes=[TEAL, OCHRE, RUST][i % 3])
+        if i % 2 == 0:
+            soft_rect(draw, (x + 26, 535, x + 72, 568), WHITE_CLOTH, INK, 2, 4)
     draw.rectangle((1290, 185, 1380, 410), fill=(205, 190, 158), outline=INK, width=5)
     draw.polygon([(1260, 185), (1420, 185), (1340, 105)], fill=RUST, outline=INK)
     plant(draw, 1500, 610, 0.58)
@@ -319,6 +431,9 @@ def scene_3(draw):
 def scene_4(draw):
     draw.rectangle((140, 120, 1780, SUBTITLE_SAFE_Y), fill=(226, 218, 202), outline=INK, width=6)
     draw.rectangle((170, 525, 1750, 665), fill=(214, 202, 178), outline=None)
+    draw.rectangle((180, 150, 420, 315), fill=(215, 203, 178), outline=INK, width=4)
+    draw.arc((238, 202, 362, 296), 200, 340, fill=(166, 143, 110), width=5)
+    picture_wall(draw, 1450, 185, 2)
     for y in (250, 375, 500):
         draw.line((220, y, 1700, y), fill=(205, 193, 169), width=3)
     for x in (460, 790, 1120, 1450):
@@ -333,15 +448,20 @@ def scene_4(draw):
     paper_stack(draw, 1280, 375, 100, 70, 3)
     paper_stack(draw, 585, 400, 120, 80, 2)
     archive_box(draw, 1395, 500, 130, 76)
+    archive_box(draw, 1528, 520, 112, 64, fill=(176, 154, 116))
     framed_photo(draw, 410, 500, 90, 70)
     patterned_rug(draw, 545, 590, 840, 70)
     person(draw, 820, 480, 0.78, skin=SKIN_DARK, clothes=TEAL, pose="sit")
     person(draw, 1070, 480, 0.72, skin=SKIN_LIGHT, clothes=OCHRE, pose="sit")
     soft_rect(draw, (265, 540, 370, 668), (202, 186, 154), INK, 4, 10)
+    loose_notes(draw, 430, 390, 4)
 
 
 def scene_5(draw):
+    floor_boards(draw, 642, (222, 208, 183))
     window(draw, 1240, 135, 400, 310, sky=(151, 173, 177))
+    curtain(draw, 1212, 132, 70, 322, "left", fill=(142, 124, 112))
+    curtain(draw, 1582, 132, 70, 322, "right", fill=(142, 124, 112))
     draw.rectangle((180, 190, 520, 475), fill=(225, 215, 194), outline=INK, width=4)
     for y in (250, 320, 390):
         draw.line((215, y, 485, y), fill=(195, 184, 161), width=3)
@@ -351,20 +471,24 @@ def scene_5(draw):
     patterned_rug(draw, 535, 690, 740, 64)
     person(draw, 760, 585, 1.02, skin=SKIN_DARK, clothes=(122, 130, 128), pose="sit")
     paper_stack(draw, 930, 500, 165, 100, 3)
+    loose_notes(draw, 1085, 468, 4)
     tea_cup(draw, 1085, 620, 0.92)
     framed_photo(draw, 1180, 520, 130, 94)
     archive_box(draw, 1325, 530, 150, 82)
     draw.rectangle((980, 520, 1070, 585), fill=(185, 161, 120), outline=INK, width=4)
+    plant(draw, 325, 590, 0.55)
 
 
 def scene_6(draw):
     hills(draw, 290)
     distant_town(draw, 535, 1245)
+    shrubs(draw, 560, 13)
     draw.rectangle((0, 555, W, SUBTITLE_SAFE_Y), fill=(208, 195, 160))
     draw.polygon([(900, 560), (1030, 560), (1560, 1080), (1200, 1080)], fill=(185, 154, 107))
     draw.polygon([(850, 560), (970, 560), (600, 1080), (240, 1080)], fill=(132, 116, 96))
     for x in range(250, 620, 75):
-        line(draw, [(x, 700), (x + 65, 760)], (73, 78, 75), 5)
+        line(draw, [(x, 675), (x + 52, 720)], (104, 102, 88), 3)
+        draw.ellipse((x - 6, 664, x + 12, 682), fill=(124, 112, 92), outline=None)
     for x in (1260, 1375, 1490):
         soft_rect(draw, (x, 515, x + 120, 610), (205, 184, 139), INK, 4, 12)
         draw.polygon([(x - 10, 515), (x + 60, 465), (x + 130, 515)], fill=RUST, outline=INK)
@@ -374,29 +498,32 @@ def scene_6(draw):
     person(draw, 725, 705, 0.78, skin=SKIN_DARK, clothes=TEAL)
     person(draw, 1080, 700, 0.78, skin=SKIN_LIGHT, clothes=OCHRE)
     person(draw, 930, 665, 0.6, skin=SKIN_MED, clothes=RUST, pose="sit")
+    chair(draw, 895, 626, 0.78, fill=(188, 171, 135))
 
 
 def scene_7(draw):
     draw.rectangle((0, 0, W, H), fill=(224, 217, 199))
     hills(draw, 250)
+    shrubs(draw, 560, 10)
     draw.rectangle((260, 350, 870, 620), fill=(190, 178, 157), outline=INK, width=6)
     draw.polygon([(230, 350), (565, 210), (900, 350)], fill=(137, 110, 92), outline=INK)
     draw.rectangle((500, 435, 630, 620), fill=(82, 83, 80), outline=INK, width=5)
     draw.arc((320, 380, 440, 500), 180, 360, fill=(125, 105, 86), width=5)
     draw.arc((700, 380, 820, 500), 180, 360, fill=(125, 105, 86), width=5)
-    for x in (1020, 1120, 1220, 1320):
-        draw.ellipse((x, 610, x + 35, 665), fill=(232, 190, 90), outline=INK, width=3)
-        line(draw, [(x + 17, 665), (x + 17, 720)], INK, 4)
-        draw.polygon([(x + 17, 600), (x + 7, 620), (x + 27, 620)], fill=(248, 210, 90), outline=None)
+    candle_group(draw, 1020, 705, 6, 0.9)
     draw.polygon([(970, 545), (1420, 540), (1450, 625), (940, 635)], fill=WHITE_CLOTH, outline=INK)
     framed_photo(draw, 980, 430, 110, 82, tint=(184, 171, 145))
+    loose_notes(draw, 1140, 438, 3)
     for x in (1480, 1600):
         person(draw, x, 700, 0.68, skin=SKIN_DARK, clothes=(92, 92, 88))
 
 
 def scene_8(draw):
+    floor_boards(draw, 642, (222, 209, 184))
     sun_or_moon(draw, 1460, 270, 34, (245, 205, 112))
     window(draw, 1190, 110, 430, 310, sky=(154, 194, 205))
+    curtain(draw, 1165, 108, 70, 320, "left", fill=(189, 142, 94))
+    curtain(draw, 1586, 108, 70, 320, "right", fill=(189, 142, 94))
     road(draw, (1395, 395), (1500, 1080), color=(210, 187, 136))
     draw.rectangle((180, 150, 455, 420), fill=(224, 214, 190), outline=INK, width=4)
     for y in (220, 292, 364):
@@ -404,6 +531,7 @@ def scene_8(draw):
     table(draw, 370, 590, 900, 74)
     soft_rect(draw, (725, 500, 930, 570), (218, 207, 182), INK, 4, 10)
     tea_cup(draw, 1045, 512, 0.82)
+    loose_notes(draw, 1075, 445, 4)
     draw.rectangle((520, 390, 625, 590), fill=(98, 142, 103), outline=INK, width=5)
     draw.ellipse((475, 300, 675, 430), fill=(88, 137, 95), outline=INK, width=4)
     plant(draw, 1210, 565, 0.8)
@@ -420,7 +548,7 @@ def render_scene(index: int, scene: dict, output: Path) -> Path:
     image, draw = canvas()
     SCENE_RENDERERS[index - 1](draw)
     subtitle_band(draw)
-    image = grain(image).filter(ImageFilter.UnsharpMask(radius=1.2, percent=115, threshold=3))
+    image = antialias_finish(grain(image))
     path = output / f"scene_{index:02d}_{scene['time'].replace(':', '').replace('-', '_')}.png"
     image.save(path)
     return path

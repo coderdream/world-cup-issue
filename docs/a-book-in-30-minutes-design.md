@@ -53,7 +53,7 @@
 
 `materialsWorkbench` 状态保存在 Zustand 全局 store 中，包含请求参数、扫描结果、生成结果、导出目录、错误提示、复制状态、当前结果标签页、当前 `trace_id` 和忙碌状态。切换菜单后不丢失素材页状态。
 
-素材生成默认参数保存在 `settings.materialProfile`，包括 `channelName`、`categoryName`、`categories`、`language`、`targetMinChars`、`targetMaxChars` 和 `extraDirection`。默认目标为 `7000-8300` 个中文字，最佳约 `7600` 字，用于配合 `0%` 原速语音生成约 `30-35` 分钟睡前听书音频，并尽量避免最终音频超过 `35:00`；如果用户调整目标时长，应优先调整这两个字数配置，而不是为了压缩时长提高语速。`categories` 默认包含 `半小时听完一本书`、`睡前听完一本书`、`A Book in 30 Minutes`，配置页允许新增分类；`categoryName` 是当前任务入库分类，等价于后续 YouTube 播放列表名称；`channelName` 为兼容旧生成提示词保留，当前选择分类时会同步更新。素材生成页不再直接编辑这些参数，生成请求会把当前配置合并进请求体。文件级生成状态同时保存在 `materialsWorkbench.fileStatuses` 和 SQLite `material_tasks`，按文件路径记录状态、五档进度、成稿字数和失败信息。
+素材生成默认参数保存在 `settings.materialProfile`，包括 `channelName`、`categoryName`、`categories`、`language`、`targetMinChars`、`targetMaxChars` 和 ```textraDirection`。默认目标为 `7000-8300` 个中文字，最佳约 `7600` 字，用于配合 `0%` 原速语音生成约 `30-35` 分钟睡前听书音频，并尽量避免最终音频超过 `35:00`；如果用户调整目标时长，应优先调整这两个字数配置，而不是为了压缩时长提高语速。`categories` 默认包含 `半小时听完一本书`、`睡前听完一本书`、`A Book in 30 Minutes`，配置页允许新增分类；`categoryName` 是当前任务入库分类，等价于后续 YouTube 播放列表名称；`channelName` 为兼容旧生成提示词保留，当前选择分类时会同步更新。素材生成页不再直接编辑这些参数，生成请求会把当前配置合并进请求体。文件级生成状态同时保存在 `materialsWorkbench.fileStatuses` 和 SQLite `material_tasks`，按文件路径记录状态、五档进度、成稿字数和失败信息。
 
 界面字体配置保存在 `settings.uiProfile`，包括 `menuFontFamily`、`menuFontSize`、`contentFontFamily` 和 `contentFontSize`。配置页“基础配置”允许分别设置左侧菜单字体和页面内容字体；默认菜单字号为 `13px`，内容字号为 `12px`。前端通过 CSS 变量 `--menu-font-family`、`--menu-font-size`、`--content-font-family` 和 `--content-font-size` 应用配置，页面表格、配置项和步骤跟踪内容默认跟随内容字体。
 
@@ -938,23 +938,24 @@ a-book-in-30-minutes/src-tauri/target/x86_64-pc-windows-gnu/release/bundle/nsis
 - Before regenerating images for D:\books\理想国译丛系列（74册）整理截止2026.018\001没有宽恕就没有未来\001没有宽恕就没有未来.epub, the workflow now pauses to define style, recurring elements, noun/object inventory, and scene-to-time mapping.
 - Style target: professional 30-minute book-summary illustration, warm hand-painted storybook texture, cinematic mid/wide shots, concrete people and settings, no abstract single-object icons.
 - Recurring elements: desk lamp, window and light, archival testimony papers, hearing microphone, empty chair, road, candle, ballot box, old photograph, family table.
-- A dedicated design artifact was generated at D:\books\理想国译丛系列（74册）整理截止2026.018\001没有宽恕就没有未来\output_regen_design_001\visual_style_bible.md with noun extraction and 8 timeline scenes.
+- A dedicated design artifact was generated at D:\books\理想国译丛系列（74册）整理截止2026.018\001没有宽恕就没有未来\output_regen_design_001\`visual_style_bible.md` with noun extraction and 8 timeline scenes.
 
 
 ## No Future Without Forgiveness Programmatic Visual Regeneration
 
 - The No Future Without Forgiveness regeneration now follows a visual-system-first process: style bible, recurring elements, noun/object inventory, timeline scenes, then image generation.
 - AI image generation through MacMini Realistic Vision was tested but rejected for this book because it repeatedly produced open book spreads, fake text, or empty landscapes instead of the requested hearing/family/documentary scenes.
-- Added -book-in-30-minutes/tmp/build_no_future_visual_design.py to build clean UTF-8 design artifacts and prompts for the book without mojibake.
-- Added -book-in-30-minutes/tmp/render_no_future_programmatic_illustrations.py to render 8 controlled 1920x1080 documentary-style illustrations with people, scene objects, light/weather, and a lower subtitle-safe band.
-- The regenerated video uses isualSourceKind=task_visual_assets and isualAssetCount=8, with assets copied into the material output under isual_assets/originals/programmatic_no_future_v1.
+- Added `a-book-in-30-minutes`/tmp/build_no_future_visual_design.py to build clean UTF-8 design artifacts and prompts for the book without mojibake.
+- Added `a-book-in-30-minutes`/tmp/render_no_future_programmatic_illustrations.py to render 8 controlled 1920x1080 documentary-style illustrations with people, scene objects, light/weather, and a lower subtitle-safe band.
+- The regenerated video uses `visualSourceKind=task_visual_assets and `visualAssetCount=8, with assets copied into the material output under `visual_assets/originals/programmatic_no_future_v1.
 - Current caveat: the programmatic visuals are stable and semantically matched but still visually simple; the video render adds a dark vignette/toning pass that should be brightened in a later polish pass.
 
 
 ## Programmatic Visual Polish v2
 
 - The content-video filter chain was brightened by replacing the previous negative brightness and vignette pass with a light positive brightness/saturation treatment and lower noise, so regenerated videos no longer look heavily darkened.
-- ender_no_future_programmatic_illustrations.py now adds paper texture, shadows, facial details, table highlights, window light, paper stacks, plants, candle flames, and additional scene objects.
+- 
+ender_no_future_programmatic_illustrations.py now adds paper texture, shadows, facial details, table highlights, window light, paper stacks, plants, candle flames, and additional scene objects.
 - The v2 output for No Future Without Forgiveness is stored under D:\books\理想国译丛系列（74册）整理截止2026.018\001没有宽恕就没有未来\output_regen_programmatic_video_002.
 - Verification: hard-subtitle video probes as H.264 1920x1080 at 30fps; ASS contains 816 Chinese and 816 English dialogue lines; Unicode mojibake marker scan returned no hits in key manifest/subtitle files; the 12:30 verification frame is brighter and shows the hearing-room visual plus bilingual subtitles.
 
@@ -995,10 +996,10 @@ python a-book-in-30-minutes\tmp\book_video_pipeline.py `
 当前《没有宽恕就没有未来》的专用产物结构：
 
 ```text
-<output_dir>\controlled_visual_design\visual_style_bible.md
-<output_dir>\controlled_visual_design\visual_style_bible.json
-<output_dir>\controlled_visual_design\prompts_8.md
-<output_dir>\controlled_visual_design\prompts_8.json
+<output_dir>\controlled_visual_design\`visual_style_bible.md`
+<output_dir>\controlled_visual_design\`visual_style_bible.json`
+<output_dir>\controlled_visual_design\`prompts_8.md`
+<output_dir>\controlled_visual_design\`prompts_8.json`
 <output_dir>\controlled_programmatic_visuals\scene_*.png
 <output_dir>\controlled_programmatic_visuals\contact_sheet_8.png
 <output_dir>\controlled_programmatic_visuals\programmatic_visual_manifest.json
@@ -1048,3 +1049,153 @@ python a-book-in-30-minutes\tmp\book_video_pipeline.py `
 - 桌面端【视频】按钮现在显式传入 `allowPlaceholderVisuals=false`、`controlledProgrammaticVisuals=true`、`ignoreExistingVisualAssets=true`。
 - Python 视频流水线会收到 `--controlled-programmatic-visuals` 与 `--ignore-existing-visual-assets`，默认不再用占位图或旧视觉资产兜底。
 - 版本同步递增到 `0.1.96`，需要用 GNU Tauri 环境重新打包开发版。
+
+## 先定风格、元素、名词再生成图片
+
+本轮将《没有宽恕就没有未来》的图片生成流程固定为“设计先行”：
+
+1. 读取已生成的 materials.json / 旁白文本，先统计与视频内容相关的名词。
+2. 名词分为人物/群体、地点/空间、物品/道具、自然/天气、抽象主题五类。
+3. 根据名词命中、书籍主题和 30 分钟时间轴，先生成以下设计产物：
+   - `visual_style_bible.json`
+   - `visual_style_bible.md`
+   - `visual_decision_report.md`
+   - `prompts_8.json`
+   - `prompts_8.md`
+4. 图片生成必须以后述设计产物为输入，不能直接凭空生成图片。
+5. `visual_decision_report.md` 必须说明：生成顺序、风格结论、固定元素、名词命中摘要、每段分镜取舍理由。
+
+本轮验证输出目录：
+
+```text
+D:\books\理想国译丛系列（74册）整理截止2026.018\001没有宽恕就没有未来\output_style_elements_nouns_003
+`
+
+该目录包含：
+
+```text
+controlled_visual_design\`visual_decision_report.md`
+controlled_visual_design\`visual_style_bible.md`
+controlled_visual_design\`prompts_8.md`
+controlled_programmatic_visuals\scene_*.png
+controlled_programmatic_visuals\contact_sheet_8.png
+controlled_programmatic_visuals\programmatic_visual_manifest.json
+`
+
+验证结果：8 张正式图片均为 1920x1080，manifest 记录 8 张，设计文件与 manifest 未发现乱码标记。视觉抽检显示流程顺序正确、内容贴合书籍主题，但程序化插画仍偏简洁，后续重点是提高人物表情、服装、透视、场景层次和手绘精细度。
+
+## 本轮第五版受控插画资产
+
+在 output_style_elements_nouns_003 的基础上，本轮继续增强 
+ender_no_future_programmatic_illustrations.py：
+
+- 新增地板透视、墙面书架、窗帘、便签纸、蜡烛组、灌木、照片墙等复用组件。
+- 8 个场景分别补充了生活物品、空间层次、户外自然元素和历史现场道具。
+- 场景 6 中靠近字幕安全区的尖锐斜线已弱化并上移，避免干扰后续中英双语硬字幕。
+- `build_no_future_visual_design.py` 的输出目录创建改为 parents=True，避免父目录不存在时报错。
+
+推荐图片资产目录：
+
+`	ext
+D:\books\理想国译丛系列（74册）整理截止2026.018\001没有宽恕就没有未来\output_style_elements_nouns_005
+`
+
+验证结果：
+
+- python -m py_compile 通过。
+- 重新生成设计产物和 8 张正式图片成功。
+- 8 张 scene_*.png 均为 1920x1080。
+- programmatic_visual_manifest.json 记录 8 张图片。
+- 设计产物输出 badFiles=[]。
+- 视觉抽检 contact_sheet_8.png：第五版比第三版更丰富，书桌、窗帘、照片墙、纸张、灌木、蜡烛和地面透视都已进入画面；仍属于受控程序化插画，后续若继续追求 B 站案例质感，应把人物角色、表情和关键动作进一步放大。
+
+## 第五版图片视频链路与第六版人物升级
+
+本轮完成两件事：
+
+1. 使用第五版图片资产生成完整视频，验证图片可以进入正式视频链路。
+2. 根据视频抽帧结果继续升级人物组件，生成第六版图片资产。
+
+第五版完整视频输出目录：
+
+`	ext
+D:\books\理想国译丛系列（74册）整理截止2026.018\001没有宽恕就没有未来\output_video_style_elements_nouns_005
+`
+
+验证结果：
+
+- visualSourceKind=task_visual_assets。
+- visualAssetCount=8。
+- 无字幕母版与中英双语硬字幕版均为 H.264、1920x1080、30fps、1803s。
+- ASS 字幕共 1632 行：中文 816 行，英文 816 行。
+- visual_timeline.json 共 9 段：1 段封面，8 段正式图片。
+- 抽帧 4:20、12:00、20:00、27:00 显示字幕安全区可用，视频链路正常。
+
+第六版图片资产目录：
+
+`	ext
+D:\books\理想国译丛系列（74册）整理截止2026.018\001没有宽恕就没有未来\output_style_elements_nouns_006
+`
+
+第六版改进：
+
+- 人物四肢从线条改成带描边的圆角体块。
+- 增加手部和鞋，降低火柴人感。
+- 保留第五版已经验证的场景层次、物品密度和字幕安全区。
+
+当前判断：第六版图片比第五版人物更扎实，是下一次视频接入的推荐候选。但整体仍是受控程序化插画，不是高精细手绘成片；下一步如果继续提质，应围绕“角色驱动构图”推进：放大关键人物，增加动作、表情、侧身/背身差异，再把它交给白板动画过程表现。
+
+## 第六版完整视频验证通过
+
+第六版图片已经接入完整视频链路，并验证通过。
+
+最终输出目录：
+
+`	ext
+D:\books\理想国译丛系列（74册）整理截止2026.018\001没有宽恕就没有未来\output_video_style_elements_nouns_006_final
+`
+
+关键验证结果：
+
+- visual_assets_manifest.json 的 sourceDir 明确指向 output\visual_assets\originals\programmatic_v006。
+- visualSourceKind=task_visual_assets。
+- visualAssetCount=8。
+- 无字幕母版：H.264、1920x1080、30fps、1803s。
+- 中英双语硬字幕版：H.264、1920x1080、30fps、1803s。
+- ASS 字幕共 1632 行：中文 816 行，英文 816 行。
+- visual_timeline.json 共 9 段：1 段封面，8 段正式图片。
+- 抽帧 4:20 和 12:00 显示第六版人物体块已进入视频，字幕安全区可用。
+
+最终视频文件：
+
+`	ext
+D:\books\理想国译丛系列（74册）整理截止2026.018\001没有宽恕就没有未来\output_video_style_elements_nouns_006_final\没有宽恕就没有未来_无字幕母版.mp4
+D:\books\理想国译丛系列（74册）整理截止2026.018\001没有宽恕就没有未来\output_video_style_elements_nouns_006_final\没有宽恕就没有未来_中英双语字幕_精修版.mp4
+`
+
+当前判断：第六版已经是当前可验证的完整视频候选。它解决了“旧素材误用”和“人物火柴人感过重”的主要问题，但整体仍是程序化卡通插画。下一步质量方向是角色驱动构图：放大关键人物、增加动作与表情差异，再进入白板动画过程表现。
+
+## 第七版抗锯齿图片候选
+
+用户反馈第六版内容可以，但锯齿仍明显。本轮在不改变分镜内容的前提下，为程序化插画增加最终抗锯齿后处理：
+
+- 新增 ANTIALIAS_SCALE = 2。
+- 新增 ntialias_finish()。
+- 最终画面经过 2 倍 Lanczos 重采样、轻微 Gaussian blur、轻量 UnsharpMask。
+- 目标是减少斜线、圆角、人物四肢和物件边缘的硬毛刺，同时避免整体发糊。
+
+第七版图片输出目录：
+
+`	ext
+D:\books\理想国译丛系列（74册）整理截止2026.018\001没有宽恕就没有未来\output_style_elements_nouns_007
+`
+
+验证结果：
+
+- python -m py_compile 通过。
+- 8 张 scene_*.png 均为 1920x1080。
+- programmatic_visual_manifest.json 记录 8 张图片。
+- 设计产物输出 badFiles=[]。
+- 预览 contact_sheet_8.png 和 scene_02_0345_0730.png，边缘比第六版更顺，没有明显过度模糊。
+
+当前判断：第七版适合作为下一次完整视频接入候选。仍有少量几何斜线锯齿，这是 Pillow 程序化几何绘制路线的自然上限；如果还要进一步提升，需要改为更高倍 supersampling，或切换到 SVG/Cairo/Skia 这类矢量渲染后再输出位图。

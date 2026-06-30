@@ -318,7 +318,7 @@ def main() -> int:
 
     book_dir = find_book_dir(args.book_dir)
     out_dir = args.output_dir or (book_dir / "output_regen_design_001")
-    out_dir.mkdir(exist_ok=True)
+    out_dir.mkdir(parents=True, exist_ok=True)
 
     narration = load_narration(book_dir)
     noun_counts = count_terms(narration)
@@ -389,7 +389,45 @@ def main() -> int:
         )
     prompts_md.write_text("\n".join(prompt_lines), encoding="utf-8")
 
-    files = [visual_json, visual_md, prompts_json, prompts_md]
+    decision_md = out_dir / "visual_decision_report.md"
+    decision_lines = [
+        "# \u300a\u6ca1\u6709\u5bbd\u6055\u5c31\u6ca1\u6709\u672a\u6765\u300b\u89c6\u89c9\u51b3\u7b56\u62a5\u544a",
+        "",
+        "## \u751f\u6210\u987a\u5e8f",
+        "1. \u5148\u8bfb\u53d6\u65c1\u767d\u6587\u672c\u548c\u5b57\u5e55\u6750\u6599\uff0c\u786e\u8ba4\u4e66\u7c4d\u4e3b\u9898\u4e0e\u53d9\u4e8b\u65f6\u95f4\u8f74\u3002",
+        "2. \u518d\u6309\u4eba\u7269/\u7fa4\u4f53\u3001\u5730\u70b9/\u7a7a\u95f4\u3001\u7269\u54c1/\u9053\u5177\u3001\u81ea\u7136/\u5929\u6c14\u3001\u62bd\u8c61\u4e3b\u9898\u4e94\u7c7b\u7edf\u8ba1\u547d\u4e2d\u540d\u8bcd\u3002",
+        "3. \u6839\u636e\u9ad8\u9891\u540d\u8bcd\u548c\u5173\u952e\u6bb5\u843d\uff0c\u786e\u5b9a\u56fa\u5b9a\u89c6\u89c9\u5143\u7d20\u4e0e 8 \u6bb5\u65f6\u95f4\u8f74\u5206\u955c\u3002",
+        "4. \u6700\u540e\u624d\u751f\u6210\u56fe\u7247\uff1b\u56fe\u7247\u5fc5\u987b\u670d\u52a1\u5b57\u5e55\u5185\u5bb9\uff0c\u4e0d\u80fd\u53ea\u753b\u56fe\u6807\u6216\u65e0\u5173\u88c5\u9970\u3002",
+        "",
+        "## \u98ce\u683c\u7ed3\u8bba",
+        "- \u8def\u7ebf\uff1a\u6e29\u6696\u624b\u7ed8\u7eaa\u5f55\u7247\u63d2\u753b\uff0c\u9002\u5408\u4e25\u8083\u8bfb\u4e66\u89c6\u9891\u3002",
+        "- \u5e74\u4ee3\uff1a20 \u4e16\u7eaa\u540e\u534a\u53f6\u5357\u975e\u5386\u53f2\u8bed\u5883\uff0c\u907f\u514d\u73b0\u4ee3\u624b\u673a\u3001\u7b14\u8bb0\u672c\u7535\u8111\u3001\u6f6e\u6d41\u670d\u9970\u3002",
+        "- \u4eba\u7269\uff1a\u666e\u901a\u4eba\u3001\u5bb6\u5ead\u6210\u5458\u3001\u542c\u8bc1\u4f1a\u53c2\u4e0e\u8005\u548c\u8c61\u5f81\u6027\u4e3b\u6559\u8f6e\u5ed3\uff0c\u4e0d\u753b\u771f\u5b9e\u540d\u4eba\u8096\u50cf\u3002",
+        "- \u753b\u9762\uff1a\u6bcf\u5f20\u56fe\u90fd\u5fc5\u987b\u6709\u4eba\u3001\u5730\u70b9\u3001\u751f\u6d3b\u7269\u54c1\u3001\u5149\u7ebf\u6216\u5929\u6c14\uff0c\u907f\u514d\u5355\u4e00\u7b26\u53f7\u3002",
+        "- \u5b57\u5e55\uff1a\u4e0b\u65b9\u4fdd\u7559\u5e72\u51c0\u533a\u57df\u7ed9\u4e2d\u82f1\u53cc\u8bed\u786c\u5b57\u5e55\u3002",
+        "",
+        "## \u56fa\u5b9a\u5143\u7d20",
+    ]
+    decision_lines.extend(f"- {item}" for item in STYLE["recurring_motifs"])
+    decision_lines.extend(["", "## \u540d\u8bcd\u547d\u4e2d\u6458\u8981"])
+    for category, items in noun_counts.items():
+        ordered = sorted(items.items(), key=lambda item: -item[1])[:12]
+        summary = "\u3001".join(f"{term}({count})" for term, count in ordered) if ordered else "\u65e0\u547d\u4e2d"
+        decision_lines.append(f"- {category}\uff1a{summary}")
+    decision_lines.extend(["", "## \u5206\u955c\u53d6\u820d\u7406\u7531"])
+    for scene in SCENES:
+        decision_lines.extend(
+            [
+                f"### {scene['index']}. {scene['time']} {scene['theme']}",
+                f"- \u753b\u9762\u5b9a\u4f4d\uff1a{scene['visual']}",
+                f"- \u4eba\u7269\u5b89\u6392\uff1a{scene['people']}",
+                f"- \u5fc5\u987b\u51fa\u73b0\u7684\u7269\u54c1\uff1a{'\u3001'.join(scene['objects'])}",
+                f"- \u9009\u62e9\u7406\u7531\uff1a\u8fd9\u4e00\u6bb5\u7528\u5177\u4f53\u7a7a\u95f4\u548c\u9053\u5177\u627f\u63a5\u65c1\u767d\u4e3b\u9898\u201c{scene['theme']}\u201d\uff0c\u8ba9\u89c2\u4f17\u770b\u5230\u5386\u53f2\u751f\u6d3b\u73b0\u573a\uff0c\u800c\u4e0d\u662f\u62bd\u8c61\u6982\u5ff5\u56fe\u3002",
+            ]
+        )
+    decision_md.write_text("\n".join(decision_lines) + "\n", encoding="utf-8")
+
+    files = [visual_json, visual_md, prompts_json, prompts_md, decision_md]
     result = {
         "outDir": str(out_dir),
         "files": [str(path) for path in files],
