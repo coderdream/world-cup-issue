@@ -213,7 +213,7 @@ button {
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--border-soft);
-  padding: 0 24px;
+  padding: 0 16px;
   background: rgba(8, 20, 15, 0.95);
   backdrop-filter: blur(18px);
   cursor: default;
@@ -307,11 +307,12 @@ button {
 }
 
 .content {
-  padding: 24px;
+  padding: 16px;
 }
 
 .studio-page {
-  max-width: 1092px;
+  width: 100%;
+  max-width: none;
   margin: 0;
   display: grid;
   gap: 16px;

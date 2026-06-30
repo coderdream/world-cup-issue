@@ -1,6 +1,6 @@
 import { useEffect, useState, type MouseEvent, type ReactNode } from "react";
 import clsx from "clsx";
-import { Clock3, Copy, Minus, Moon, PanelLeft, Shield, Square, Video, X } from "lucide-react";
+import { Clock3, Copy, Minus, Moon, Shield, Square, Video, X } from "lucide-react";
 import { APP_NAME, APP_SUBTITLE } from "@/config/app";
 import { navItems, routeMeta } from "@/config/navigation";
 import { useAppStore } from "@/store/useAppStore";
@@ -77,9 +77,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
       <main className="main">
         <header className="topbar" onMouseDown={(event) => void startWindowDrag(event)}>
           <div className="page-title-row">
-            <button className="square-btn" type="button" aria-label="折叠菜单">
-              <PanelLeft size={18} />
-            </button>
             <div>
               <h1>{current.label}</h1>
               <p>{current.breadcrumb}</p>
