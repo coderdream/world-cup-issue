@@ -5,6 +5,7 @@ use crate::models::{
     RunWorkflowResult, SkillConfigEntry, UpdateInfo, VideoCreatorDashboard,
 };
 use crate::operation_log::OperationLogger;
+use chrono::{Duration, NaiveDateTime};
 use rusqlite::Connection;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -393,8 +394,8 @@ fn read_history_entries() -> Vec<OperationHistoryEntry> {
             status: normalize_status(&row.get::<_, Option<String>>(3)?.unwrap_or_default()),
             current_stage: row.get::<_, Option<String>>(4)?.unwrap_or_default(),
             summary: row.get::<_, Option<String>>(5)?.unwrap_or_default(),
-            started_at: row.get::<_, Option<String>>(6)?.unwrap_or_default(),
-            finished_at: row.get::<_, Option<String>>(7)?.unwrap_or_default(),
+            started_at: legacy_time_to_beijing(&row.get::<_, Option<String>>(6)?.unwrap_or_default()),
+            finished_at: legacy_time_to_beijing(&row.get::<_, Option<String>>(7)?.unwrap_or_default()),
             duration_ms: row.get::<_, Option<i64>>(8)?.unwrap_or_default(),
         })
     }) else {
@@ -411,7 +412,7 @@ fn read_step_entries(operation_id: Option<i64>) -> Vec<OperationStepEntry> {
         return sample_steps();
     };
     let sql = r#"
-        SELECT step_order, step_code, step_name, status, started_at, finished_at, duration_ms, description
+        SELECT step_order, step_code, step_name, status, started_at, finished_at, duration_ms, detail
         FROM operation_step
         WHERE operation_id = ?1
         ORDER BY step_order ASC, id ASC
@@ -425,8 +426,8 @@ fn read_step_entries(operation_id: Option<i64>) -> Vec<OperationStepEntry> {
             code: row.get::<_, Option<String>>(1)?.unwrap_or_default(),
             name: row.get::<_, Option<String>>(2)?.unwrap_or_default(),
             status: normalize_status(&row.get::<_, Option<String>>(3)?.unwrap_or_default()),
-            started_at: row.get::<_, Option<String>>(4)?.unwrap_or_default(),
-            finished_at: row.get::<_, Option<String>>(5)?.unwrap_or_default(),
+            started_at: legacy_time_to_beijing(&row.get::<_, Option<String>>(4)?.unwrap_or_default()),
+            finished_at: legacy_time_to_beijing(&row.get::<_, Option<String>>(5)?.unwrap_or_default()),
             duration_ms: row.get::<_, Option<i64>>(6)?.unwrap_or_default(),
             description: row.get::<_, Option<String>>(7)?.unwrap_or_default(),
         })
@@ -456,7 +457,7 @@ fn read_event_entries(operation_id: Option<i64>) -> Vec<OperationEventEntry> {
     };
     let Ok(rows) = statement.query_map([operation_id], |row| {
         Ok(OperationEventEntry {
-            created_at: row.get::<_, Option<String>>(0)?.unwrap_or_default(),
+            created_at: legacy_time_to_beijing(&row.get::<_, Option<String>>(0)?.unwrap_or_default()),
             level: row.get::<_, Option<String>>(1)?.unwrap_or_else(|| "INFO".to_string()),
             stage: row.get::<_, Option<String>>(2)?.unwrap_or_default(),
             message: row.get::<_, Option<String>>(3)?.unwrap_or_default(),
@@ -554,13 +555,13 @@ fn resolve_open_target(settings: &AppSettings, target: &str) -> PathBuf {
 
 fn default_skills() -> Vec<SkillConfigEntry> {
     vec![
-        skill("one-click", "One click", "one-click", true, 10, "Write todo, download resources, generate script, and continue workflow"),
-        skill("bbc-prefetch", "BBC prefetch", "bbc-prefetch", true, 20, "Download images, audio, and PDF"),
-        skill("script-text", "Generate Script", "script-text", true, 30, "Generate script text from PDF"),
-        skill("question-title", "Question title", "question-title", true, 35, "Generate short Chinese question title"),
-        skill("six-minutes-codex", "Codex workflow", "six-minutes-codex", true, 40, "Run BBC six-minute creation workflow"),
-        skill("prepare-sixminutes", "Publish assets", "prepare-sixminutes", true, 60, "Prepare publish assets"),
-        skill("daily-sync", "Daily sync", "daily-sync", true, 70, "Sync Daily files by year"),
+        skill("one-click", "一键执行", "one-click", true, 10, "写入 todo、下载资源、生成脚本并继续后续流程"),
+        skill("bbc-prefetch", "BBC 预下载", "bbc-prefetch", true, 20, "下载图片、音频和 PDF"),
+        skill("script-text", "生成脚本", "script-text", true, 30, "从 PDF 生成脚本文本"),
+        skill("question-title", "疑问句标题", "question-title", true, 35, "生成中文疑问句标题"),
+        skill("six-minutes-codex", "Codex 工作流", "six-minutes-codex", true, 40, "执行 BBC 六分钟视频创作流程"),
+        skill("prepare-sixminutes", "发布素材", "prepare-sixminutes", true, 60, "整理发布所需素材"),
+        skill("daily-sync", "Daily 同步", "daily-sync", true, 70, "按年份同步 Daily 文件"),
     ]
 }
 
@@ -582,7 +583,7 @@ fn sample_history() -> Vec<OperationHistoryEntry> {
         episode_code: "260625".to_string(),
         status: "PENDING".to_string(),
         current_stage: "INIT".to_string(),
-        summary: "Waiting for manual task execution".to_string(),
+        summary: "等待手动执行任务".to_string(),
         started_at: "-".to_string(),
         finished_at: "-".to_string(),
         duration_ms: 0,
@@ -591,28 +592,28 @@ fn sample_history() -> Vec<OperationHistoryEntry> {
 
 fn sample_steps() -> Vec<OperationStepEntry> {
     let names = [
-        ("TODO", "Write todo"),
-        ("DOWNLOAD", "Download BBC resources"),
-        ("SCRIPT", "Generate Script"),
-        ("TITLE", "Generate question title"),
-        ("STEP01", "Preprocess raw script"),
-        ("STEP02", "Generate dialog script"),
-        ("STEP03", "Generate question script"),
-        ("STEP04", "Translate dialog script"),
-        ("STEP05", "Translate question script"),
-        ("STEP06", "Generate optimized dialog script"),
-        ("STEP07", "Merge bilingual script"),
-        ("STEP08", "Generate raw SRT subtitles"),
-        ("STEP09", "Extract timestamps and split audio"),
-        ("STEP10", "Generate final SRT script"),
-        ("STEP11", "Generate final English subtitles"),
-        ("STEP12", "Translate Chinese subtitles"),
-        ("STEP13", "Merge bilingual subtitles"),
-        ("STEP14", "Generate vocabulary list"),
-        ("STEP15", "Check generated PPT"),
-        ("STEP16", "Check generated PPT screenshots"),
-        ("STEP17", "Generate description file"),
-        ("STEP18", "Prepare publish assets"),
+        ("TODO", "写入 todo"),
+        ("DOWNLOAD", "下载 BBC 资源"),
+        ("SCRIPT", "生成脚本"),
+        ("TITLE", "生成疑问句标题"),
+        ("STEP01", "预处理原始脚本"),
+        ("STEP02", "生成对话脚本"),
+        ("STEP03", "生成问答脚本"),
+        ("STEP04", "翻译对话脚本"),
+        ("STEP05", "翻译问答脚本"),
+        ("STEP06", "生成优化脚本"),
+        ("STEP07", "合并双语脚本"),
+        ("STEP08", "生成原始 SRT 字幕"),
+        ("STEP09", "提取时间戳并切割音频"),
+        ("STEP10", "生成最终 SRT 脚本"),
+        ("STEP11", "生成最终英文字幕"),
+        ("STEP12", "翻译为中文字幕"),
+        ("STEP13", "合并双语字幕"),
+        ("STEP14", "生成词汇表"),
+        ("STEP15", "检查/生成 PPT"),
+        ("STEP16", "检查/生成 PPT 截图"),
+        ("STEP17", "生成描述文件"),
+        ("STEP18", "整理发布素材"),
     ];
     names
         .iter()
@@ -625,9 +626,19 @@ fn sample_steps() -> Vec<OperationStepEntry> {
             started_at: "-".to_string(),
             finished_at: "-".to_string(),
             duration_ms: 0,
-            description: (*name).to_string(),
+            description: "等待手动执行".to_string(),
         })
         .collect()
+}
+
+fn legacy_time_to_beijing(value: &str) -> String {
+    let trimmed = value.trim();
+    if trimmed.is_empty() || trimmed == "-" {
+        return trimmed.to_string();
+    }
+    NaiveDateTime::parse_from_str(trimmed, "%Y-%m-%d %H:%M:%S")
+        .map(|time| (time + Duration::hours(8)).format("%Y-%m-%d %H:%M:%S").to_string())
+        .unwrap_or_else(|_| trimmed.to_string())
 }
 
 fn split_list(value: &str) -> Vec<String> {

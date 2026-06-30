@@ -56,4 +56,3 @@ function DataState({ loading, error }: { loading: boolean; error: string | null 
 function statusClass(status: string) {
   return `status-${status.toLowerCase()}`;
 }
-
