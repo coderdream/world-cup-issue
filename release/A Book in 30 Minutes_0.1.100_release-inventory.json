@@ -1,0 +1,23 @@
+{
+  "app": "A Book in 30 Minutes",
+  "version": "0.1.100",
+  "commit": "154e8bdf",
+  "generatedAt": "2026-07-01T00:04:09",
+  "bugfix": "Pipeline list includes the current input task by path and shows real persisted progress even when category filtering misses it.",
+  "artifacts": {
+    "installer": {
+      "path": "D:\\04_GitHub\\world-cup-issue\\release\\A Book in 30 Minutes_0.1.100_x64-setup.exe",
+      "sizeBytes": 9110614
+    },
+    "releaseExe": {
+      "path": "D:\\04_GitHub\\world-cup-issue\\a-book-in-30-minutes\\src-tauri\\target\\x86_64-pc-windows-gnu\\release\\a_book_in_30_minutes.exe",
+      "sizeBytes": 35732911
+    }
+  },
+  "verification": [
+    "pnpm -C a-book-in-30-minutes build passed",
+    "cargo check --manifest-path a-book-in-30-minutes\\src-tauri\\Cargo.toml --target x86_64-pc-windows-gnu --jobs 1 passed",
+    "pnpm -C a-book-in-30-minutes tauri build --ci --target x86_64-pc-windows-gnu passed",
+    "Local app.db Dear Dad category repaired from an existing valid category and progress is material success/audio generating/video pending"
+  ]
+}
