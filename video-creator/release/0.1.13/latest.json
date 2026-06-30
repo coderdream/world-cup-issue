@@ -1,0 +1,11 @@
+{
+  "version": "0.1.13",
+  "notes": "视频工坊首个 Windows NSIS 验证构建，包含 Tauri/React 操作台和旧 Java 能力层调用修复。",
+  "pub_date": "2026-06-30T13:45:21+08:00",
+  "platforms": {
+    "windows-x86_64": {
+      "signature": "",
+      "url": "视频工坊_0.1.13_x64-setup.exe"
+    }
+  }
+}
