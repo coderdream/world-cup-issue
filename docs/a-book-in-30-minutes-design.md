@@ -950,3 +950,11 @@ a-book-in-30-minutes/src-tauri/target/x86_64-pc-windows-gnu/release/bundle/nsis
 - The regenerated video uses isualSourceKind=task_visual_assets and isualAssetCount=8, with assets copied into the material output under isual_assets/originals/programmatic_no_future_v1.
 - Current caveat: the programmatic visuals are stable and semantically matched but still visually simple; the video render adds a dark vignette/toning pass that should be brightened in a later polish pass.
 
+
+## Programmatic Visual Polish v2
+
+- The content-video filter chain was brightened by replacing the previous negative brightness and vignette pass with a light positive brightness/saturation treatment and lower noise, so regenerated videos no longer look heavily darkened.
+- ender_no_future_programmatic_illustrations.py now adds paper texture, shadows, facial details, table highlights, window light, paper stacks, plants, candle flames, and additional scene objects.
+- The v2 output for No Future Without Forgiveness is stored under D:\books\理想国译丛系列（74册）整理截止2026.018\001没有宽恕就没有未来\output_regen_programmatic_video_002.
+- Verification: hard-subtitle video probes as H.264 1920x1080 at 30fps; ASS contains 816 Chinese and 816 English dialogue lines; Unicode mojibake marker scan returned no hits in key manifest/subtitle files; the 12:30 verification frame is brighter and shows the hearing-room visual plus bilingual subtitles.
+

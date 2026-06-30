@@ -1811,10 +1811,9 @@ def cinematic_filter_chain(index: int, duration: float) -> tuple[str, str]:
         f"x='{profile['x']}':y='{profile['y']}':s={WIDTH}x{HEIGHT}:fps={CINEMATIC_FPS},"
     )
     treatment = (
-        "eq=brightness=-0.025:saturation=0.96:contrast=1.07,"
-        "unsharp=5:5:0.35:3:3:0.12,"
-        "vignette=PI/5,"
-        "noise=alls=2:allf=t+u,"
+        "eq=brightness=0.035:saturation=1.03:contrast=1.02,"
+        "unsharp=5:5:0.28:3:3:0.08,"
+        "noise=alls=1:allf=t+u,"
     )
     return motion_filter + treatment, profile["name"]
 

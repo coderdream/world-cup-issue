@@ -52,8 +52,10 @@ def canvas() -> tuple[Image.Image, ImageDraw.ImageDraw]:
     image = Image.new("RGB", (W, H), PAPER)
     draw = ImageDraw.Draw(image)
     for y in range(H):
-        shade = int(10 * (y / H))
+        shade = int(7 * (y / H))
         draw.line((0, y, W, y), fill=(PAPER[0] - shade, PAPER[1] - shade, PAPER[2] - shade))
+    for x in range(-60, W, 90):
+        draw.line((x, 0, x + 360, H), fill=(238, 229, 207), width=1)
     return image, draw
 
 
@@ -74,13 +76,24 @@ def line(draw: ImageDraw.ImageDraw, points, fill=INK, width=5):
     draw.line(points, fill=fill, width=width, joint="curve")
 
 
+def shadow(draw: ImageDraw.ImageDraw, xy, alpha_fill=(68, 54, 42)):
+    x1, y1, x2, y2 = xy
+    draw.ellipse((x1, y1, x2, y2), fill=tuple(max(0, c - 10) for c in alpha_fill))
+
+
 def person(draw: ImageDraw.ImageDraw, x: int, y: int, scale: float = 1.0, skin=SKIN_MED, clothes=TEAL, pose="stand"):
     head_r = int(30 * scale)
     body_w = int(74 * scale)
     body_h = int(118 * scale)
+    shadow(draw, (x - int(52 * scale), y + int(72 * scale), x + int(54 * scale), y + int(100 * scale)), (202, 190, 170))
     draw.ellipse((x - head_r, y - body_h - head_r * 2, x + head_r, y - body_h), fill=skin, outline=INK, width=max(2, int(3 * scale)))
     draw.arc((x - head_r, y - body_h - head_r * 2 - 8, x + head_r, y - body_h + 12), 190, 350, fill=INK, width=max(2, int(4 * scale)))
+    eye_y = y - body_h - int(head_r * 1.15)
+    draw.ellipse((x - int(10 * scale), eye_y, x - int(6 * scale), eye_y + int(4 * scale)), fill=INK)
+    draw.ellipse((x + int(6 * scale), eye_y, x + int(10 * scale), eye_y + int(4 * scale)), fill=INK)
+    draw.arc((x - int(10 * scale), eye_y + int(8 * scale), x + int(10 * scale), eye_y + int(20 * scale)), 20, 160, fill=INK, width=max(1, int(2 * scale)))
     soft_rect(draw, (x - body_w // 2, y - body_h, x + body_w // 2, y), clothes, INK, max(2, int(3 * scale)), int(22 * scale))
+    line(draw, [(x - body_w // 3, y - body_h + int(26 * scale)), (x + body_w // 3, y - body_h + int(26 * scale))], tuple(max(0, c - 35) for c in clothes), max(2, int(3 * scale)))
     if pose == "sit":
         line(draw, [(x - body_w // 3, y - 8), (x - int(70 * scale), y + int(52 * scale))], INK, max(3, int(5 * scale)))
         line(draw, [(x + body_w // 3, y - 8), (x + int(70 * scale), y + int(52 * scale))], INK, max(3, int(5 * scale)))
@@ -92,14 +105,18 @@ def person(draw: ImageDraw.ImageDraw, x: int, y: int, scale: float = 1.0, skin=S
 
 
 def table(draw, x, y, w, h, fill=(168, 122, 76)):
+    shadow(draw, (x + 10, y + h + 28, x + w - 10, y + h + 92), (198, 182, 158))
     soft_rect(draw, (x, y, x + w, y + h), fill, INK, 4, 14)
+    draw.line((x + 18, y + 24, x + w - 18, y + 24), fill=tuple(max(0, c - 28) for c in fill), width=3)
     for lx in (x + 40, x + w - 40):
         line(draw, [(lx, y + h), (lx - 20, y + h + 120)], INK, 6)
 
 
 def window(draw, x, y, w, h, sky=BLUE):
+    shadow(draw, (x + 18, y + 18, x + w + 36, y + h + 36), (210, 197, 172))
     soft_rect(draw, (x, y, x + w, y + h), (225, 232, 222), INK, 5, 10)
     draw.rectangle((x + 12, y + 12, x + w - 12, y + h - 12), fill=sky)
+    draw.polygon((x + 18, y + h - 20, x + w - 20, y + 30, x + w - 20, y + 100, x + 130, y + h - 20), fill=(198, 219, 218))
     line(draw, [(x + w // 2, y + 12), (x + w // 2, y + h - 12)], INK, 3)
     line(draw, [(x + 12, y + h // 2), (x + w - 12, y + h // 2)], INK, 3)
 
@@ -110,6 +127,8 @@ def hills(draw, y=410):
     draw.polygon([(900, y + 60), (1280, y - 20), (1660, y + 60)], fill=(137, 128, 100))
     for x in range(0, W, 180):
         draw.ellipse((x, y + 60, x + 90, y + 130), fill=(77, 119, 89), outline=None)
+    for x in range(35, W, 115):
+        line(draw, [(x, y + 142), (x + 45, y + 126)], (118, 137, 103), 3)
 
 
 def road(draw, start=(960, 760), end=(960, 1080), color=(204, 179, 132)):
@@ -117,6 +136,32 @@ def road(draw, start=(960, 760), end=(960, 1080), color=(204, 179, 132)):
     ex, ey = end
     draw.polygon([(sx - 90, sy), (sx + 90, sy), (ex + 360, ey), (ex - 360, ey)], fill=color)
     line(draw, [(sx, sy + 20), (ex, ey - 20)], (232, 218, 178), 7)
+    for off in (-95, 95):
+        line(draw, [(sx + off // 3, sy + 18), (ex + off * 3, ey)], (170, 142, 104), 3)
+
+
+def paper_stack(draw, x, y, w=150, h=95, sheets=3):
+    for i in range(sheets):
+        soft_rect(draw, (x + i * 10, y - i * 8, x + w + i * 10, y + h - i * 8), WHITE_CLOTH, INK, 3, 5)
+        draw.line((x + 18 + i * 10, y + 25 - i * 8, x + w - 18 + i * 10, y + 25 - i * 8), fill=(183, 176, 158), width=2)
+        draw.line((x + 18 + i * 10, y + 50 - i * 8, x + w - 30 + i * 10, y + 50 - i * 8), fill=(183, 176, 158), width=2)
+
+
+def plant(draw, x, y, scale=1.0):
+    soft_rect(draw, (x - int(26 * scale), y, x + int(26 * scale), y + int(46 * scale)), (158, 109, 72), INK, 3, 8)
+    for angle in (-65, -35, 0, 35, 65):
+        length = int(85 * scale)
+        rad = math.radians(angle - 90)
+        x2 = x + int(math.cos(rad) * length)
+        y2 = y + int(math.sin(rad) * length)
+        line(draw, [(x, y), (x2, y2)], (64, 112, 72), max(2, int(4 * scale)))
+        draw.ellipse((x2 - int(16 * scale), y2 - int(10 * scale), x2 + int(16 * scale), y2 + int(10 * scale)), fill=(82, 138, 88), outline=INK, width=2)
+
+
+def lamp_glow(draw, cx, cy, r):
+    for i in range(5, 0, -1):
+        color = (245, 218 - i * 7, 126 - i * 3)
+        draw.ellipse((cx - r * i / 5, cy - r * i / 5, cx + r * i / 5, cy + r * i / 5), fill=tuple(int(c) for c in color))
 
 
 def label(draw, text: str, x: int, y: int):
@@ -128,9 +173,11 @@ def scene_1(draw):
     window(draw, 1240, 110, 430, 300, sky=(45, 74, 96))
     table(draw, 320, 585, 920, 74)
     soft_rect(draw, (520, 438, 620, 610), OCHRE, INK, 4, 28)
+    lamp_glow(draw, 570, 385, 130)
     draw.polygon([(540, 438), (600, 438), (570, 350)], fill=(248, 214, 121), outline=INK)
     soft_rect(draw, (790, 508, 1040, 578), (219, 208, 184), INK, 4, 12)
     draw.line((815, 540, 1015, 540), fill=MUTED, width=3)
+    paper_stack(draw, 850, 430, 170, 92, 2)
     draw.ellipse((1120, 510, 1235, 575), fill=(128, 77, 55), outline=INK, width=4)
     draw.arc((1135, 520, 1210, 610), 0, 180, fill=INK, width=4)
     person(draw, 480, 610, 0.92, skin=SKIN_MED, clothes=TEAL, pose="sit")
@@ -147,9 +194,12 @@ def scene_2(draw):
     soft_rect(draw, (1180, 455, 1425, 555), (78, 92, 101), INK, 4, 18)
     draw.ellipse((1210, 540, 1265, 595), fill=INK)
     draw.ellipse((1350, 540, 1405, 595), fill=INK)
+    draw.rectangle((1215, 475, 1265, 515), fill=(145, 170, 190), outline=INK, width=2)
+    draw.rectangle((1300, 475, 1350, 515), fill=(145, 170, 190), outline=INK, width=2)
     for i, x in enumerate((340, 460, 590, 720, 850)):
         person(draw, x, 670, 0.62, skin=[SKIN_DARK, SKIN_MED, SKIN_LIGHT][i % 3], clothes=[TEAL, OCHRE, RUST][i % 3])
         soft_rect(draw, (x + 35, 525, x + 95, 570), WHITE_CLOTH, INK, 3, 5)
+    paper_stack(draw, 995, 610, 120, 70, 2)
 
 
 def scene_3(draw):
@@ -157,6 +207,7 @@ def scene_3(draw):
     road(draw, (960, 515), (960, 1080))
     soft_rect(draw, (740, 420, 1180, 535), (218, 205, 178), INK, 5, 12)
     soft_rect(draw, (900, 450, 1010, 520), WHITE_CLOTH, INK, 4, 7)
+    soft_rect(draw, (1035, 455, 1115, 520), (190, 175, 135), INK, 3, 6)
     for i, x in enumerate(range(280, 1530, 155)):
         person(draw, x, 660 + (i % 2) * 16, 0.58, skin=[SKIN_DARK, SKIN_MED, SKIN_LIGHT][i % 3], clothes=[TEAL, OCHRE, RUST][i % 3])
     draw.rectangle((1290, 185, 1380, 410), fill=(205, 190, 158), outline=INK, width=5)
@@ -172,7 +223,8 @@ def scene_4(draw):
         draw.ellipse((x, 455, x + 28, 483), fill=INK)
         line(draw, [(x + 14, 483), (x + 14, 522)], INK, 5)
     soft_rect(draw, (1260, 420, 1380, 505), (190, 176, 136), INK, 4, 10)
-    soft_rect(draw, (1280, 398, 1360, 430), WHITE_CLOTH, INK, 3, 4)
+    paper_stack(draw, 1280, 395, 100, 70, 3)
+    paper_stack(draw, 585, 420, 120, 80, 2)
     person(draw, 820, 500, 0.72, skin=SKIN_DARK, clothes=TEAL, pose="sit")
     person(draw, 1070, 500, 0.65, skin=SKIN_LIGHT, clothes=OCHRE, pose="sit")
     for x, skin, clothes in [(360, SKIN_MED, RUST), (1510, SKIN_DARK, TEAL), (1625, SKIN_LIGHT, OCHRE)]:
@@ -186,7 +238,7 @@ def scene_5(draw):
         line(draw, [(x, 145), (x - 40, 430)], (123, 145, 150), 2)
     table(draw, 430, 590, 980, 75)
     person(draw, 760, 585, 0.92, skin=SKIN_DARK, clothes=(122, 130, 128), pose="sit")
-    soft_rect(draw, (930, 500, 1130, 620), WHITE_CLOTH, INK, 4, 8)
+    paper_stack(draw, 930, 500, 165, 100, 3)
     draw.ellipse((1080, 620, 1235, 690), fill=(172, 128, 88), outline=INK, width=4)
     soft_rect(draw, (1180, 520, 1360, 615), (194, 169, 119), INK, 4, 8)
     draw.rectangle((980, 520, 1070, 585), fill=(185, 161, 120), outline=INK, width=4)
@@ -202,6 +254,7 @@ def scene_6(draw):
     for x in (1260, 1375, 1490):
         soft_rect(draw, (x, 515, x + 120, 610), (205, 184, 139), INK, 4, 12)
         draw.polygon([(x - 10, 515), (x + 60, 465), (x + 130, 515)], fill=RUST, outline=INK)
+    plant(draw, 1515, 640, 0.65)
     person(draw, 725, 705, 0.72, skin=SKIN_DARK, clothes=TEAL)
     person(draw, 1080, 700, 0.72, skin=SKIN_LIGHT, clothes=OCHRE)
     person(draw, 930, 665, 0.55, skin=SKIN_MED, clothes=RUST, pose="sit")
@@ -216,6 +269,7 @@ def scene_7(draw):
     for x in (1020, 1120, 1220, 1320):
         draw.ellipse((x, 610, x + 35, 665), fill=(232, 190, 90), outline=INK, width=3)
         line(draw, [(x + 17, 665), (x + 17, 720)], INK, 4)
+        draw.polygon([(x + 17, 600), (x + 7, 620), (x + 27, 620)], fill=(248, 210, 90), outline=None)
     draw.polygon([(970, 545), (1420, 540), (1450, 625), (940, 635)], fill=WHITE_CLOTH, outline=INK)
     for x in (1480, 1600):
         person(draw, x, 700, 0.62, skin=SKIN_DARK, clothes=(92, 92, 88))
@@ -229,6 +283,8 @@ def scene_8(draw):
     draw.ellipse((1050, 510, 1170, 570), fill=(135, 86, 58), outline=INK, width=4)
     draw.rectangle((520, 390, 625, 590), fill=(98, 142, 103), outline=INK, width=5)
     draw.ellipse((475, 300, 675, 430), fill=(88, 137, 95), outline=INK, width=4)
+    plant(draw, 1210, 565, 0.8)
+    paper_stack(draw, 785, 435, 135, 75, 2)
     for x, skin, clothes in [(520, SKIN_MED, TEAL), (735, SKIN_DARK, OCHRE), (950, SKIN_LIGHT, RUST)]:
         person(draw, x, 585, 0.74, skin=skin, clothes=clothes, pose="sit")
 
