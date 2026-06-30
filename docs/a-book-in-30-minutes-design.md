@@ -958,3 +958,11 @@ a-book-in-30-minutes/src-tauri/target/x86_64-pc-windows-gnu/release/bundle/nsis
 - The v2 output for No Future Without Forgiveness is stored under D:\books\理想国译丛系列（74册）整理截止2026.018\001没有宽恕就没有未来\output_regen_programmatic_video_002.
 - Verification: hard-subtitle video probes as H.264 1920x1080 at 30fps; ASS contains 816 Chinese and 816 English dialogue lines; Unicode mojibake marker scan returned no hits in key manifest/subtitle files; the 12:30 verification frame is brighter and shows the hearing-room visual plus bilingual subtitles.
 
+
+## Programmatic Visual Polish v3
+
+- The v3 programmatic renderer adds a richer illustration layer: integrated subtitle-band gradients, background paper texture, stronger character silhouettes, hair/face/clothing details, rugs, distant-town layers, and sun/moon glow.
+- The v3 output for No Future Without Forgiveness is stored under D:\books\理想国译丛系列（74册）整理截止2026.018\001没有宽恕就没有未来\output_regen_programmatic_video_003.
+- Verification: hard-subtitle video probes as H.264 1920x1080 at 30fps; ASS contains 816 Chinese and 816 English dialogue lines; Unicode mojibake marker scan returned no hits in key manifest/subtitle files; the 12:30 verification frame shows the richer hearing-room illustration plus bilingual subtitles.
+- Remaining design gap: visuals are now coherent and brighter but still intentionally programmatic. A future model-backed or artist-authored layer could make characters and backgrounds more painterly while keeping the current visual bible and timeline as constraints.
+
