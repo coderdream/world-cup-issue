@@ -1041,3 +1041,10 @@ python a-book-in-30-minutes\tmp\book_video_pipeline.py `
 - 验证结果：两版视频均为 H.264、`1920x1080`、`30fps`、约 `1803` 秒；字幕仍为 816 行中文和 816 行英文；时间轴仍为 1 段封面和 8 段正式场景图。
 - 抽帧 `frame_12m00s.jpg` 确认第 4 场硬字幕区不再被听众席干扰。第三版是当前推荐查看的视频版本。
 - 后续质量重点转为整体美术精细度：人物自然比例、主角动作、透视层次、物件细节和更强的故事性。
+
+2026-06-30 桌面端接入：
+
+- `GenerateBookVideoRequest` 新增 `controlledProgrammaticVisuals` 和 `ignoreExistingVisualAssets`，后端默认启用受控程序化视觉并忽略旧视觉素材。
+- 桌面端【视频】按钮现在显式传入 `allowPlaceholderVisuals=false`、`controlledProgrammaticVisuals=true`、`ignoreExistingVisualAssets=true`。
+- Python 视频流水线会收到 `--controlled-programmatic-visuals` 与 `--ignore-existing-visual-assets`，默认不再用占位图或旧视觉资产兜底。
+- 版本同步递增到 `0.1.96`，需要用 GNU Tauri 环境重新打包开发版。

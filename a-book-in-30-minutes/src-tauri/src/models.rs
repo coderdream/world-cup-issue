@@ -160,7 +160,6 @@ impl Default for FeishuProfile {
         }
     }
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FeishuSendRequest {
@@ -200,11 +199,10 @@ impl Default for MaterialProfile {
             language: "zh-CN".to_string(),
             target_min_chars: 7000,
             target_max_chars: 8300,
-            extra_direction: "睡前听书风格，温柔、克制、有陪伴感。旁白目标为 30-35 分钟，配合 0% 原速语音，最佳约 7600 个中文字；标题和简介服务于 YouTube 中文频道。".to_string(),
+            extra_direction: "睡前听书风格，温柔、克制、有陪伴感。旁白目标为 30-35 分钟，匹配 90% 原速语音，最佳约 7600 个中文字；标题和简介服务于 YouTube 中文频道。".to_string(),
         }
     }
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BookMaterialsRequest {
@@ -301,6 +299,8 @@ pub struct GenerateBookVideoRequest {
     pub epub_path: String,
     pub trace_id: Option<String>,
     pub allow_placeholder_visuals: Option<bool>,
+    pub controlled_programmatic_visuals: Option<bool>,
+    pub ignore_existing_visual_assets: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -309,6 +309,7 @@ pub struct GenerateBookVideoResult {
     pub material_dir: String,
     pub pipeline_manifest: String,
     pub cover: Option<String>,
+    pub visual_story_plan: Option<String>,
     pub visual_timeline: Option<String>,
     pub no_subtitle_video: Option<String>,
     pub hard_subtitle_video: Option<String>,

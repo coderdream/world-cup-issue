@@ -134,12 +134,15 @@ export interface GenerateBookVideoRequest {
   epubPath: string;
   traceId?: string;
   allowPlaceholderVisuals?: boolean;
+  controlledProgrammaticVisuals?: boolean;
+  ignoreExistingVisualAssets?: boolean;
 }
 
 export interface GenerateBookVideoResult {
   materialDir: string;
   pipelineManifest: string;
   cover?: string | null;
+  visualStoryPlan?: string | null;
   visualTimeline?: string | null;
   noSubtitleVideo?: string | null;
   hardSubtitleVideo?: string | null;

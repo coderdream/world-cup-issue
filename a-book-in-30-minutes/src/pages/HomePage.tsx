@@ -337,7 +337,7 @@ export function HomePage() {
         title: "选择素材文件"
       });
       if (typeof selected !== "string" || !selected) return;
-      updateRequest({ epubPath: selected });
+      activateMaterialPath(selected);
       await scanPath(selected);
     } catch (caught) {
       updateWorkbench({ error: caught instanceof Error ? caught.message : "当前环境无法打开文件选择器。" });
@@ -355,7 +355,7 @@ export function HomePage() {
         title: "选择一个素材文件来定位所在文件夹"
       });
       if (typeof selected !== "string" || !selected) return;
-      updateRequest({ epubPath: selected });
+      activateMaterialPath(selected);
       await scanPath(selected);
     } catch (caught) {
       updateWorkbench({ error: caught instanceof Error ? caught.message : "当前环境无法打开素材文件选择器。" });
@@ -368,9 +368,12 @@ export function HomePage() {
       const result = await frameworkApi.scanMaterialFiles({ path });
       updateWorkbench({ scanResult: result, fileStatuses: statusesFromFiles(result.files) });
       setSelectedTaskPaths((current) => current.filter((taskPath) => result.files.some((file) => file.path === taskPath)));
+      if (result.files.some((file) => file.path === path)) {
+        updateWorkbench({ selectedTaskPath: path });
+      }
       const preferred = result.files.find(canGenerate);
       if (preferred && path === result.directory) {
-        updateRequest({ epubPath: preferred.path });
+        activateMaterialPath(preferred.path);
       }
     } catch (caught) {
       updateWorkbench({ error: caught instanceof Error ? caught.message : String(caught) });
@@ -380,8 +383,7 @@ export function HomePage() {
   }
 
   function selectMaterialFile(file: MaterialFile) {
-    updateRequest({ epubPath: file.path });
-    updateWorkbench({ selectedTaskPath: file.path });
+    activateMaterialPath(file.path, true);
     clearTransientState();
   }
 
@@ -514,7 +516,9 @@ export function HomePage() {
       await frameworkApi.generateBookVideoPipeline({
         epubPath: path,
         traceId,
-        allowPlaceholderVisuals: true
+        allowPlaceholderVisuals: false,
+        controlledProgrammaticVisuals: true,
+        ignoreExistingVisualAssets: true
       });
       await updateVideoState(path, { status: "generating", progress: 40, message: "视频后台生成中，请到操作日志查看实际进度" });
       updateWorkbench({
@@ -622,6 +626,14 @@ export function HomePage() {
     updateWorkbench({ error: "", copyState: "", exportState: "" });
   }
 
+  function activateMaterialPath(path: string, keepChecked = false) {
+    updateRequest({ epubPath: path });
+    updateWorkbench({ selectedTaskPath: path });
+    if (!keepChecked) {
+      setSelectedTaskPaths([]);
+    }
+  }
+
   function firstParsablePath() {
     return scanResult?.files.find(canGenerate)?.path ?? request.epubPath;
   }
@@ -654,8 +666,9 @@ export function HomePage() {
     if (selectedTaskPaths.length > 0) {
       return files.find((file) => selectedTaskSet.has(file.path) && canGenerate(file) && shouldGenerateVideo(file));
     }
-    return files.find((file) => file.path === selectedTaskPath && canGenerate(file) && shouldGenerateVideo(file))
-      ?? files.find((file) => file.path === request.epubPath.trim() && canGenerate(file) && shouldGenerateVideo(file))
+    const requestPath = request.epubPath.trim();
+    return files.find((file) => file.path === requestPath && canGenerate(file) && shouldGenerateVideo(file))
+      ?? files.find((file) => file.path === selectedTaskPath && canGenerate(file) && shouldGenerateVideo(file))
       ?? (request.epubPath.trim() ? materialFileFromPath(request.epubPath.trim()) : undefined);
   }
 

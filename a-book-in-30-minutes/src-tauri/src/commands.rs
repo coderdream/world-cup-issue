@@ -2175,7 +2175,9 @@ pub fn generate_book_video_pipeline(
     let logger = data.logger.clone();
     let settings = data.settings.lock().map_err(lock_error)?.clone();
     let epub_path_owned = epub_path.to_string();
-    let allow_placeholder_visuals = request.allow_placeholder_visuals.unwrap_or(true);
+    let allow_placeholder_visuals = request.allow_placeholder_visuals.unwrap_or(false);
+    let controlled_programmatic_visuals = request.controlled_programmatic_visuals.unwrap_or(true);
+    let ignore_existing_visual_assets = request.ignore_existing_visual_assets.unwrap_or(true);
     let trace_id_for_task = trace_id.clone();
     std::thread::spawn(move || {
         run_book_video_pipeline_background(
@@ -2189,6 +2191,8 @@ pub fn generate_book_video_pipeline(
             python,
             settings,
             allow_placeholder_visuals,
+            controlled_programmatic_visuals,
+            ignore_existing_visual_assets,
         );
     });
 
@@ -2287,6 +2291,8 @@ fn run_book_video_pipeline_background(
     python: String,
     settings: AppSettings,
     allow_placeholder_visuals: bool,
+    controlled_programmatic_visuals: bool,
+    ignore_existing_visual_assets: bool,
 ) {
     let started = Instant::now();
     logger.trace_info(
@@ -2340,6 +2346,12 @@ fn run_book_video_pipeline_background(
     }
     if allow_placeholder_visuals {
         command.arg("--allow-placeholder-visuals");
+    }
+    if controlled_programmatic_visuals {
+        command.arg("--controlled-programmatic-visuals");
+    }
+    if ignore_existing_visual_assets {
+        command.arg("--ignore-existing-visual-assets");
     }
 
     let output = match command.output() {
