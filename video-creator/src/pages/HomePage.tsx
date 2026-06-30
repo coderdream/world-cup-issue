@@ -79,7 +79,7 @@ export function HomePage() {
 
         <aside className="studio-panel summary-panel">
           <h2>运行摘要</h2>
-          <dl>
+          <dl className="summary-list">
             <dt>最近课程号</dt>
             <dd>{dashboard?.latestEpisode ?? "-"}</dd>
             <dt>最近状态</dt>
@@ -96,7 +96,7 @@ export function HomePage() {
         </aside>
       </div>
 
-      <div className="studio-panel">
+      <div className="studio-panel action-panel">
         <h2>快捷技能</h2>
         <div className="skill-buttons">
           {skills.map((skill) => (
@@ -110,7 +110,7 @@ export function HomePage() {
         {error && <p className="error-text">{error}</p>}
       </div>
 
-      <div className="studio-panel">
+      <div className="studio-panel help-panel">
         <h2>使用说明</h2>
         <ol className="tips">
           <li>输入 6 位课程号，例如 260409。</li>
@@ -127,4 +127,3 @@ export function HomePage() {
 function statusClass(status?: string) {
   return status?.toLowerCase() === "success" ? "success" : status?.toLowerCase() === "failed" ? "failed" : "";
 }
-

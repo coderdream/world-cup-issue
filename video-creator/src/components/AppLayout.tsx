@@ -13,6 +13,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const current = routeMeta[route];
   const time = useBeijingTime();
   const [isMaximized, setIsMaximized] = useState(false);
+  const businessItems = navItems.filter((item) => item.group === "business");
+  const systemItems = navItems.filter((item) => item.group === "system");
 
   useEffect(() => {
     let dispose: (() => void) | undefined;
@@ -50,7 +52,15 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </div>
 
         <nav className="nav">
-          {navItems.map((item) => (
+          <div className="nav-group-label">业务</div>
+          {businessItems.map((item) => (
+            <button className={clsx("nav-item", item.key === route && "active")} key={item.key} onClick={() => setRoute(item.key)} type="button">
+              <span className="nav-icon">{item.icon}</span>
+              <span>{item.label}</span>
+            </button>
+          ))}
+          <div className="nav-group-label">系统</div>
+          {systemItems.map((item) => (
             <button className={clsx("nav-item", item.key === route && "active")} key={item.key} onClick={() => setRoute(item.key)} type="button">
               <span className="nav-icon">{item.icon}</span>
               <span>{item.label}</span>
@@ -59,8 +69,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </nav>
 
         <div className="compliance">
-          <div><Shield size={15} /> 视频工坊开发版</div>
-          <p>复用旧 Java 能力层，Tauri 外壳负责配置、执行与状态查看。v{version}</p>
+          <div><Shield size={15} /> 开发版直连</div>
+          <p>点击桌面快捷方式即运行本地 release exe。v{version}</p>
         </div>
       </aside>
 
