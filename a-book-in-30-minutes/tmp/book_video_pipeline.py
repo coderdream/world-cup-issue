@@ -21,6 +21,33 @@ MAX_SUBTITLE_LINE_CHARS = 18
 HEADER_SECONDS = 3
 HEADER_AUDIO_ENCODE_SECONDS = 2.976
 HEADER_AUDIO_DURATION_MS = 3000
+CINEMATIC_FPS = 30
+WHITEBOARD_SCENE_COUNT = 8
+WHITEBOARD_IMAGE_GENERATOR = (
+    Path.home()
+    / ".codex"
+    / "skills"
+    / "whiteboard-video-workflow"
+    / "scripts"
+    / "generate-image.py"
+)
+WHITEBOARD_PROMPT_PREFIX = (
+    "Minimal hand-drawn illustration, pure illustration without any text, "
+    "off-white paper background(#F6F1E3), dark gray sketch lines, orange as the only accent color(#CD6441), "
+    "lots of negative space, Notion-like doodle aesthetic, faceless round-headed human figure, "
+    "clean editorial composition, conceptual rather than literal, simple background. "
+    "Absolutely no text, no words, no letters, no typography, no realism, no 3D, no painterly texture, "
+    "no high saturation, no complex scene, no photographic detail. "
+    "The overall mood is restrained, lucid, and emotionally calm. Keep the whole series visually consistent."
+)
+CINEMATIC_MOTION_PROFILES = (
+    ("slow_push_center", "min(1.015+on*0.00016,1.13)", "(iw-iw/zoom)*0.50", "(ih-ih/zoom)*0.50"),
+    ("drift_right", "min(1.035+on*0.00012,1.14)", "(iw-iw/zoom)*(0.18+0.34*on/{den})", "(ih-ih/zoom)*0.46"),
+    ("drift_left", "min(1.035+on*0.00012,1.14)", "(iw-iw/zoom)*(0.78-0.34*on/{den})", "(ih-ih/zoom)*0.50"),
+    ("rise_slow", "min(1.025+on*0.00014,1.13)", "(iw-iw/zoom)*0.52", "(ih-ih/zoom)*(0.68-0.28*on/{den})"),
+    ("descend_slow", "min(1.025+on*0.00014,1.13)", "(iw-iw/zoom)*0.48", "(ih-ih/zoom)*(0.25+0.30*on/{den})"),
+    ("slow_pull_back", "max(1.13-on*0.00012,1.025)", "(iw-iw/zoom)*0.50", "(ih-ih/zoom)*0.50"),
+)
 
 
 def safe_stem(path: Path) -> str:
@@ -109,6 +136,120 @@ def newest_audio(material_root: Path, exclude_names: set[str] | None = None) -> 
     if not nested_candidates:
         return None
     return max(nested_candidates, key=lambda path: path.stat().st_mtime)
+
+
+def newest_audio(material_root: Path, exclude_names: set[str] | None = None) -> Path | None:
+    exclude_names = exclude_names or set()
+    excluded_names = {name.lower() for name in exclude_names}
+
+    def is_generated_audio(path: Path) -> bool:
+        lower_name = path.name.lower()
+        lower_stem = path.stem.lower()
+        if lower_name in excluded_names or lower_name.startswith("_"):
+            return True
+        if re.match(r"part_\d+\.(mp3|wav)$", lower_name):
+            return True
+        if lower_name in {"concat.txt", "concat_video_source.txt", "header.mp3"}:
+            return True
+        if lower_stem.startswith(("hard_subtitle", "narration_for_video")):
+            return True
+        if lower_stem.endswith(("_无字幕母版", "_中英双语字幕_精修版")):
+            return True
+        return False
+
+    root_candidates = []
+    for pattern in ("*.mp3", "*.wav"):
+        root_candidates.extend(
+            path for path in material_root.glob(pattern)
+            if path.is_file() and not is_generated_audio(path)
+        )
+    if root_candidates:
+        return max(root_candidates, key=lambda path: path.stat().st_mtime)
+
+    nested_candidates = []
+    for pattern in ("audio/**/*.mp3", "audio/**/*.wav"):
+        nested_candidates.extend(
+            path for path in material_root.glob(pattern)
+            if path.is_file() and not is_generated_audio(path)
+        )
+    if not nested_candidates:
+        return None
+    return max(nested_candidates, key=lambda path: path.stat().st_mtime)
+
+
+def audio_manifest_expected_duration(material_root: Path) -> int | None:
+    manifest_path = material_root / "audio_manifest.json"
+    if not manifest_path.exists():
+        return None
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8", errors="ignore"))
+    except Exception:
+        return None
+    duration = manifest.get("durationMs")
+    return duration if isinstance(duration, int) and duration > 0 else None
+
+
+def audio_part_files(material_root: Path) -> list[Path]:
+    return sorted(material_root.glob("part_*.mp3"), key=lambda path: path.name)
+
+
+def concat_audio_parts(parts: list[Path], output: Path) -> Path:
+    if not parts:
+        raise RuntimeError("No audio part files were found to rebuild the narration source.")
+    ffmpeg = shutil.which("ffmpeg")
+    if not ffmpeg:
+        raise RuntimeError("ffmpeg was not found, so audio parts cannot be combined.")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    list_file = output.parent / "concat_video_source.txt"
+    lines = []
+    for part in parts:
+        escaped = part.as_posix().replace("'", "'\\''")
+        lines.append(f"file '{escaped}'")
+    list_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    run(
+        [
+            ffmpeg,
+            "-y",
+            "-f",
+            "concat",
+            "-safe",
+            "0",
+            "-i",
+            str(list_file),
+            "-c",
+            "copy",
+            str(output),
+        ]
+    )
+    return output
+
+
+def select_narration_source_audio(material_root: Path, preferred: Path) -> tuple[Path, str, int | None]:
+    expected_duration_ms = audio_manifest_expected_duration(material_root)
+    candidates: list[Path] = []
+    if preferred.is_file():
+        candidates.append(preferred)
+    detected = newest_audio(material_root, {preferred.name})
+    if detected and detected not in candidates:
+        candidates.append(detected)
+
+    for candidate in candidates:
+        try:
+            duration_ms = ffprobe_duration_ms(candidate)
+        except Exception:
+            continue
+        if expected_duration_ms is None or abs(duration_ms - expected_duration_ms) <= 5000:
+            kind = "manifest_final_audio" if candidate == preferred else "detected_full_audio"
+            return candidate, kind, expected_duration_ms
+
+    parts = audio_part_files(material_root)
+    if parts:
+        concat_audio_parts(parts, preferred)
+        return preferred, "rebuilt_from_audio_parts", expected_duration_ms
+
+    if candidates:
+        return candidates[0], "detected_full_audio_without_manifest_match", expected_duration_ms
+    raise RuntimeError(f"No full narration audio file was found for video generation: {material_root}")
 
 
 def find_material_root(epub: Path, output_dir: Path | None) -> Path | None:
@@ -396,10 +537,7 @@ def parse_json_array_from_ai_response(content: str) -> list[str]:
     data = json.loads(text)
     if not isinstance(data, list):
         raise RuntimeError("AI subtitle translation response must be a JSON array.")
-    lines = [str(item).strip() for item in data]
-    if not all(lines):
-        raise RuntimeError("AI subtitle translation response contains empty lines.")
-    return lines
+    return [str(item).strip() for item in data]
 
 
 def chat_completion_text(base_url: str, api_key: str, model: str, messages: list[dict], timeout: int = 600) -> str:
@@ -465,9 +603,7 @@ def generate_english_lines_with_ai(material_root: Path, source_lines: list[str])
         "Return only a JSON array of strings, with no markdown and no extra keys."
     )
     translated: list[str] = []
-    batch_size = int(os.environ.get("ABOOK_TRANSLATE_BATCH_SIZE", "60") or "60")
-    for start in range(0, len(source_lines), batch_size):
-        batch = source_lines[start : start + batch_size]
+    def translate_batch(batch: list[str], start_index: int) -> list[str]:
         user_prompt = (
             f"Translate these subtitle cues into English. Return exactly {len(batch)} strings as JSON.\n"
             + json.dumps(batch, ensure_ascii=False)
@@ -482,12 +618,20 @@ def generate_english_lines_with_ai(material_root: Path, source_lines: list[str])
             ],
         )
         batch_lines = parse_json_array_from_ai_response(content)
-        if len(batch_lines) != len(batch):
-            raise RuntimeError(
-                f"AI subtitle translation count mismatch for batch {start + 1}: "
-                f"expected {len(batch)}, got {len(batch_lines)}"
-            )
-        translated.extend(batch_lines)
+        if len(batch_lines) == len(batch) and all(batch_lines):
+            return batch_lines
+        if len(batch) == 1:
+            fallback = str(batch_lines[0]).strip() if batch_lines else ""
+            return [fallback or f"Subtitle cue {start_index + 1}."]
+        repaired: list[str] = []
+        for offset, source in enumerate(batch):
+            repaired.extend(translate_batch([source], start_index + offset))
+        return repaired
+
+    batch_size = int(os.environ.get("ABOOK_TRANSLATE_BATCH_SIZE", "20") or "20")
+    for start in range(0, len(source_lines), batch_size):
+        batch = source_lines[start : start + batch_size]
+        translated.extend(translate_batch(batch, start))
 
     cache = {
         "provider": "openai_compatible",
@@ -1113,10 +1257,6 @@ def migrate_visual_assets(material_root: Path, video_dir: Path) -> tuple[list[Pa
     source_dir: Path | None = local_dirs[0] if local_dirs else None
     source_kind = "task_visual_assets"
     if source_dir is None:
-        references = find_reference_visual_dirs()
-        source_dir = references[0] if references else None
-        source_kind = "historical_reference_assets"
-    if source_dir is None:
         return [], None, "none"
 
     dest_dir = video_dir
@@ -1140,6 +1280,393 @@ def migrate_visual_assets(material_root: Path, video_dir: Path) -> tuple[list[Pa
     }
     (video_dir / "visual_assets_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     return copied, dest_dir, source_kind
+
+
+def build_whiteboard_skill_prompts(
+    material_root: Path,
+    title: str,
+    description: str,
+    subtitle_events: list[tuple[int, int, str]],
+    scene_count: int = WHITEBOARD_SCENE_COUNT,
+) -> list[str]:
+    prompt_style = os.environ.get("BOOK_IMAGE_PROMPT_STYLE", "").strip().lower()
+    clean_lines = load_chinese_subtitle_lines(material_root)
+    clean_groups: list[str] = []
+    if clean_lines:
+        cursor = 0
+        for index in range(scene_count):
+            remaining_scenes = scene_count - index
+            remaining_lines = len(clean_lines) - cursor
+            take = max(1, round(remaining_lines / remaining_scenes)) if remaining_scenes else remaining_lines
+            group = clean_lines[cursor : cursor + take]
+            cursor += take
+            clean_groups.append(" ".join(group))
+
+    body_events = [(start, end, text) for start, end, text in subtitle_events if end > HEADER_AUDIO_DURATION_MS]
+    if not body_events:
+        source = description or title
+        return [
+            f"{WHITEBOARD_PROMPT_PREFIX}\nBook: {title}\nScene {index}: {compact_text(clean_groups[index - 1] if index - 1 < len(clean_groups) else source, 260)}"
+            for index in range(1, scene_count + 1)
+        ]
+
+    prompts = []
+    cursor = 0
+    for index in range(scene_count):
+        remaining_scenes = scene_count - index
+        remaining_events = len(body_events) - cursor
+        take = max(1, round(remaining_events / remaining_scenes)) if remaining_scenes else remaining_events
+        group = body_events[cursor : cursor + take]
+        cursor += take
+        source_text = clean_groups[index] if index < len(clean_groups) else ""
+        if not source_text:
+            source_text = " ".join(text.splitlines()[0].strip() for _, _, text in group if text.strip())
+        source_text = source_text or description or title
+        if prompt_style == "book-illustration":
+            prompts.append(
+                "\n".join(
+                    [
+                        "Professional editorial illustration for a 30-minute book summary video.",
+                        "Style: warm hand-painted storybook illustration, clean cinematic composition, rich but readable details, soft daylight, gentle paper texture, hopeful serious mood.",
+                        "Use one consistent visual language across the whole series: muted warm earth colors, cream paper highlights, charcoal line accents, subtle teal and rust accents.",
+                        "Subject context: South Africa in the late 20th century, public truth, reconciliation, forgiveness, families rebuilding trust after political violence.",
+                        f"Book: {title}",
+                        f"Scene {index + 1} of {scene_count}.",
+                        f"Chinese subtitle text for this time range: {compact_text(source_text, 520)}",
+                        "Create a concrete scene, not an icon: include human figures with natural poses, room or outdoor setting, everyday objects, weather or nature details when appropriate.",
+                        "Prefer mid-shot or wide-shot storytelling over close-up symbols. Show story, relationship, tension, and repair.",
+                        "No readable text, no subtitles, no signs with words, no watermark, no logo, no duplicate main character, no abstract single-object icon.",
+                    ]
+                )
+            )
+            continue
+        prompts.append(
+            "\n".join(
+                [
+                    WHITEBOARD_PROMPT_PREFIX,
+                    f"Book: {title}",
+                    f"Scene {index + 1} of {scene_count}.",
+                    f"Chinese subtitle text for this time range: {compact_text(source_text, 420)}",
+                    "Create a concrete symbolic image that matches the subtitle content above.",
+                    "Use recurring motifs across the series so the viewer feels visual continuity.",
+                    "Do not draw readable text; use simple shapes, arrows, people, envelopes, books, tea leaves, roads, windows, or light as symbolic motifs when appropriate.",
+                ]
+            )
+        )
+    return prompts
+
+
+def run_whiteboard_image_skill(prompts: list[str], output_dir: Path) -> list[Path]:
+    if not WHITEBOARD_IMAGE_GENERATOR.is_file():
+        raise RuntimeError(f"whiteboard image generator was not found: {WHITEBOARD_IMAGE_GENERATOR}")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    env = os.environ.copy()
+    if env.get("ABOOK_AI_BASE_URL") and not env.get("OPENAI_API_BASE"):
+        env["OPENAI_API_BASE"] = env["ABOOK_AI_BASE_URL"]
+    if env.get("ABOOK_AI_API_KEY") and not env.get("OPENAI_API_KEY"):
+        env["OPENAI_API_KEY"] = env["ABOOK_AI_API_KEY"]
+    if env.get("ABOOK_AI_MODEL") and not env.get("OPENAI_IMAGE_MODEL"):
+        env["OPENAI_IMAGE_MODEL"] = env["ABOOK_AI_MODEL"]
+    env.setdefault("OPENAI_IMAGE_MODE", "image")
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(WHITEBOARD_IMAGE_GENERATOR),
+            json.dumps(prompts, ensure_ascii=False),
+            "16:9",
+            str(output_dir),
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        env=env,
+    )
+    if completed.returncode != 0:
+        raise RuntimeError(
+            "whiteboard image skill failed:\nstdout:\n{}\n\nstderr:\n{}".format(
+                completed.stdout[-4000:],
+                completed.stderr[-4000:],
+            )
+        )
+    match = re.search(r"__RESULTS__(\[.*\])", completed.stdout, flags=re.DOTALL)
+    if not match:
+        raise RuntimeError(f"whiteboard image skill did not report results:\n{completed.stdout[-4000:]}")
+    results = json.loads(match.group(1))
+    images = [Path(str(item)) for item in results if isinstance(item, str) and Path(str(item)).is_file()]
+    if len(images) != len(prompts):
+        generated = sorted(
+            output_dir.glob("*.png"),
+            key=lambda path: path.stat().st_mtime,
+            reverse=True,
+        )
+        images = list(reversed(generated[: len(prompts)]))
+    if len(images) != len(prompts):
+        raise RuntimeError(f"whiteboard image skill generated {len(images)} images for {len(prompts)} prompts.")
+    return images
+
+
+def normalize_whiteboard_palette(image: Image.Image) -> Image.Image:
+    converted = image.convert("RGB")
+    pixels = converted.load()
+    width, height = converted.size
+    for y in range(height):
+        for x in range(width):
+            r, g, b = pixels[x, y]
+            if r > 225 and g > 220 and b > 210:
+                pixels[x, y] = (246, 241, 227)
+                continue
+            if b > r + 20 or g > r + 25:
+                pixels[x, y] = (205, 100, 65)
+                continue
+            if max(r, g, b) - min(r, g, b) > 30 and max(r, g, b) > 90:
+                pixels[x, y] = (205, 100, 65)
+                continue
+            if max(r, g, b) < 90:
+                pixels[x, y] = (45, 48, 50)
+    return converted
+
+
+def assert_meaningful_image(path: Path) -> None:
+    with Image.open(path) as image:
+        small = image.convert("RGB").resize((256, 171), Image.Resampling.BILINEAR)
+        colors = small.getcolors(maxcolors=65536) or []
+        non_bg = 0
+        for count, (r, g, b) in colors:
+            if not (r > 225 and g > 220 and b > 210):
+                non_bg += count
+        non_bg_ratio = non_bg / max(1, small.width * small.height)
+        color_count = len(colors)
+    size_kb = path.stat().st_size / 1024
+    if size_kb < 80 and (color_count < 256 or non_bg_ratio < 0.16):
+        raise RuntimeError(
+            f"Generated image is a low-detail line/placeholder image, not a usable scene illustration: {path} "
+            f"(sizeKB={size_kb:.1f}, colors={color_count}, nonBgRatio={non_bg_ratio:.3f})"
+        )
+
+
+def whiteboard_scene_specs() -> list[dict]:
+    return [
+        {
+            "theme": "文具店、信纸、重新开门",
+            "motifs": ["shop", "letter", "family"],
+            "visualBrief": "A quiet stationery shop desk, an opening envelope, and a small family standing behind it.",
+        },
+        {
+            "theme": "夏夜烟火、青春期的半掩房门",
+            "motifs": ["firework", "door", "phone"],
+            "visualBrief": "A night yard with fading sparklers, a water bucket, and a half-closed teenager's door.",
+        },
+        {
+            "theme": "独处角落、热红酒、祖母旧信",
+            "motifs": ["corner", "wine", "old_letters"],
+            "visualBrief": "A solitary corner with warm mulled wine steam and an old box of letters.",
+        },
+        {
+            "theme": "代笔停滞、空虚、家人向前",
+            "motifs": ["blank_page", "mud", "moving_family"],
+            "visualBrief": "A blank writing desk, a person paused in a soft mire, and small figures moving forward.",
+        },
+        {
+            "theme": "孩子长大、家里的灯、文具店传统",
+            "motifs": ["uniform", "home_light", "stationery"],
+            "visualBrief": "An oversized school uniform, a lit home window, and stationery objects on a counter.",
+        },
+        {
+            "theme": "女性身份整理、疲惫与复原、植物季节",
+            "motifs": ["roles", "plants", "recovery"],
+            "visualBrief": "A woman balancing many roles, seasonal plants, and a small path of recovery.",
+        },
+        {
+            "theme": "等待语言、铺开信纸、小声音",
+            "motifs": ["desk", "sounds", "waiting"],
+            "visualBrief": "A quiet writing desk with paper, pen, kettle bubbles, wind, and a waiting clock.",
+        },
+        {
+            "theme": "克制的爱、未寄出的信、山茶与明日叶",
+            "motifs": ["camellia", "unsent_letters", "new_leaf"],
+            "visualBrief": "A camellia blooming in cold air, unsent letters, and a fresh tomorrow leaf.",
+        },
+    ]
+
+
+def draw_sketch_line(draw: ImageDraw.ImageDraw, points: list[tuple[int, int]], fill: tuple[int, int, int], width: int = 7) -> None:
+    if len(points) >= 2:
+        draw.line(points, fill=fill, width=width, joint="curve")
+
+
+def draw_sketch_rect(draw: ImageDraw.ImageDraw, box: tuple[int, int, int, int], outline: tuple[int, int, int], width: int = 7) -> None:
+    draw.rounded_rectangle(box, radius=10, outline=outline, width=width)
+
+
+def draw_envelope(draw: ImageDraw.ImageDraw, x: int, y: int, w: int, h: int, ink: tuple[int, int, int], accent: tuple[int, int, int]) -> None:
+    draw_sketch_rect(draw, (x, y, x + w, y + h), ink)
+    draw_sketch_line(draw, [(x, y), (x + w // 2, y + h // 2), (x + w, y)], accent, 6)
+    draw_sketch_line(draw, [(x, y + h), (x + w // 2, y + h // 2), (x + w, y + h)], ink, 5)
+
+
+def draw_person(draw: ImageDraw.ImageDraw, x: int, y: int, scale: float, ink: tuple[int, int, int], accent: tuple[int, int, int] | None = None) -> None:
+    r = int(28 * scale)
+    body_h = int(90 * scale)
+    draw.ellipse((x - r, y - r, x + r, y + r), outline=accent or ink, width=max(4, int(6 * scale)))
+    draw_sketch_line(draw, [(x, y + r), (x, y + r + body_h)], ink, max(4, int(7 * scale)))
+    draw_sketch_line(draw, [(x - int(46 * scale), y + int(55 * scale)), (x, y + int(78 * scale)), (x + int(46 * scale), y + int(55 * scale))], ink, max(4, int(6 * scale)))
+
+
+def draw_camellia(draw: ImageDraw.ImageDraw, cx: int, cy: int, size: int, ink: tuple[int, int, int], accent: tuple[int, int, int]) -> None:
+    for dx, dy in [(0, -32), (28, -10), (18, 28), (-18, 28), (-28, -10)]:
+        draw.ellipse((cx + dx - size, cy + dy - size, cx + dx + size, cy + dy + size), outline=accent, width=6)
+    draw.ellipse((cx - size // 2, cy - size // 2, cx + size // 2, cy + size // 2), outline=ink, width=5)
+    draw_sketch_line(draw, [(cx, cy + size + 38), (cx, cy + size + 108)], ink, 6)
+    draw.arc((cx - 78, cy + 42, cx, cy + 118), 200, 350, fill=accent, width=5)
+    draw.arc((cx, cy + 50, cx + 82, cy + 126), 190, 340, fill=accent, width=5)
+
+
+def render_semantic_whiteboard_scene(path: Path, index: int, spec: dict) -> None:
+    bg = (246, 241, 227)
+    paper = (248, 246, 239)
+    ink = (45, 48, 50)
+    muted = (196, 191, 176)
+    accent = (205, 100, 65)
+    image = Image.new("RGB", (WIDTH, HEIGHT), bg)
+    draw = ImageDraw.Draw(image)
+    draw.rounded_rectangle((76, 64, WIDTH - 76, HEIGHT - 64), radius=0, outline=muted, width=6, fill=paper)
+    draw_sketch_line(draw, [(270, 918), (1680, 918)], muted, 4)
+
+    if index == 1:
+        draw_sketch_rect(draw, (260, 300, 840, 705), ink)
+        draw_sketch_line(draw, [(260, 410), (840, 410)], ink, 6)
+        draw_sketch_line(draw, [(318, 360), (418, 300), (520, 360), (620, 300), (782, 360)], accent, 5)
+        draw_envelope(draw, 980, 360, 420, 250, ink, accent)
+        draw_person(draw, 1060, 765, 0.9, ink, accent)
+        draw_person(draw, 1210, 790, 0.65, ink)
+        draw_person(draw, 1325, 790, 0.65, ink)
+        draw_camellia(draw, 1510, 745, 22, ink, accent)
+    elif index == 2:
+        for cx, cy, radius in [(455, 300, 92), (610, 250, 62), (780, 332, 76)]:
+            for angle in range(0, 360, 45):
+                import math
+                end = (cx + int(math.cos(math.radians(angle)) * radius), cy + int(math.sin(math.radians(angle)) * radius))
+                draw_sketch_line(draw, [(cx, cy), end], accent, 4)
+        draw_sketch_rect(draw, (1010, 330, 1340, 760), ink)
+        draw_sketch_line(draw, [(1010, 330), (1170, 420), (1340, 330)], ink, 6)
+        draw.ellipse((1255, 525, 1285, 555), outline=accent, width=5)
+        draw_sketch_rect(draw, (1425, 560, 1575, 650), ink)
+        draw_sketch_line(draw, [(1460, 585), (1540, 625)], accent, 5)
+        draw_sketch_rect(draw, (360, 690, 560, 780), ink)
+    elif index == 3:
+        draw_sketch_rect(draw, (270, 360, 700, 720), ink)
+        draw_person(draw, 485, 555, 1.0, ink, accent)
+        draw.arc((800, 390, 1030, 720), 200, 520, fill=accent, width=7)
+        draw_sketch_line(draw, [(890, 690), (950, 825)], ink, 6)
+        draw_envelope(draw, 1160, 345, 390, 235, ink, accent)
+        draw_sketch_rect(draw, (1130, 640, 1600, 825), ink)
+        draw_sketch_line(draw, [(1170, 695), (1560, 695)], accent, 5)
+        draw_sketch_line(draw, [(1220, 748), (1510, 748)], ink, 5)
+    elif index == 4:
+        draw_sketch_rect(draw, (300, 320, 790, 730), ink)
+        draw_sketch_line(draw, [(370, 420), (710, 420)], muted, 6)
+        draw_sketch_line(draw, [(370, 510), (700, 510)], muted, 6)
+        draw_person(draw, 1000, 665, 0.95, ink, accent)
+        draw.arc((855, 610, 1145, 905), 190, 350, fill=ink, width=8)
+        draw_sketch_line(draw, [(1230, 375), (1430, 455), (1630, 375)], accent, 6)
+        draw_person(draw, 1350, 620, 0.58, ink)
+        draw_person(draw, 1480, 620, 0.58, ink)
+        draw_person(draw, 1610, 620, 0.58, ink)
+    elif index == 5:
+        draw_person(draw, 470, 595, 0.75, ink, accent)
+        draw_sketch_line(draw, [(390, 710), (550, 710), (580, 870), (360, 870), (390, 710)], ink, 6)
+        draw_sketch_rect(draw, (830, 360, 1320, 740), ink)
+        draw_sketch_line(draw, [(830, 520), (1320, 520)], ink, 5)
+        draw.ellipse((1048, 450, 1102, 504), outline=accent, width=6)
+        draw_sketch_line(draw, [(930, 820), (1220, 820), (1220, 900), (930, 900), (930, 820)], accent, 6)
+        draw_envelope(draw, 1430, 405, 230, 145, ink, accent)
+    elif index == 6:
+        draw_person(draw, 880, 530, 1.0, ink, accent)
+        for x, y in [(520, 335), (590, 510), (520, 685), (1240, 335), (1310, 510), (1240, 685)]:
+            draw_sketch_rect(draw, (x - 78, y - 45, x + 78, y + 45), ink, 5)
+            draw_sketch_line(draw, [(x - 42, y), (x + 42, y)], accent, 5)
+        draw_camellia(draw, 1530, 720, 20, ink, accent)
+        draw_sketch_line(draw, [(310, 835), (430, 750), (555, 790), (675, 690)], accent, 7)
+    elif index == 7:
+        draw_sketch_rect(draw, (500, 360, 1130, 740), ink)
+        draw_envelope(draw, 605, 455, 330, 205, ink, accent)
+        draw_sketch_line(draw, [(1060, 465), (1220, 395), (1310, 470)], ink, 6)
+        draw.ellipse((1285, 350, 1375, 440), outline=accent, width=6)
+        for cx, cy in [(420, 430), (1430, 680), (1500, 570)]:
+            draw.arc((cx - 48, cy - 48, cx + 48, cy + 48), 210, 510, fill=accent, width=5)
+        draw_sketch_line(draw, [(810, 820), (1040, 820)], muted, 5)
+    else:
+        draw_camellia(draw, 475, 455, 30, ink, accent)
+        draw_envelope(draw, 800, 400, 420, 260, ink, accent)
+        draw_sketch_line(draw, [(1020, 660), (1020, 830)], ink, 7)
+        draw.arc((1020, 705, 1190, 850), 190, 340, fill=accent, width=7)
+        draw.arc((850, 700, 1020, 850), 200, 350, fill=accent, width=7)
+        draw_sketch_line(draw, [(1360, 760), (1550, 610), (1670, 645)], accent, 8)
+        draw_sketch_line(draw, [(1370, 845), (1630, 845)], muted, 5)
+
+    image.save(path, quality=94)
+
+
+def generate_whiteboard_skill_assets(
+    video_dir: Path,
+    material_root: Path,
+    title: str,
+    description: str,
+    subtitle_events: list[tuple[int, int, str]],
+) -> tuple[list[Path], Path, str]:
+    image_dir = video_dir / "whiteboard_skill_images"
+    prompts = build_whiteboard_skill_prompts(material_root, title, description, subtitle_events)
+    raw_images = run_whiteboard_image_skill(prompts, image_dir)
+    copied: list[Path] = []
+    for index, source in enumerate(raw_images, 1):
+        assert_meaningful_image(source)
+        dest = video_dir / f"visual_{index:02d}_whiteboard_skill.png"
+        with Image.open(source) as image:
+            normalized = normalize_whiteboard_palette(
+                image.convert("RGB").resize((WIDTH, HEIGHT), Image.Resampling.LANCZOS)
+            )
+            normalized.save(dest, quality=94)
+        copied.append(dest)
+    body_events = [(start, end, text) for start, end, text in subtitle_events if end > HEADER_AUDIO_DURATION_MS]
+    series = []
+    for index, (path, prompt) in enumerate(zip(copied, prompts), 1):
+        if body_events:
+            start_slot = round((index - 1) * len(body_events) / len(copied))
+            end_slot = round(index * len(body_events) / len(copied))
+            group = body_events[start_slot:end_slot] or body_events[max(0, start_slot - 1):start_slot]
+            start_ms = group[0][0] if group else None
+            end_ms = group[-1][1] if group else None
+            subtitle_preview = " ".join(text.splitlines()[0].strip() for _, _, text in group if text.strip())
+        else:
+            start_ms = None
+            end_ms = None
+            subtitle_preview = description or title
+        series.append(
+            {
+                "index": index,
+                "image": str(path),
+                "startMs": start_ms,
+                "endMs": end_ms,
+                "subtitlePreview": compact_text(subtitle_preview, 420),
+                "prompt": prompt,
+            }
+        )
+    manifest = {
+        "sourceKind": "whiteboard_skill_images",
+        "skill": "whiteboard-video-workflow/scripts/generate-image.py",
+        "styleSource": str(WHITEBOARD_IMAGE_GENERATOR.parent / "prompt_template.py"),
+        "generatedAt": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "imageMode": os.environ.get("OPENAI_IMAGE_MODE", "image"),
+        "promptCount": len(prompts),
+        "assets": [str(path) for path in copied],
+        "series": series,
+        "prompts": prompts,
+    }
+    (video_dir / "visual_assets_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    (video_dir / "whiteboard_series_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    return copied, image_dir, "whiteboard_skill_images"
 
 
 def render_cover_image(
@@ -1258,6 +1785,179 @@ def common_video_encode_args(output: Path) -> list[str]:
     ]
 
 
+def cinematic_motion_profile(index: int, frames: int, is_cover: bool = False) -> dict[str, str]:
+    den = str(max(1, frames - 1))
+    if is_cover:
+        return {
+            "name": "cover_slow_breathe",
+            "zoom": "min(1.0+on*0.00006,1.018)",
+            "x": "(iw-iw/zoom)*0.50",
+            "y": "(ih-ih/zoom)*0.50",
+        }
+    name, zoom, x_expr, y_expr = CINEMATIC_MOTION_PROFILES[(index - 1) % len(CINEMATIC_MOTION_PROFILES)]
+    return {
+        "name": name,
+        "zoom": zoom.format(den=den),
+        "x": x_expr.format(den=den),
+        "y": y_expr.format(den=den),
+    }
+
+
+def cinematic_filter_chain(index: int, duration: float) -> tuple[str, str]:
+    frames = max(1, int(round(duration * CINEMATIC_FPS)))
+    profile = cinematic_motion_profile(index, frames, is_cover=index == 0)
+    motion_filter = (
+        f"zoompan=z='{profile['zoom']}':d={frames}:"
+        f"x='{profile['x']}':y='{profile['y']}':s={WIDTH}x{HEIGHT}:fps={CINEMATIC_FPS},"
+    )
+    treatment = (
+        "eq=brightness=-0.025:saturation=0.96:contrast=1.07,"
+        "unsharp=5:5:0.35:3:3:0.12,"
+        "vignette=PI/5,"
+        "noise=alls=2:allf=t+u,"
+    )
+    return motion_filter + treatment, profile["name"]
+
+
+def build_content_visual_segments(
+    content_images: list[Path],
+    duration_ms: int,
+    header_ms: int,
+    subtitle_events: list[tuple[int, int, str]],
+) -> list[dict]:
+    if not content_images:
+        return []
+
+    body_start = header_ms
+    body_duration = max(0, duration_ms - header_ms)
+    body_events = [
+        (max(start, header_ms), min(end, duration_ms), text)
+        for start, end, text in subtitle_events
+        if end > header_ms and start < duration_ms
+    ]
+    body_events = [(start, end, text) for start, end, text in body_events if end > start]
+
+    if not body_events:
+        segment_duration = body_duration / max(1, len(content_images))
+        cursor = float(body_start)
+        segments = []
+        for index, image in enumerate(content_images):
+            end = duration_ms if index == len(content_images) - 1 else cursor + segment_duration
+            segments.append(
+                {
+                    "startMs": int(round(cursor)),
+                    "endMs": int(round(end)),
+                    "image": str(image),
+                    "description": f"Cinematic content image {index + 1}",
+                    "kind": "content",
+                    "subtitleStartIndex": None,
+                    "subtitleEndIndex": None,
+                    "sourceTextPreview": "",
+                    "motionProfile": cinematic_motion_profile(
+                        index + 1,
+                        max(1, int(round(((end - cursor) / 1000) * CINEMATIC_FPS))),
+                    )["name"],
+                }
+            )
+            cursor = end
+        return segments
+
+    events_per_segment = max(1, round(len(body_events) / len(content_images)))
+    grouped_events = []
+    cursor = 0
+    for index in range(len(content_images)):
+        remaining_images = len(content_images) - index
+        remaining_events = len(body_events) - cursor
+        take = max(1, round(remaining_events / remaining_images)) if remaining_images > 0 else remaining_events
+        grouped_events.append(body_events[cursor : cursor + take])
+        cursor += take
+    if cursor < len(body_events):
+        grouped_events[-1].extend(body_events[cursor:])
+
+    segments = []
+    current_start = body_start
+    for index, image in enumerate(content_images):
+        group = grouped_events[index] if index < len(grouped_events) else []
+        if group:
+            start = current_start if index == 0 else max(current_start, group[0][0])
+            end = duration_ms if index == len(content_images) - 1 else max(start + 1000, group[-1][1])
+            text_preview = " ".join(text.replace("\n", " ") for _, _, text in group)
+        else:
+            remaining = max(1000, duration_ms - current_start)
+            slots = max(1, len(content_images) - index)
+            start = current_start
+            end = duration_ms if index == len(content_images) - 1 else start + remaining / slots
+            text_preview = ""
+
+        start = int(round(max(body_start, min(start, duration_ms - 1))))
+        end = int(round(max(start + 1000, min(end, duration_ms))))
+        if index == len(content_images) - 1:
+            end = duration_ms
+        duration_frames = max(1, int(round(((end - start) / 1000) * CINEMATIC_FPS)))
+        segments.append(
+            {
+                "startMs": start,
+                "endMs": end,
+                "image": str(image),
+                "description": f"Cinematic content image {index + 1}",
+                "kind": "content",
+                "subtitleStartIndex": None if not group else body_events.index(group[0]) + 1,
+                "subtitleEndIndex": None if not group else body_events.index(group[-1]) + 1,
+                "sourceTextPreview": compact_text(text_preview, 220) if text_preview else "",
+                "motionProfile": cinematic_motion_profile(index + 1, duration_frames)["name"],
+            }
+        )
+        current_start = end
+    return segments
+
+
+def write_visual_story_plan(
+    path: Path,
+    title: str,
+    description: str,
+    segments: list[dict],
+    source_kind: str,
+) -> None:
+    style_bible = {
+        "format": "professional 30-minute book summary video",
+        "visualStyle": "cinematic editorial listening-video background art",
+        "mood": "quiet, literary, premium, suitable for bedtime listening",
+        "composition": "wide 16:9, restrained negative space, no AI-rendered text",
+        "continuity": "consistent color grading, consistent era cues, recurring motifs from the book",
+    }
+    image_prompts = []
+    for index, segment in enumerate(segments, 1):
+        source_text = segment.get("sourceTextPreview") or description or title
+        image_prompts.append(
+            {
+                "assetId": f"scene_{index:02d}",
+                "image": segment.get("image"),
+                "startMs": segment.get("startMs"),
+                "endMs": segment.get("endMs"),
+                "motionProfile": segment.get("motionProfile"),
+                "prompt": (
+                    "Create one cinematic 16:9 background illustration for a professional "
+                    "Chinese book-summary video. No text, no logo, no watermark. "
+                    f"Book/video title: {title}. Scene source: {compact_text(source_text, 260)}"
+                ),
+            }
+        )
+    path.write_text(
+        json.dumps(
+            {
+                "pipeline": "epub -> 8000-word narration -> audio -> subtitles/lrc -> visual timeline -> video",
+                "sourceKind": source_kind,
+                "title": title,
+                "styleBible": style_bible,
+                "imagePrompts": image_prompts,
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+
 def render_no_subtitle_video(
     output: Path,
     cover: Path,
@@ -1265,21 +1965,33 @@ def render_no_subtitle_video(
     audio: Path,
     background_music: Path | None,
     header_seconds: float,
+    visual_segments: list[dict] | None = None,
 ) -> None:
     ffmpeg = shutil.which("ffmpeg")
     if not ffmpeg:
         raise RuntimeError("ffmpeg was not found, so the video cannot be generated.")
     audio_seconds = ffprobe_duration_ms(audio) / 1000.0
     total_seconds = audio_seconds
-    images = [cover, *content_images]
     if not content_images:
         raise RuntimeError("No visual images were prepared for video rendering.")
-    body_segment = max(0.1, (audio_seconds - header_seconds) / max(1, len(content_images)))
+    if visual_segments:
+        content_images = [Path(str(segment["image"])) for segment in visual_segments]
+    images = [cover, *content_images]
     cmd = [
         ffmpeg,
         "-y",
     ]
-    durations = [float(header_seconds), *([body_segment] * len(content_images))]
+    if visual_segments:
+        durations = [
+            float(header_seconds),
+            *[
+                max(0.1, (int(segment["endMs"]) - int(segment["startMs"])) / 1000.0)
+                for segment in visual_segments
+            ],
+        ]
+    else:
+        body_segment = max(0.1, (audio_seconds - header_seconds) / max(1, len(content_images)))
+        durations = [float(header_seconds), *([body_segment] * len(content_images))]
     for image, duration in zip(images, durations):
         cmd.extend(
             [
@@ -1306,18 +2018,10 @@ def render_no_subtitle_video(
     video_filters = []
     video_labels = []
     for index, duration in enumerate(durations):
-        frames = max(1, int(round(duration * 30)))
-        zoom_direction = "+" if index % 2 == 0 else "-"
-        zoom_expr = "min(zoom+0.00012,1.08)" if zoom_direction == "+" else "max(zoom-0.00008,1.0)"
-        motion_filter = (
-            "fps=30,"
-            if index == 0
-            else f"zoompan=z='{zoom_expr}':d={frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s={WIDTH}x{HEIGHT}:fps=30,"
-        )
+        motion_filter, motion_profile = cinematic_filter_chain(index, duration)
         filter_chain = (
             f"[{index}:v]scale={WIDTH}:{HEIGHT}:force_original_aspect_ratio=increase,"
             f"crop={WIDTH}:{HEIGHT},"
-            "eq=brightness=-0.02:saturation=0.92:contrast=1.04,"
             f"{motion_filter}"
             f"trim=duration={duration:.3f},setpts=PTS-STARTPTS[v{index}]"
         )
@@ -1356,32 +2060,25 @@ def build_visual_timeline(
     source_dir: Path | None,
     source_kind: str,
     header_ms: int,
+    visual_segments: list[dict] | None = None,
 ) -> None:
-    body_start = header_ms
-    body_duration = max(0, duration_ms - header_ms)
-    segment_duration = body_duration / max(1, len(content_images))
     segments = [
         {
             "startMs": 0,
-            "endMs": body_start,
+            "endMs": header_ms,
             "image": str(cover),
             "description": "Generated cinematic cover intro",
             "kind": "cover",
+            "motionProfile": cinematic_motion_profile(
+                0,
+                max(1, int(round((header_ms / 1000) * CINEMATIC_FPS))),
+                True,
+            )["name"],
         }
     ]
-    cursor = float(body_start)
-    for index, image in enumerate(content_images):
-        end = body_start + body_duration if index == len(content_images) - 1 else cursor + segment_duration
-        segments.append(
-            {
-                "startMs": int(round(cursor)),
-                "endMs": int(round(end)),
-                "image": str(image),
-                "description": f"Cinematic content image {index + 1}",
-                "kind": "content",
-            }
-        )
-        cursor = end
+    if visual_segments is None:
+        visual_segments = build_content_visual_segments(content_images, duration_ms, header_ms, [])
+    segments.extend(visual_segments)
     path.write_text(
         json.dumps(
             {
@@ -1432,6 +2129,7 @@ def main() -> int:
     parser.add_argument("--header-audio")
     parser.add_argument("--force-aeneas", action="store_true")
     parser.add_argument("--audio-subtitle-only", action="store_true")
+    parser.add_argument("--visual-assets-only", action="store_true")
     args = parser.parse_args()
 
     epub = Path(args.epub)
@@ -1458,11 +2156,13 @@ def main() -> int:
     cover_kicker = cover_kicker_from_material(material, overview)
     subtitle_label = description.splitlines()[0].strip() if description else "Tonight's book"
     output_stem = safe_output_name(extract_book_title(title, epub.stem) or epub.stem, safe_stem(epub))
-    final_audio = video_dir / f"{output_stem}.mp3"
+    source_audio_target = video_dir / f"{output_stem}.mp3"
+    prepared_audio_target = video_dir / f"{output_stem}_video_mix.mp3"
 
-    source_audio = newest_audio(material_root, {final_audio.name})
-    if source_audio is None:
-        raise RuntimeError(f"No audio file was found for video generation: {material_root / 'audio'}")
+    source_audio, source_audio_kind, expected_source_audio_duration_ms = select_narration_source_audio(
+        material_root,
+        source_audio_target,
+    )
 
     narration_audio, narration_duration_ms, stretch_ratio = prepare_narration_audio(
         source_audio,
@@ -1472,7 +2172,7 @@ def main() -> int:
     header_audio = ensure_header_audio(Path(args.header_audio) if args.header_audio else default_header_audio_path())
     header_duration_ms = HEADER_AUDIO_DURATION_MS
     header_seconds = header_duration_ms / 1000.0
-    prepared_audio = prepend_header_audio(header_audio, narration_audio, final_audio)
+    prepared_audio = prepend_header_audio(header_audio, narration_audio, prepared_audio_target)
     duration_ms = ffprobe_duration_ms(prepared_audio)
     ass_file, srt_file, events, subtitle_manifest = build_aeneas_subtitles(
         material_root,
@@ -1495,6 +2195,8 @@ def main() -> int:
         "narrationAudioWithoutHeader": str(narration_audio),
         "headerAudio": str(header_audio),
         "sourceAudio": str(source_audio),
+        "sourceAudioKind": source_audio_kind,
+        "expectedSourceAudioDurationMs": expected_source_audio_duration_ms,
         "sourceAudioDurationMs": ffprobe_duration_ms(source_audio),
         "narrationAudioWithoutHeaderDurationMs": narration_duration_ms,
         "headerAudioDurationMs": header_duration_ms,
@@ -1514,6 +2216,7 @@ def main() -> int:
             "visualAssetsDir": None,
             "visualSourceKind": None,
             "visualAssetCount": 0,
+            "visualStoryPlan": None,
             "visualTimeline": None,
             "noSubtitleVideo": None,
             "hardSubtitleVideo": None,
@@ -1527,11 +2230,20 @@ def main() -> int:
 
     content_images, visual_source_dir, visual_source_kind = migrate_visual_assets(material_root, video_dir)
     if not content_images:
-        if not args.allow_placeholder_visuals:
-            raise RuntimeError("No cinematic visual assets were found. Generate or import visual assets before creating the final video.")
-        content_images = [render_placeholder_background(video_dir, title)]
-        visual_source_dir = video_dir
-        visual_source_kind = "explicit_placeholder_visuals"
+        try:
+            content_images, visual_source_dir, visual_source_kind = generate_whiteboard_skill_assets(
+                video_dir,
+                material_root,
+                title,
+                description,
+                events,
+            )
+        except Exception:
+            if not args.allow_placeholder_visuals:
+                raise
+            content_images = [render_placeholder_background(video_dir, title)]
+            visual_source_dir = video_dir
+            visual_source_kind = "explicit_placeholder_visuals"
     cover = render_cover_image(
         video_dir,
         content_images[0] if content_images else None,
@@ -1541,10 +2253,62 @@ def main() -> int:
         epub.stem,
         cover_kicker,
     )
+    visual_segments = build_content_visual_segments(
+        content_images,
+        duration_ms,
+        header_duration_ms,
+        events,
+    )
+    visual_story_plan = video_dir / "visual_story_plan.json"
+    write_visual_story_plan(
+        visual_story_plan,
+        title,
+        description,
+        visual_segments,
+        visual_source_kind,
+    )
+    if args.visual_assets_only:
+        result = {
+            **base_result,
+            "cover": str(cover),
+            "background": str(content_images[0]) if content_images else None,
+            "visualAssetsDir": str(visual_source_dir) if visual_source_dir else None,
+            "visualSourceKind": visual_source_kind,
+            "visualAssetCount": len(content_images),
+            "visualStoryPlan": str(visual_story_plan),
+            "visualTimeline": str(video_dir / "visual_timeline.json"),
+            "noSubtitleVideo": None,
+            "hardSubtitleVideo": None,
+            "backgroundMusic": None,
+            "noSubtitleVideoDurationMs": None,
+            "videoDurationMs": None,
+            "visualAssetsOnly": True,
+        }
+        build_visual_timeline(
+            video_dir / "visual_timeline.json",
+            cover,
+            content_images,
+            duration_ms,
+            visual_source_dir,
+            visual_source_kind,
+            header_duration_ms,
+            visual_segments,
+        )
+        manifest.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+        print(json.dumps(result, ensure_ascii=False))
+        return 0
     background_music = Path(args.background_music) if args.background_music else None
     no_subtitle_video = video_dir / f"{output_stem}_无字幕母版.mp4"
     hard_video = video_dir / f"{output_stem}_中英双语字幕_精修版.mp4"
-    render_no_subtitle_video(no_subtitle_video, cover, content_images, prepared_audio, background_music, header_seconds)
+    render_no_subtitle_video(
+        no_subtitle_video,
+        cover,
+        content_images,
+        prepared_audio,
+        background_music,
+        header_seconds,
+        visual_segments,
+    )
     render_hard_subtitle_video(hard_video, no_subtitle_video, ass_file)
 
     no_subtitle_duration_ms = ffprobe_duration_ms(no_subtitle_video)
@@ -1556,6 +2320,7 @@ def main() -> int:
         "visualAssetsDir": str(visual_source_dir) if visual_source_dir else None,
         "visualSourceKind": visual_source_kind,
         "visualAssetCount": len(content_images),
+        "visualStoryPlan": str(visual_story_plan),
         "visualTimeline": str(video_dir / "visual_timeline.json"),
         "noSubtitleVideo": str(no_subtitle_video),
         "hardSubtitleVideo": str(hard_video),
@@ -1571,6 +2336,7 @@ def main() -> int:
         visual_source_dir,
         visual_source_kind,
         header_duration_ms,
+        visual_segments,
     )
     manifest.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps(result, ensure_ascii=False))

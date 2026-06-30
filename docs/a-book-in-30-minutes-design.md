@@ -925,3 +925,28 @@ a-book-in-30-minutes/src-tauri/target/x86_64-pc-windows-gnu/release/bundle/nsis
 - 本轮发版验证指定 EPUB：`D:\books\理想国译丛系列（74册）整理截止2026.018\001没有宽恕就没有未来\001没有宽恕就没有未来.epub`。
 - 端到端验证仍按素材、音频、视频三阶段拆分执行，避免失败时无法定位。素材和音频优先使用 release exe 的 `--e2e-materials` 与 `--e2e-audio`；视频阶段必须复用同一套 `tmp/book_video_pipeline.py` 和应用设置中的 AI/ffmpeg/aeneas 配置。
 - 本轮触达的视频入口错误文案必须保持正常 UTF-8，不得新增 mojibake；历史遗留乱码仍由日志写入层拦截，后续可单独做全量清理。
+
+## 0.1.96 Visual Regeneration Prompt Route
+
+- BOOK_IMAGE_PROMPT_STYLE=book-illustration now switches the video pipeline's image prompts from minimal whiteboard icon prompts to professional editorial book-summary illustration prompts.
+- The route still calls the installed whiteboard-video-workflow image generator, but prompts emphasize concrete scenes, people, late-20th-century South Africa context, relationship tension, forgiveness, public truth, everyday objects, weather, and nature details.
+- Negative guidance blocks readable text, duplicate protagonists, logos, watermarks, and abstract single-object icons so generated visuals are more suitable for final videos.
+
+
+## No Future Without Forgiveness Visual System v1
+
+- Before regenerating images for D:\books\理想国译丛系列（74册）整理截止2026.018\001没有宽恕就没有未来\001没有宽恕就没有未来.epub, the workflow now pauses to define style, recurring elements, noun/object inventory, and scene-to-time mapping.
+- Style target: professional 30-minute book-summary illustration, warm hand-painted storybook texture, cinematic mid/wide shots, concrete people and settings, no abstract single-object icons.
+- Recurring elements: desk lamp, window and light, archival testimony papers, hearing microphone, empty chair, road, candle, ballot box, old photograph, family table.
+- A dedicated design artifact was generated at D:\books\理想国译丛系列（74册）整理截止2026.018\001没有宽恕就没有未来\output_regen_design_001\visual_style_bible.md with noun extraction and 8 timeline scenes.
+
+
+## No Future Without Forgiveness Programmatic Visual Regeneration
+
+- The No Future Without Forgiveness regeneration now follows a visual-system-first process: style bible, recurring elements, noun/object inventory, timeline scenes, then image generation.
+- AI image generation through MacMini Realistic Vision was tested but rejected for this book because it repeatedly produced open book spreads, fake text, or empty landscapes instead of the requested hearing/family/documentary scenes.
+- Added -book-in-30-minutes/tmp/build_no_future_visual_design.py to build clean UTF-8 design artifacts and prompts for the book without mojibake.
+- Added -book-in-30-minutes/tmp/render_no_future_programmatic_illustrations.py to render 8 controlled 1920x1080 documentary-style illustrations with people, scene objects, light/weather, and a lower subtitle-safe band.
+- The regenerated video uses isualSourceKind=task_visual_assets and isualAssetCount=8, with assets copied into the material output under isual_assets/originals/programmatic_no_future_v1.
+- Current caveat: the programmatic visuals are stable and semantically matched but still visually simple; the video render adds a dark vignette/toning pass that should be brightened in a later polish pass.
+
