@@ -966,3 +966,78 @@ a-book-in-30-minutes/src-tauri/target/x86_64-pc-windows-gnu/release/bundle/nsis
 - Verification: hard-subtitle video probes as H.264 1920x1080 at 30fps; ASS contains 816 Chinese and 816 English dialogue lines; Unicode mojibake marker scan returned no hits in key manifest/subtitle files; the 12:30 verification frame shows the richer hearing-room illustration plus bilingual subtitles.
 - Remaining design gap: visuals are now coherent and brighter but still intentionally programmatic. A future model-backed or artist-authored layer could make characters and backgrounds more painterly while keeping the current visual bible and timeline as constraints.
 
+## 2026-06-30 受控程序化视觉流程
+
+为避免图片服务随机生成旧风格、空泛背景、假文字或与字幕不匹配的画面，视频阶段新增“先设计后生成”的受控程序化视觉流程。该流程适用于《没有宽恕就没有未来》这类历史、纪实、读书解读视频，也作为后续通用视觉包的基线。
+
+流程顺序固定为：
+
+1. 读取当前 EPUB 对应的 `materials.json`、旁白和字幕产物。
+2. 生成视觉风格圣经，先确定画幅、色彩、时代背景、禁用项、固定母题和人物规则。
+3. 从旁白文本中统计人物、地点、物品、自然天气和抽象主题等名词，形成可审阅元素库。
+4. 按 30 分钟视频拆成 8 个核心时间段，每段绑定主题、人物、地点、道具、情绪和英文出图提示词。
+5. 程序化渲染 8 张 `1920x1080` 正式场景图，文件名使用 `scene_*.png`；`contact_sheet_8.png` 只作为审阅联系表，不能进入视频时间轴。
+6. 主流水线根据字幕事件生成 `visual_story_plan.json` 和 `visual_timeline.json`，封面段之外的 8 张图片必须绑定字幕时间区间。
+
+命令行开关：
+
+```powershell
+python a-book-in-30-minutes\tmp\book_video_pipeline.py `
+  --epub "<book.epub>" `
+  --output-dir "<output_dir>" `
+  --visual-assets-only `
+  --controlled-programmatic-visuals `
+  --ignore-existing-visual-assets
+```
+
+其中 `--controlled-programmatic-visuals` 表示启用受控程序化视觉；`--ignore-existing-visual-assets` 表示跳过素材包里已有的旧视觉素材，强制按当前书重新生成设计和图片，避免新 EPUB 或重跑任务误用旧图。
+
+当前《没有宽恕就没有未来》的专用产物结构：
+
+```text
+<output_dir>\controlled_visual_design\visual_style_bible.md
+<output_dir>\controlled_visual_design\visual_style_bible.json
+<output_dir>\controlled_visual_design\prompts_8.md
+<output_dir>\controlled_visual_design\prompts_8.json
+<output_dir>\controlled_programmatic_visuals\scene_*.png
+<output_dir>\controlled_programmatic_visuals\contact_sheet_8.png
+<output_dir>\controlled_programmatic_visuals\programmatic_visual_manifest.json
+```
+
+质量约束：
+
+- 正式图片只允许使用 `scene_*.png`，不能把联系表、截图、缩略图、旧 AI 图或预览图混入视频。
+- 图片必须为 `1920x1080`，并保留底部字幕安全区。
+- 图片中不得出现可读文字、伪文字、logo、水印、重复主角、血腥画面和现代手机电脑等违背时代背景的物件。
+- 视觉设计文件、提示词、manifest、字幕和日志必须为 UTF-8 正常中文，不得出现替换字符、常见 mojibake 标记或连续问号替代中文。
+- 目前渲染器仍是《没有宽恕就没有未来》的专用绘制器，后续要抽象为“风格包 + 组件库 + 分镜计划”的通用框架。
+
+2026-06-30 端到端验证状态：
+
+- `output_regen_integrated_video_001` 已验证受控程序化视觉可以进入完整视频阶段。
+- 输出包括无字幕母版和中英双语硬字幕精修版，两者均为 H.264、`1920x1080`、`30fps`、约 `1803` 秒。
+- 硬字幕文件包含 816 行中文和 816 行英文，符合当前字幕对齐结果。
+- `visual_timeline.json` 包含 1 段封面和 8 段正式场景图，正式图仅引用 `scene_*.png`。
+- 当前质量短板是画面仍偏简化，人物体块、表情、服装、生活物件和环境层次需要继续增强；后续优化应沿着程序化组件库升级，而不是回退到旧 placeholder 或不稳定的随机图片服务。
+
+2026-06-30 第五版图片质量调整：
+
+- `render_no_future_programmatic_illustrations.py` 的人物组件从线条四肢升级为带躯干高光、衣服分片、圆角四肢、手部和表情的统一人物。
+- 新增照片、档案盒、茶杯、座椅和听众行等可复用道具组件。
+- 第四场听证会补充墙面层次、听众席和更多档案道具；第五、八场室内空间补充墙面板和生活物件；其他场景补充植物、房屋门窗和桌面物件。
+- `output_regen_integrated_visuals_005` 是当前推荐接入视频的图片版本：8 张正式图均为 `1920x1080`，来源为 `controlled_programmatic_visuals`，时间轴仍是 1 段封面加 8 段场景图。
+- 仍需继续提升的方向：人物比例更自然、主角更突出、场景透视更强、物件细节更细腻、画面叙事更接近专业读书视频。
+
+2026-06-30 完整视频第二版：
+
+- `output_regen_integrated_video_002` 使用第五版程序化插画重新生成完整视频，输出无字幕母版和中英双语硬字幕版。
+- 验证结果：两版视频均为 H.264、`1920x1080`、`30fps`、约 `1803` 秒；字幕仍为 816 行中文和 816 行英文；时间轴仍为 1 段封面和 8 段正式场景图。
+- 抽帧确认第五版听证会场景已进入硬字幕视频，画面比上一版更丰富，人物体块和道具密度有所改善。
+- 遗留质量问题：第 4 场听众席的一部分在硬字幕版中接近字幕区下沿，后续可继续将主体上移、减少底部小人物，或为硬字幕版生成专门留白更大的画面布局。
+
+2026-06-30 完整视频第三版：
+
+- `output_regen_integrated_video_003` 修正第 4 场听证会硬字幕安全构图：听众席上移、缩小并减少数量，桌面和主讲人物整体上移，底部留白更干净。
+- 验证结果：两版视频均为 H.264、`1920x1080`、`30fps`、约 `1803` 秒；字幕仍为 816 行中文和 816 行英文；时间轴仍为 1 段封面和 8 段正式场景图。
+- 抽帧 `frame_12m00s.jpg` 确认第 4 场硬字幕区不再被听众席干扰。第三版是当前推荐查看的视频版本。
+- 后续质量重点转为整体美术精细度：人物自然比例、主角动作、透视层次、物件细节和更强的故事性。

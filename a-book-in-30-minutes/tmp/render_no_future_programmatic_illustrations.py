@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 import math
 from pathlib import Path
@@ -31,7 +32,11 @@ SKIN_LIGHT = (219, 174, 132)
 WHITE_CLOTH = (239, 235, 221)
 
 
-def find_book_dir() -> Path:
+def find_book_dir(book_dir: Path | None = None) -> Path:
+    if book_dir is not None:
+        if not book_dir.exists():
+            raise FileNotFoundError(book_dir)
+        return book_dir
     matches = [path for path in Path("D:/books").rglob(BOOK_FOLDER) if path.is_dir()]
     if not matches:
         raise FileNotFoundError(BOOK_FOLDER)
@@ -105,28 +110,41 @@ def shadow(draw: ImageDraw.ImageDraw, xy, alpha_fill=(68, 54, 42)):
 
 
 def person(draw: ImageDraw.ImageDraw, x: int, y: int, scale: float = 1.0, skin=SKIN_MED, clothes=TEAL, pose="stand", hair=INK):
-    head_r = int(34 * scale)
-    body_w = int(82 * scale)
-    body_h = int(130 * scale)
+    head_r = int(36 * scale)
+    body_w = int(92 * scale)
+    body_h = int(138 * scale)
+    line_w = max(2, int(4 * scale))
+    darker = tuple(max(0, c - 34) for c in clothes)
+    lighter = tuple(min(255, c + 25) for c in clothes)
     shadow(draw, (x - int(52 * scale), y + int(72 * scale), x + int(54 * scale), y + int(100 * scale)), (202, 190, 170))
+    neck_w = int(24 * scale)
+    draw.rounded_rectangle((x - neck_w // 2, y - body_h - int(8 * scale), x + neck_w // 2, y - body_h + int(24 * scale)), radius=int(8 * scale), fill=skin, outline=INK, width=max(1, int(2 * scale)))
     draw.ellipse((x - head_r, y - body_h - head_r * 2, x + head_r, y - body_h), fill=skin, outline=INK, width=max(2, int(3 * scale)))
-    draw.pieslice((x - head_r, y - body_h - head_r * 2 - 10, x + head_r, y - body_h + int(18 * scale)), 185, 355, fill=hair, outline=INK)
+    draw.pieslice((x - head_r - int(4 * scale), y - body_h - head_r * 2 - int(12 * scale), x + head_r + int(4 * scale), y - body_h + int(20 * scale)), 178, 358, fill=hair, outline=INK)
     draw.arc((x - head_r, y - body_h - head_r * 2 - 8, x + head_r, y - body_h + 12), 190, 350, fill=INK, width=max(2, int(3 * scale)))
     eye_y = y - body_h - int(head_r * 1.15)
-    draw.ellipse((x - int(10 * scale), eye_y, x - int(6 * scale), eye_y + int(4 * scale)), fill=INK)
-    draw.ellipse((x + int(6 * scale), eye_y, x + int(10 * scale), eye_y + int(4 * scale)), fill=INK)
-    draw.arc((x - int(10 * scale), eye_y + int(8 * scale), x + int(10 * scale), eye_y + int(20 * scale)), 20, 160, fill=INK, width=max(1, int(2 * scale)))
-    soft_rect(draw, (x - body_w // 2, y - body_h, x + body_w // 2, y), clothes, INK, max(2, int(3 * scale)), int(22 * scale))
-    line(draw, [(x - body_w // 3, y - body_h + int(26 * scale)), (x + body_w // 3, y - body_h + int(26 * scale))], tuple(max(0, c - 35) for c in clothes), max(2, int(3 * scale)))
-    draw.line((x - body_w // 2 + 12, y - body_h + 52 * scale, x + body_w // 2 - 12, y - body_h + 52 * scale), fill=tuple(max(0, c - 22) for c in clothes), width=max(2, int(2 * scale)))
+    draw.ellipse((x - int(13 * scale), eye_y, x - int(8 * scale), eye_y + int(5 * scale)), fill=INK)
+    draw.ellipse((x + int(8 * scale), eye_y, x + int(13 * scale), eye_y + int(5 * scale)), fill=INK)
+    draw.arc((x - int(13 * scale), eye_y + int(10 * scale), x + int(13 * scale), eye_y + int(24 * scale)), 20, 160, fill=INK, width=max(1, int(2 * scale)))
+    soft_rect(draw, (x - body_w // 2, y - body_h, x + body_w // 2, y), clothes, INK, max(2, int(3 * scale)), int(24 * scale))
+    draw.polygon([(x - body_w // 2 + int(6 * scale), y - body_h + int(10 * scale)), (x + body_w // 2 - int(6 * scale), y - body_h + int(10 * scale)), (x + body_w // 2 - int(18 * scale), y - body_h + int(58 * scale)), (x - body_w // 2 + int(18 * scale), y - body_h + int(58 * scale))], fill=lighter, outline=None)
+    line(draw, [(x - body_w // 3, y - body_h + int(30 * scale)), (x + body_w // 3, y - body_h + int(30 * scale))], darker, max(2, int(3 * scale)))
+    draw.line((x - body_w // 2 + 14, y - body_h + 58 * scale, x + body_w // 2 - 14, y - body_h + 58 * scale), fill=darker, width=max(2, int(2 * scale)))
+    draw.line((x, y - body_h + int(34 * scale), x, y - int(10 * scale)), fill=darker, width=max(1, int(2 * scale)))
     if pose == "sit":
-        line(draw, [(x - body_w // 3, y - 8), (x - int(70 * scale), y + int(52 * scale))], INK, max(3, int(5 * scale)))
-        line(draw, [(x + body_w // 3, y - 8), (x + int(70 * scale), y + int(52 * scale))], INK, max(3, int(5 * scale)))
+        draw.rounded_rectangle((x - int(66 * scale), y - int(4 * scale), x - int(8 * scale), y + int(38 * scale)), radius=int(15 * scale), fill=darker, outline=INK, width=line_w)
+        draw.rounded_rectangle((x + int(8 * scale), y - int(4 * scale), x + int(66 * scale), y + int(38 * scale)), radius=int(15 * scale), fill=darker, outline=INK, width=line_w)
+        line(draw, [(x - int(48 * scale), y + int(32 * scale)), (x - int(86 * scale), y + int(68 * scale))], INK, line_w)
+        line(draw, [(x + int(48 * scale), y + int(32 * scale)), (x + int(86 * scale), y + int(68 * scale))], INK, line_w)
     else:
-        line(draw, [(x - body_w // 4, y), (x - int(38 * scale), y + int(90 * scale))], INK, max(3, int(5 * scale)))
-        line(draw, [(x + body_w // 4, y), (x + int(38 * scale), y + int(90 * scale))], INK, max(3, int(5 * scale)))
-    line(draw, [(x - body_w // 2, y - body_h + int(30 * scale)), (x - int(80 * scale), y - int(48 * scale))], INK, max(3, int(5 * scale)))
-    line(draw, [(x + body_w // 2, y - body_h + int(30 * scale)), (x + int(80 * scale), y - int(48 * scale))], INK, max(3, int(5 * scale)))
+        draw.rounded_rectangle((x - int(36 * scale), y - int(3 * scale), x - int(4 * scale), y + int(88 * scale)), radius=int(14 * scale), fill=darker, outline=INK, width=line_w)
+        draw.rounded_rectangle((x + int(4 * scale), y - int(3 * scale), x + int(36 * scale), y + int(88 * scale)), radius=int(14 * scale), fill=darker, outline=INK, width=line_w)
+    arm_y = y - body_h + int(36 * scale)
+    for side in (-1, 1):
+        elbow = (x + side * int(70 * scale), y - int(66 * scale))
+        hand = (x + side * int(84 * scale), y - int(38 * scale))
+        line(draw, [(x + side * body_w // 2, arm_y), elbow, hand], INK, line_w)
+        draw.ellipse((hand[0] - int(7 * scale), hand[1] - int(7 * scale), hand[0] + int(7 * scale), hand[1] + int(7 * scale)), fill=skin, outline=INK, width=max(1, int(2 * scale)))
 
 
 def table(draw, x, y, w, h, fill=(168, 122, 76)):
@@ -179,6 +197,41 @@ def paper_stack(draw, x, y, w=150, h=95, sheets=3):
         draw.line((x + 18 + i * 10, y + 50 - i * 8, x + w - 30 + i * 10, y + 50 - i * 8), fill=(183, 176, 158), width=2)
 
 
+def framed_photo(draw, x, y, w=110, h=85, tint=(198, 176, 132)):
+    soft_rect(draw, (x, y, x + w, y + h), (96, 74, 54), INK, 3, 6)
+    draw.rectangle((x + 10, y + 10, x + w - 10, y + h - 10), fill=tint, outline=(126, 107, 82), width=2)
+    draw.ellipse((x + int(w * 0.42), y + int(h * 0.24), x + int(w * 0.58), y + int(h * 0.43)), fill=(92, 80, 68))
+    draw.polygon([(x + 20, y + h - 12), (x + w // 2, y + h // 2), (x + w - 18, y + h - 12)], fill=(145, 128, 95))
+
+
+def archive_box(draw, x, y, w=150, h=90, fill=(194, 169, 119)):
+    soft_rect(draw, (x, y, x + w, y + h), fill, INK, 4, 8)
+    draw.rectangle((x + 20, y + 18, x + w - 20, y + 46), fill=(231, 222, 195), outline=INK, width=2)
+    draw.line((x + 28, y + 32, x + w - 28, y + 32), fill=(165, 151, 126), width=2)
+
+
+def chair(draw, x, y, scale=1.0, fill=(191, 174, 138)):
+    w = int(58 * scale)
+    h = int(72 * scale)
+    soft_rect(draw, (x, y, x + w, y + h), fill, INK, max(2, int(3 * scale)), int(8 * scale))
+    draw.rectangle((x + int(10 * scale), y + h, x + w - int(10 * scale), y + h + int(18 * scale)), fill=tuple(max(0, c - 18) for c in fill), outline=INK, width=max(1, int(2 * scale)))
+
+
+def audience_row(draw, x, y, count=6, scale=0.42):
+    for i in range(count):
+        px = x + i * int(76 * scale / 0.42)
+        chair(draw, px - int(24 * scale), y - int(78 * scale), scale * 0.9, fill=(196, 181, 148))
+        person(draw, px, y, scale, skin=[SKIN_DARK, SKIN_MED, SKIN_LIGHT][i % 3], clothes=[TEAL, OCHRE, RUST][i % 3], pose="sit")
+
+
+def tea_cup(draw, x, y, scale=1.0):
+    w = int(82 * scale)
+    h = int(42 * scale)
+    draw.ellipse((x, y + h - int(10 * scale), x + w, y + h + int(18 * scale)), fill=(196, 178, 145), outline=INK, width=max(2, int(3 * scale)))
+    soft_rect(draw, (x + int(8 * scale), y, x + w - int(8 * scale), y + h), (233, 218, 185), INK, max(2, int(3 * scale)), int(14 * scale))
+    draw.arc((x + w - int(10 * scale), y + int(8 * scale), x + w + int(28 * scale), y + h), -80, 90, fill=INK, width=max(2, int(3 * scale)))
+
+
 def plant(draw, x, y, scale=1.0):
     soft_rect(draw, (x - int(26 * scale), y, x + int(26 * scale), y + int(46 * scale)), (158, 109, 72), INK, 3, 8)
     for angle in (-65, -35, 0, 35, 65):
@@ -217,10 +270,11 @@ def scene_1(draw):
     soft_rect(draw, (790, 508, 1040, 578), (219, 208, 184), INK, 4, 12)
     draw.line((815, 540, 1015, 540), fill=MUTED, width=3)
     paper_stack(draw, 850, 430, 170, 92, 2)
-    draw.ellipse((1120, 510, 1235, 575), fill=(128, 77, 55), outline=INK, width=4)
-    draw.arc((1135, 520, 1210, 610), 0, 180, fill=INK, width=4)
+    tea_cup(draw, 1118, 518, 0.9)
+    framed_photo(draw, 680, 470, 96, 72)
     patterned_rug(draw, 390, 680, 760, 70)
     person(draw, 480, 610, 0.98, skin=SKIN_MED, clothes=TEAL, pose="sit", hair=(50, 48, 42))
+    plant(draw, 1180, 588, 0.65)
     draw.polygon([(1265, 210), (1330, 155), (1400, 220), (1375, 275), (1295, 275)], fill=RUST, outline=INK)
     draw.rectangle((1308, 225, 1362, 275), fill=(226, 218, 190), outline=INK, width=3)
 
@@ -237,10 +291,13 @@ def scene_2(draw):
     draw.ellipse((1350, 540, 1405, 595), fill=INK)
     draw.rectangle((1215, 475, 1265, 515), fill=(145, 170, 190), outline=INK, width=2)
     draw.rectangle((1300, 475, 1350, 515), fill=(145, 170, 190), outline=INK, width=2)
+    archive_box(draw, 1015, 610, 145, 78)
+    draw.rectangle((140, 610, 250, 690), fill=(180, 157, 118), outline=INK, width=4)
+    draw.polygon([(128, 610), (195, 560), (264, 610)], fill=RUST, outline=INK)
     for i, x in enumerate((340, 460, 590, 720, 850)):
         person(draw, x, 670, 0.67, skin=[SKIN_DARK, SKIN_MED, SKIN_LIGHT][i % 3], clothes=[TEAL, OCHRE, RUST][i % 3], hair=[INK, (82, 59, 42), (66, 54, 43)][i % 3])
         soft_rect(draw, (x + 35, 525, x + 95, 570), WHITE_CLOTH, INK, 3, 5)
-    paper_stack(draw, 995, 610, 120, 70, 2)
+    paper_stack(draw, 1165, 620, 120, 70, 2)
 
 
 def scene_3(draw):
@@ -250,41 +307,53 @@ def scene_3(draw):
     soft_rect(draw, (740, 420, 1180, 535), (218, 205, 178), INK, 5, 12)
     soft_rect(draw, (900, 450, 1010, 520), WHITE_CLOTH, INK, 4, 7)
     soft_rect(draw, (1035, 455, 1115, 520), (190, 175, 135), INK, 3, 6)
+    archive_box(draw, 620, 465, 118, 65)
+    tea_cup(draw, 1135, 470, 0.62)
     for i, x in enumerate(range(280, 1530, 155)):
         person(draw, x, 660 + (i % 2) * 16, 0.62, skin=[SKIN_DARK, SKIN_MED, SKIN_LIGHT][i % 3], clothes=[TEAL, OCHRE, RUST][i % 3])
     draw.rectangle((1290, 185, 1380, 410), fill=(205, 190, 158), outline=INK, width=5)
     draw.polygon([(1260, 185), (1420, 185), (1340, 105)], fill=RUST, outline=INK)
+    plant(draw, 1500, 610, 0.58)
 
 
 def scene_4(draw):
     draw.rectangle((140, 120, 1780, SUBTITLE_SAFE_Y), fill=(226, 218, 202), outline=INK, width=6)
+    draw.rectangle((170, 525, 1750, 665), fill=(214, 202, 178), outline=None)
+    for y in (250, 375, 500):
+        draw.line((220, y, 1700, y), fill=(205, 193, 169), width=3)
     for x in (460, 790, 1120, 1450):
         line(draw, [(x, 145), (x, 330)], (190, 178, 154), 4)
-    table(draw, 530, 505, 860, 78, fill=(156, 110, 72))
+    audience_row(draw, 440, 650, 4, 0.28)
+    audience_row(draw, 1210, 650, 4, 0.28)
+    table(draw, 530, 485, 860, 78, fill=(156, 110, 72))
     for x in (700, 920, 1140):
-        draw.ellipse((x, 455, x + 28, 483), fill=INK)
-        line(draw, [(x + 14, 483), (x + 14, 522)], INK, 5)
-    soft_rect(draw, (1260, 420, 1380, 505), (190, 176, 136), INK, 4, 10)
-    paper_stack(draw, 1280, 395, 100, 70, 3)
-    paper_stack(draw, 585, 420, 120, 80, 2)
-    patterned_rug(draw, 545, 615, 840, 82)
-    person(draw, 820, 500, 0.78, skin=SKIN_DARK, clothes=TEAL, pose="sit")
-    person(draw, 1070, 500, 0.72, skin=SKIN_LIGHT, clothes=OCHRE, pose="sit")
-    for x, skin, clothes in [(360, SKIN_MED, RUST), (1510, SKIN_DARK, TEAL), (1625, SKIN_LIGHT, OCHRE)]:
-        person(draw, x, 700, 0.64, skin=skin, clothes=clothes, pose="sit")
-    soft_rect(draw, (265, 560, 370, 700), (202, 186, 154), INK, 4, 10)
+        draw.ellipse((x, 435, x + 28, 463), fill=INK)
+        line(draw, [(x + 14, 463), (x + 14, 502)], INK, 5)
+    soft_rect(draw, (1260, 400, 1380, 485), (190, 176, 136), INK, 4, 10)
+    paper_stack(draw, 1280, 375, 100, 70, 3)
+    paper_stack(draw, 585, 400, 120, 80, 2)
+    archive_box(draw, 1395, 500, 130, 76)
+    framed_photo(draw, 410, 500, 90, 70)
+    patterned_rug(draw, 545, 590, 840, 70)
+    person(draw, 820, 480, 0.78, skin=SKIN_DARK, clothes=TEAL, pose="sit")
+    person(draw, 1070, 480, 0.72, skin=SKIN_LIGHT, clothes=OCHRE, pose="sit")
+    soft_rect(draw, (265, 540, 370, 668), (202, 186, 154), INK, 4, 10)
 
 
 def scene_5(draw):
     window(draw, 1240, 135, 400, 310, sky=(151, 173, 177))
+    draw.rectangle((180, 190, 520, 475), fill=(225, 215, 194), outline=INK, width=4)
+    for y in (250, 320, 390):
+        draw.line((215, y, 485, y), fill=(195, 184, 161), width=3)
     for x in range(1280, 1600, 55):
         line(draw, [(x, 145), (x - 40, 430)], (123, 145, 150), 2)
     table(draw, 430, 590, 980, 75)
     patterned_rug(draw, 535, 690, 740, 64)
     person(draw, 760, 585, 1.02, skin=SKIN_DARK, clothes=(122, 130, 128), pose="sit")
     paper_stack(draw, 930, 500, 165, 100, 3)
-    draw.ellipse((1080, 620, 1235, 690), fill=(172, 128, 88), outline=INK, width=4)
-    soft_rect(draw, (1180, 520, 1360, 615), (194, 169, 119), INK, 4, 8)
+    tea_cup(draw, 1085, 620, 0.92)
+    framed_photo(draw, 1180, 520, 130, 94)
+    archive_box(draw, 1325, 530, 150, 82)
     draw.rectangle((980, 520, 1070, 585), fill=(185, 161, 120), outline=INK, width=4)
 
 
@@ -299,7 +368,9 @@ def scene_6(draw):
     for x in (1260, 1375, 1490):
         soft_rect(draw, (x, 515, x + 120, 610), (205, 184, 139), INK, 4, 12)
         draw.polygon([(x - 10, 515), (x + 60, 465), (x + 130, 515)], fill=RUST, outline=INK)
+        draw.rectangle((x + 42, 560, x + 75, 610), fill=(122, 94, 66), outline=INK, width=2)
     plant(draw, 1515, 640, 0.65)
+    plant(draw, 1320, 680, 0.5)
     person(draw, 725, 705, 0.78, skin=SKIN_DARK, clothes=TEAL)
     person(draw, 1080, 700, 0.78, skin=SKIN_LIGHT, clothes=OCHRE)
     person(draw, 930, 665, 0.6, skin=SKIN_MED, clothes=RUST, pose="sit")
@@ -311,11 +382,14 @@ def scene_7(draw):
     draw.rectangle((260, 350, 870, 620), fill=(190, 178, 157), outline=INK, width=6)
     draw.polygon([(230, 350), (565, 210), (900, 350)], fill=(137, 110, 92), outline=INK)
     draw.rectangle((500, 435, 630, 620), fill=(82, 83, 80), outline=INK, width=5)
+    draw.arc((320, 380, 440, 500), 180, 360, fill=(125, 105, 86), width=5)
+    draw.arc((700, 380, 820, 500), 180, 360, fill=(125, 105, 86), width=5)
     for x in (1020, 1120, 1220, 1320):
         draw.ellipse((x, 610, x + 35, 665), fill=(232, 190, 90), outline=INK, width=3)
         line(draw, [(x + 17, 665), (x + 17, 720)], INK, 4)
         draw.polygon([(x + 17, 600), (x + 7, 620), (x + 27, 620)], fill=(248, 210, 90), outline=None)
     draw.polygon([(970, 545), (1420, 540), (1450, 625), (940, 635)], fill=WHITE_CLOTH, outline=INK)
+    framed_photo(draw, 980, 430, 110, 82, tint=(184, 171, 145))
     for x in (1480, 1600):
         person(draw, x, 700, 0.68, skin=SKIN_DARK, clothes=(92, 92, 88))
 
@@ -324,13 +398,17 @@ def scene_8(draw):
     sun_or_moon(draw, 1460, 270, 34, (245, 205, 112))
     window(draw, 1190, 110, 430, 310, sky=(154, 194, 205))
     road(draw, (1395, 395), (1500, 1080), color=(210, 187, 136))
+    draw.rectangle((180, 150, 455, 420), fill=(224, 214, 190), outline=INK, width=4)
+    for y in (220, 292, 364):
+        draw.line((210, y, 425, y), fill=(194, 181, 154), width=3)
     table(draw, 370, 590, 900, 74)
     soft_rect(draw, (725, 500, 930, 570), (218, 207, 182), INK, 4, 10)
-    draw.ellipse((1050, 510, 1170, 570), fill=(135, 86, 58), outline=INK, width=4)
+    tea_cup(draw, 1045, 512, 0.82)
     draw.rectangle((520, 390, 625, 590), fill=(98, 142, 103), outline=INK, width=5)
     draw.ellipse((475, 300, 675, 430), fill=(88, 137, 95), outline=INK, width=4)
     plant(draw, 1210, 565, 0.8)
     paper_stack(draw, 785, 435, 135, 75, 2)
+    framed_photo(draw, 965, 445, 92, 70)
     for x, skin, clothes in [(520, SKIN_MED, TEAL), (735, SKIN_DARK, OCHRE), (950, SKIN_LIGHT, RUST)]:
         person(draw, x, 585, 0.8, skin=skin, clothes=clothes, pose="sit")
 
@@ -366,10 +444,16 @@ def contact_sheet(paths: list[Path], output: Path) -> Path:
 
 
 def main() -> int:
-    book_dir = find_book_dir()
-    design_dir = book_dir / "output_regen_design_001"
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--book-dir", type=Path)
+    parser.add_argument("--design-dir", type=Path)
+    parser.add_argument("--output-dir", type=Path)
+    args = parser.parse_args()
+
+    book_dir = find_book_dir(args.book_dir)
+    design_dir = args.design_dir or (book_dir / "output_regen_design_001")
     style = json.loads((design_dir / "visual_style_bible.json").read_text(encoding="utf-8"))
-    output = book_dir / "output_regen_programmatic_001"
+    output = args.output_dir or (book_dir / "output_regen_programmatic_001")
     output.mkdir(exist_ok=True)
     paths = [render_scene(scene["index"], scene, output) for scene in style["scenes"]]
     sheet = contact_sheet(paths, output)

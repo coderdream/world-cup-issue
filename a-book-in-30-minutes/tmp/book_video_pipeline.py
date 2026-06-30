@@ -1282,6 +1282,69 @@ def migrate_visual_assets(material_root: Path, video_dir: Path) -> tuple[list[Pa
     return copied, dest_dir, source_kind
 
 
+def generate_controlled_programmatic_assets(
+    epub: Path,
+    material_root: Path,
+    video_dir: Path,
+) -> tuple[list[Path], Path | None, str]:
+    script_dir = Path(__file__).resolve().parent
+    design_script = script_dir / "build_no_future_visual_design.py"
+    render_script = script_dir / "render_no_future_programmatic_illustrations.py"
+    if not design_script.exists() or not render_script.exists():
+        raise FileNotFoundError("Controlled programmatic visual scripts are missing")
+
+    book_dir = epub.parent
+    design_dir = video_dir / "controlled_visual_design"
+    image_dir = video_dir / "controlled_programmatic_visuals"
+    design_dir.mkdir(parents=True, exist_ok=True)
+    image_dir.mkdir(parents=True, exist_ok=True)
+
+    run(
+        [
+            sys.executable,
+            str(design_script),
+            "--book-dir",
+            str(book_dir),
+            "--output-dir",
+            str(design_dir),
+        ],
+        cwd=script_dir,
+    )
+    run(
+        [
+            sys.executable,
+            str(render_script),
+            "--book-dir",
+            str(book_dir),
+            "--design-dir",
+            str(design_dir),
+            "--output-dir",
+            str(image_dir),
+        ],
+        cwd=script_dir,
+    )
+
+    content_images = sorted(image_dir.glob("scene_*.png"), key=lambda path: path.name.lower())[:8]
+    if not content_images:
+        raise RuntimeError("Controlled programmatic visual generation produced no images")
+
+    manifest_path = image_dir / "programmatic_visual_manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
+    manifest.update(
+        {
+            "sourceKind": "controlled_programmatic_visuals",
+            "materialRoot": str(material_root),
+            "designDir": str(design_dir),
+            "usedByVideoDir": str(video_dir),
+            "copiedAt": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "assets": [str(path) for path in content_images],
+        }
+    )
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    shutil.copy2(manifest_path, video_dir / "visual_assets_manifest.json")
+    return content_images, image_dir, "controlled_programmatic_visuals"
+
+
 def build_whiteboard_skill_prompts(
     material_root: Path,
     title: str,
@@ -2129,6 +2192,8 @@ def main() -> int:
     parser.add_argument("--force-aeneas", action="store_true")
     parser.add_argument("--audio-subtitle-only", action="store_true")
     parser.add_argument("--visual-assets-only", action="store_true")
+    parser.add_argument("--controlled-programmatic-visuals", action="store_true")
+    parser.add_argument("--ignore-existing-visual-assets", action="store_true")
     args = parser.parse_args()
 
     epub = Path(args.epub)
@@ -2227,7 +2292,16 @@ def main() -> int:
         print(json.dumps(result, ensure_ascii=False))
         return 0
 
-    content_images, visual_source_dir, visual_source_kind = migrate_visual_assets(material_root, video_dir)
+    if args.ignore_existing_visual_assets:
+        content_images, visual_source_dir, visual_source_kind = [], None, "none"
+    else:
+        content_images, visual_source_dir, visual_source_kind = migrate_visual_assets(material_root, video_dir)
+    if not content_images and args.controlled_programmatic_visuals:
+        content_images, visual_source_dir, visual_source_kind = generate_controlled_programmatic_assets(
+            epub,
+            material_root,
+            video_dir,
+        )
     if not content_images:
         try:
             content_images, visual_source_dir, visual_source_kind = generate_whiteboard_skill_assets(

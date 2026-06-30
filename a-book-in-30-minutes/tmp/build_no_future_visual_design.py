@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 from pathlib import Path
 
@@ -249,7 +250,11 @@ STYLE = {
 }
 
 
-def find_book_dir() -> Path:
+def find_book_dir(book_dir: Path | None = None) -> Path:
+    if book_dir is not None:
+        if not book_dir.exists():
+            raise FileNotFoundError(f"Book directory not found: {book_dir}")
+        return book_dir
     matches = [path for path in Path("D:/books").rglob(BOOK_FOLDER) if path.is_dir()]
     if not matches:
         raise FileNotFoundError(f"Book directory not found: {BOOK_FOLDER}")
@@ -296,7 +301,7 @@ def build_prompt(scene: dict) -> str:
 
 
 def scan_mojibake(paths: list[Path]) -> list[str]:
-    markers = ["\ufffd", "\u951f", "\u9420", "\u95c1", "???"]
+    markers = ["\ufffd", "\u951f", "\u9420", "\u95c1", "?" * 3]
     bad: list[str] = []
     for path in paths:
         text = path.read_text(encoding="utf-8")
@@ -306,8 +311,13 @@ def scan_mojibake(paths: list[Path]) -> list[str]:
 
 
 def main() -> int:
-    book_dir = find_book_dir()
-    out_dir = book_dir / "output_regen_design_001"
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--book-dir", type=Path)
+    parser.add_argument("--output-dir", type=Path)
+    args = parser.parse_args()
+
+    book_dir = find_book_dir(args.book_dir)
+    out_dir = args.output_dir or (book_dir / "output_regen_design_001")
     out_dir.mkdir(exist_ok=True)
 
     narration = load_narration(book_dir)
