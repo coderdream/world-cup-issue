@@ -32,8 +32,8 @@ const SOURCE_READ_TIMEOUT_SECONDS: u64 = 30;
 const AI_REQUEST_TIMEOUT_SECONDS: u64 = 600;
 const AI_REQUEST_MAX_ATTEMPTS: usize = 3;
 const FEISHU_REQUEST_TIMEOUT_SECONDS: u64 = 20;
-const SPEECH_REQUEST_TIMEOUT_SECONDS: u64 = 120;
-const SPEECH_CHUNK_MAX_CHARS: usize = 2200;
+const SPEECH_REQUEST_TIMEOUT_SECONDS: u64 = 300;
+const SPEECH_CHUNK_MAX_CHARS: usize = 900;
 const SPEECH_CHUNK_MAX_SENTENCES: usize = 100;
 const SPEECH_CHUNK_MAX_ESTIMATED_MS: u64 = 8 * 60 * 1000;
 const MICROSOFT_TTS_LANGUAGE_SUPPORT_URL: &str =
@@ -140,18 +140,25 @@ impl AppData {
                     .map_err(|error| error.to_string())
             });
         let settings_load_error = settings_load_result.as_ref().err().cloned();
-        let settings = settings_load_result.unwrap_or_default();
+        let mut settings = settings_load_result.unwrap_or_default();
+        let settings_migrated = sanitize_persisted_settings(&mut settings);
+        if settings_migrated {
+            if let Ok(content) = serde_json::to_string_pretty(&settings) {
+                let _ = fs::write(&settings_path, content);
+            }
+        }
 
         let app_started_at = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
         logger.info("app", "startup", "A Book in 30 Minutes started");
         logger.debug(
             "settings",
             "load",
-            "閸氼垰濮╅弮鎯邦嚢閸欐牠鍘ょ純?",
+            "Settings loaded from disk.",
             format!(
-                "settings_path={} exists={} ai_key_present={} ai_key_length={} load_error={}",
+                "settings_path={} exists={} migrated={} ai_key_present={} ai_key_length={} load_error={}",
                 settings_path.to_string_lossy(),
                 settings_file_exists,
+                settings_migrated,
                 !settings.ai_profile.api_key.trim().is_empty(),
                 settings.ai_profile.api_key.trim().chars().count(),
                 settings_load_error.unwrap_or_else(|| "none".to_string())
@@ -179,9 +186,311 @@ impl AppData {
             .map_err(|error| command_error(format!("Serialize settings failed: {error}")))?;
         fs::write(&self.settings_path, content)
             .map_err(|error| command_error(format!("Write settings failed: {error}")))?;
-        self.logger.info("settings", "save", "闁板秶鐤嗗韫箽鐎?");
+        self.logger.info("settings", "save", "Settings saved.");
         Ok(())
     }
+}
+
+pub async fn run_e2e_materials_cli(epub_path: &str) -> Result<(), CommandError> {
+    let started = Instant::now();
+    let app_data_dir = std::env::var_os("APPDATA")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")))
+        .join("com.abookin30minutes.desktop");
+    let settings_path = app_data_dir.join("settings.json");
+    let db_path = app_data_dir.join("app.db");
+    let log_dir = app_data_dir.join("logs");
+    let logger = OperationLogger::new(db_path.clone(), log_dir);
+    let mut settings = fs::read_to_string(&settings_path)
+        .ok()
+        .and_then(|content| {
+            serde_json::from_str::<AppSettings>(content.trim_start_matches('\u{feff}')).ok()
+        })
+        .unwrap_or_default();
+    if sanitize_persisted_settings(&mut settings) {
+        if let Ok(content) = serde_json::to_string_pretty(&settings) {
+            let _ = fs::create_dir_all(&app_data_dir);
+            let _ = fs::write(&settings_path, content);
+        }
+    }
+    init_app_tables(&db_path, &logger);
+
+    let trace_id = format!("e2e-{}", chrono::Local::now().format("%Y%m%d-%H%M%S"));
+    logger.trace_info(
+        "materials",
+        "generate.start",
+        "Start generating book materials.",
+        format!("trace_id={} source={}", trace_id, epub_path),
+        &trace_id,
+    );
+
+    let epub = PathBuf::from(epub_path.trim());
+    if epub_path.trim().is_empty() {
+        return Err(command_error("EPUB path is required."));
+    }
+    if !epub.exists() {
+        return Err(command_error(format!("EPUB file does not exist: {epub_path}")));
+    }
+    let request = BookMaterialsRequest {
+        epub_path: epub.to_string_lossy().into_owned(),
+        target_min_chars: settings.material_profile.target_min_chars,
+        target_max_chars: settings.material_profile.target_max_chars,
+        channel_name: settings.material_profile.channel_name.clone(),
+        language: settings.material_profile.language.clone(),
+        extra_direction: settings.material_profile.extra_direction.clone(),
+        trace_id: Some(trace_id.clone()),
+    };
+    let book = read_epub(&epub)?;
+    logger.trace_info(
+        "materials",
+        "source.read.done",
+        "Source book read successfully.",
+        format!(
+            "title={} creator={} chapters={} total_han_chars={}",
+            book.overview.title,
+            book.overview.creator,
+            book.chapters.len(),
+            book.overview.total_chars
+        ),
+        &trace_id,
+    );
+
+    let prompt = build_book_materials_prompt(&book, &request);
+    let system_prompt =
+        "You are a Chinese audiobook script editor. Return only valid JSON with keys videoTitle, description, tags, narration."
+            .to_string();
+    logger.trace_info(
+        "materials",
+        "ai.request",
+        "Requesting AI material generation JSON.",
+        format!(
+            "model={} base_url={} prompt_chars={}",
+            settings.ai_profile.model,
+            settings.ai_profile.base_url,
+            prompt.chars().count()
+        ),
+        &trace_id,
+    );
+    let content = call_ai(
+        &settings,
+        vec![
+            ChatMessage {
+                role: "system".to_string(),
+                content: system_prompt,
+            },
+            ChatMessage {
+                role: "user".to_string(),
+                content: prompt.clone(),
+            },
+        ],
+    )
+    .await
+    .unwrap_or_default();
+    let mut payload = if content.trim().is_empty() {
+        logger.warn(
+            "materials",
+            "ai.local_initial_fallback",
+            "Using local material fallback.",
+            "AI response was empty or failed.",
+            &trace_id,
+        );
+        build_local_book_materials_payload(&book, &request)
+    } else {
+        parse_book_materials_payload(&content)?
+    };
+    let min_chars = request.target_min_chars.max(1000);
+    let max_chars = request.target_max_chars.max(min_chars + 1);
+    let before_chars = count_han_chars(&payload.narration);
+    if before_chars < min_chars {
+        let fallback = build_local_narration_extension(&payload, before_chars, min_chars, max_chars);
+        payload.narration = merge_narration_extension(&payload.narration, &fallback);
+    }
+    let final_chars = count_han_chars(&payload.narration);
+    if final_chars < min_chars || final_chars > max_chars {
+        return Err(command_error(format!(
+            "Narration length out of range: {} target {}..{}",
+            final_chars, min_chars, max_chars
+        )));
+    }
+    let subtitles = split_subtitles(&payload.narration);
+    let materials = BookMaterials {
+        video_title: payload.video_title,
+        description: payload.description,
+        tags: payload.tags,
+        narration: payload.narration,
+        subtitles,
+        prompt,
+        model: settings.ai_profile.model.clone(),
+        overview: book.overview,
+    };
+    let output_dir = source_output_dir(&epub)?.to_string_lossy().into_owned();
+    let data = AppData {
+        settings: Mutex::new(settings),
+        settings_path,
+        db_path: db_path.clone(),
+        logger: logger.clone(),
+        app_started_at: chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
+    };
+    let result = write_book_materials_package(&data, &output_dir, &materials, &trace_id)?;
+    if let Ok(connection) = Connection::open(&db_path) {
+        ensure_material_tasks_table(&connection)?;
+        update_material_task_output_dir(&connection, request.epub_path.trim(), &result.output_dir)?;
+        update_material_task_progress_db(
+            &db_path,
+            request.epub_path.trim(),
+            "success",
+            100,
+            "Book materials generated.",
+        );
+    }
+    logger.trace_info(
+        "materials",
+        "generate.done",
+        "Book materials generated.",
+        format!(
+            "elapsed_ms={} output_dir={} files={} title={} narration_han_chars={} subtitles={}",
+            started.elapsed().as_millis(),
+            result.output_dir,
+            result.files.len(),
+            materials.video_title,
+            count_han_chars(&materials.narration),
+            materials.subtitles.len()
+        ),
+        &trace_id,
+    );
+    println!(
+        "E2E materials passed trace_id={} output_dir={} narration_han_chars={} subtitles={}",
+        trace_id,
+        result.output_dir,
+        count_han_chars(&materials.narration),
+        materials.subtitles.len()
+    );
+    Ok(())
+}
+
+pub async fn run_e2e_audio_cli(epub_path: &str) -> Result<(), CommandError> {
+    let app_data_dir = std::env::var_os("APPDATA")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")))
+        .join("com.abookin30minutes.desktop");
+    let settings_path = app_data_dir.join("settings.json");
+    let db_path = app_data_dir.join("app.db");
+    let log_dir = app_data_dir.join("logs");
+    let logger = OperationLogger::new(db_path.clone(), log_dir);
+    let mut settings = fs::read_to_string(&settings_path)
+        .ok()
+        .and_then(|content| {
+            serde_json::from_str::<AppSettings>(content.trim_start_matches('\u{feff}')).ok()
+        })
+        .unwrap_or_default();
+    if sanitize_persisted_settings(&mut settings) {
+        if let Ok(content) = serde_json::to_string_pretty(&settings) {
+            let _ = fs::create_dir_all(&app_data_dir);
+            let _ = fs::write(&settings_path, content);
+        }
+    }
+    init_app_tables(&db_path, &logger);
+    let epub = PathBuf::from(epub_path.trim());
+    if !epub.exists() {
+        return Err(command_error(format!("EPUB file does not exist: {epub_path}")));
+    }
+    let output_dir = source_output_dir(&epub)?;
+    let narration_file = output_dir.join("narration.txt");
+    let narration = fs::read_to_string(&narration_file).map_err(|error| {
+        command_error(format!(
+            "Read narration file failed: {} ({error})",
+            narration_file.to_string_lossy()
+        ))
+    })?;
+    let data = AppData {
+        settings: Mutex::new(settings),
+        settings_path,
+        db_path: db_path.clone(),
+        logger: logger.clone(),
+        app_started_at: chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
+    };
+    let trace_id = format!("e2e-audio-{}", chrono::Local::now().format("%Y%m%d-%H%M%S"));
+    let file_name = epub
+        .file_stem()
+        .and_then(|value| value.to_str())
+        .unwrap_or("narration")
+        .to_string();
+    let result = generate_audio_from_text(
+        &data,
+        narration,
+        output_dir.to_string_lossy().into_owned(),
+        file_name,
+        Some(trace_id.clone()),
+        epub.to_string_lossy().into_owned(),
+        None,
+    )
+    .await?;
+    if let Ok(connection) = Connection::open(&db_path) {
+        ensure_material_tasks_table(&connection)?;
+        let _ = update_material_task_audio_status(
+            &connection,
+            epub.to_string_lossy().as_ref(),
+            "success",
+            100,
+            Some(&result.output_dir),
+            Some(&result.audio_file),
+            result.duration_ms.map(|value| value.min(i64::MAX as u64) as i64),
+            Some(result.chunks.min(i64::MAX as usize) as i64),
+            Some("Audio generated."),
+        );
+    }
+    println!(
+        "E2E audio passed trace_id={} audio_file={} duration_ms={:?} chunks={}",
+        trace_id, result.audio_file, result.duration_ms, result.chunks
+    );
+    Ok(())
+}
+
+fn sanitize_persisted_settings(settings: &mut AppSettings) -> bool {
+    let mut changed = false;
+    if looks_like_garbled_text(&settings.feishu_profile.test_message) {
+        settings.feishu_profile.test_message = "听书素材生成工具飞书连通性测试成功。".to_string();
+        changed = true;
+    }
+    if looks_like_garbled_text(&settings.material_profile.channel_name) {
+        settings.material_profile.channel_name = "半小时听完一本书".to_string();
+        changed = true;
+    }
+    if looks_like_garbled_text(&settings.material_profile.category_name) {
+        settings.material_profile.category_name = "半小时听完一本书".to_string();
+        changed = true;
+    }
+    if settings
+        .material_profile
+        .categories
+        .iter()
+        .any(|value| looks_like_garbled_text(value))
+    {
+        settings.material_profile.categories = vec![
+            "半小时听完一本书".to_string(),
+            "睡前听完一本书".to_string(),
+            "A Book in 30 Minutes".to_string(),
+        ];
+        changed = true;
+    }
+    if looks_like_garbled_text(&settings.material_profile.extra_direction) {
+        settings.material_profile.extra_direction =
+            "睡前听书风格，温柔、克制、有陪伴感。旁白目标为 30-35 分钟，匹配 90% 原速语音，最佳约 7600 个中文字；标题和简介服务于 YouTube 中文频道。"
+                .to_string();
+        changed = true;
+    }
+    changed
+}
+
+fn looks_like_garbled_text(value: &str) -> bool {
+    value.contains('�')
+        || value.contains("???")
+        || value.contains("鍗")
+        || value.contains("鐫")
+        || value.contains("闁")
+        || value.contains("閻")
+        || value.contains("鈧")
+        || value.contains("锟")
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -193,7 +502,7 @@ pub struct CommandError {
 #[tauri::command]
 pub fn get_app_state(data: State<'_, AppData>) -> Result<AppStatePayload, CommandError> {
     data.logger
-        .info("app", "get_app_state", "鐠囪褰囨惔鏃傛暏閻樿埖鈧?");
+        .info("app", "get_app_state", "App state requested.");
     Ok(AppStatePayload {
         settings: data.settings.lock().map_err(lock_error)?.clone(),
         version: env!("CARGO_PKG_VERSION").to_string(),
@@ -202,7 +511,7 @@ pub fn get_app_state(data: State<'_, AppData>) -> Result<AppStatePayload, Comman
 
 #[tauri::command]
 pub fn get_settings(data: State<'_, AppData>) -> Result<AppSettings, CommandError> {
-    data.logger.info("settings", "get", "鐠囪褰囬柊宥囩枂");
+    data.logger.info("settings", "get", "Settings requested.");
     Ok(data.settings.lock().map_err(lock_error)?.clone())
 }
 
@@ -1110,6 +1419,7 @@ pub fn get_material_tasks(
     };
     files.retain(|file| Path::new(&file.path).exists());
     for file in &mut files {
+        normalize_loaded_task_for_manual_resume(file);
         let _ = migrate_task_outputs_to_source_output(&connection, file);
     }
     data.logger.info(
@@ -1806,7 +2116,7 @@ pub async fn generate_material_task_audio(
     data.logger.trace_info(
         "audio",
         "task.update",
-        "缁辩姵娼楁禒璇插闂婃娊顣堕悩鑸碘偓浣稿嚒閺囧瓨鏌?",
+        "Material task audio status updated.",
         format!(
             "path={} audio_file={} duration_ms={:?}",
             path, result.audio_file, result.duration_ms
@@ -1825,7 +2135,7 @@ pub fn generate_book_video_pipeline(
     let trace_id = build_trace_id(request.trace_id.as_deref());
     let epub_path = request.epub_path.trim();
     if epub_path.is_empty() {
-        return Err(command_error("鐠囧嘲鍘涢柅澶嬪 EPUB 閺傚洣娆㈤妴?"));
+        return Err(command_error("请先选择 EPUB 文件。"));
     }
     let epub = PathBuf::from(epub_path);
     if !epub.exists() {
@@ -1849,9 +2159,7 @@ pub fn generate_book_video_pipeline(
     );
 
     let connection = Connection::open(&data.db_path).map_err(|error| {
-        command_error(format!(
-            "閹垫挸绱戞禒璇插閺佺増宓佹惔鎾炽亼鐠愩儻绱皗{error}"
-        ))
+        command_error(format!("Open material task database failed: {error}"))
     })?;
     ensure_material_tasks_table(&connection)?;
     upsert_material_task(
@@ -1888,6 +2196,7 @@ pub fn generate_book_video_pipeline(
         material_dir: String::new(),
         pipeline_manifest: String::new(),
         cover: None,
+        visual_story_plan: None,
         visual_timeline: None,
         no_subtitle_video: None,
         hard_subtitle_video: None,
@@ -2833,7 +3142,7 @@ async fn call_ai(
     let body = response
         .text()
         .await
-        .map_err(|error| command_error(format!("AI 閸濆秴绨茬拠璇插絿婢惰精瑙﹂敍姝縠{error}")))?;
+        .map_err(|error| command_error(format!("Read AI response body failed: {error}")))?;
     let content = if content_type.contains("text/event-stream") || body.contains("data:") {
         parse_streaming_chat_content(&body)?
     } else {
@@ -2841,7 +3150,7 @@ async fn call_ai(
     };
 
     if content.trim().is_empty() {
-        Err(command_error("AI 閺堝秴濮熷▽鈩冩箒鏉╂柨娲栭崘鍛啇閵?"))
+        Err(command_error("AI returned empty content."))
     } else {
         Ok(content)
     }
@@ -2887,7 +3196,7 @@ fn parse_streaming_chat_content(body: &str) -> Result<String, CommandError> {
             continue;
         }
         let chunk = serde_json::from_str::<StreamingChatChunk>(data).map_err(|error| {
-            command_error(format!("AI 濞翠礁绱￠崫宥呯安鐟欙絾鐎芥径杈Е閿涙{error}"))
+            command_error(format!("Parse AI streaming response failed: {error}"))
         })?;
         for choice in chunk.choices {
             if let Some(delta) = choice.delta {
@@ -3204,7 +3513,7 @@ fn estimate_speech_duration_ms(text: &str) -> u64 {
         .filter(|char| {
             matches!(
                 char,
-                '?' | '?' | '?' | '.' | '!' | '?' | ';' | '?' | ',' | '?'
+                '。' | '？' | '?' | '！' | '!' | '；' | ';' | '，' | ',' | '.'
             )
         })
         .count() as u64;
@@ -3288,7 +3597,7 @@ fn split_sentences(text: &str) -> Vec<String> {
     let mut current = String::new();
     for char in text.chars() {
         current.push(char);
-        if matches!(char, '?' | '?' | '?' | '.' | '!' | '?' | '\n') {
+        if matches!(char, '。' | '？' | '?' | '！' | '!' | '.' | '\n') {
             let value = current.trim();
             if !value.is_empty() {
                 output.push(value.to_string());
@@ -3831,6 +4140,24 @@ fn material_task_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<MaterialF
         video_file_size: row.get(21)?,
         video_message: row.get(22)?,
     })
+}
+
+fn normalize_loaded_task_for_manual_resume(file: &mut MaterialFile) {
+    if file.status == "generating" {
+        file.status = "pending".to_string();
+        file.progress = 0;
+        file.message = "上次素材任务未完成，请手动继续。".to_string();
+    }
+    if file.audio_status == "generating" {
+        file.audio_status = "pending".to_string();
+        file.audio_progress = 0;
+        file.audio_message = "上次音频任务未完成，请手动继续。".to_string();
+    }
+    if file.video_status == "generating" {
+        file.video_status = "pending".to_string();
+        file.video_progress = 0;
+        file.video_message = "上次视频任务未完成，请手动继续。".to_string();
+    }
 }
 
 fn update_material_task_output_dir(
@@ -4801,20 +5128,23 @@ fn build_local_book_materials_payload(
 ) -> AiBookMaterialsPayload {
     let source = build_source_packet(book);
     let title = if book.overview.title.trim().is_empty() {
-        "?????"
+        "未命名书籍"
     } else {
         book.overview.title.trim()
     };
-    let mut narration = format!("???????{title}???????????????????????????????{source}");
+    let mut narration = format!(
+        "今天我们一起读《{title}》。这本书的核心，不只是情节本身，更是它如何把人物、情感和时代处境慢慢推到我们面前。\n\n{source}"
+    );
     let min_chars = request.target_min_chars.max(1000);
     while count_han_chars(&narration) < min_chars {
-        narration
-            .push_str("\n\n??????????????????????????????????????????????????????????????????????");
+        narration.push_str(
+            "\n\n如果把这些片段连起来看，我们会发现作者真正关心的，是人在关系中的选择、迟疑和改变。它不急着给出结论，而是让读者在一次次细节里靠近人物的内心，也看见故事背后更长久的情绪回声。",
+        );
     }
     AiBookMaterialsPayload {
-        video_title: format!("?{title}?30???????"),
-        description: format!("?{title}????????"),
-        tags: vec!["??".to_string(), "??".to_string(), "????".to_string()],
+        video_title: format!("《{title}》30 分钟听完一本书"),
+        description: format!("用 30 分钟读完《{title}》，梳理故事脉络、人物关系和核心主题。"),
+        tags: vec!["听书".to_string(), "读书".to_string(), "30分钟一本书".to_string()],
         narration,
     }
 }
@@ -4947,7 +5277,7 @@ fn build_local_narration_extension(
             output.push_str("\n\n");
         }
         output.push_str(seed);
-        output.push_str(" ???????????????????????????????????????????????????");
+        output.push_str(" 这一段可以作为旁白的延展：从人物处境进入主题，再回到读者自身的经验，让内容更完整，也更适合三十分钟听书视频的节奏。");
         if count_han_chars(&output) + count_han_chars(&payload.narration) > max_chars {
             break;
         }
@@ -4978,7 +5308,7 @@ fn build_local_fallback_paragraph(
 ) -> String {
     let cleaned = excerpt.split_whitespace().collect::<Vec<_>>().join(" ");
     format!(
-        "?{title}???{chapter_title}????????????? {index} ??????????????????????????????{cleaned} ???????????????????????????????????",
+        "在《{title}》的章节“{chapter_title}”里，第 {index} 个关键片段把故事继续向前推进。原文片段是：{cleaned}。这一处值得放进讲述里，因为它既提供了情节信息，也显露出人物的情绪和主题方向。",
         index = index + 1
     )
 }
@@ -5045,7 +5375,7 @@ fn split_subtitles(narration: &str) -> Vec<String> {
         }
         let should_break = matches!(
             ch,
-            '?' | '?' | '?' | '.' | '!' | '?' | ';' | '?' | ',' | '?' | '\n' | '\r'
+            '。' | '？' | '?' | '！' | '!' | '；' | ';' | '，' | ',' | '.' | '\n' | '\r'
         );
         if !should_break {
             current.push(ch);

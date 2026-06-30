@@ -8,7 +8,7 @@
 
 ## 产品定位
 
-`A Book in 30 Minutes` 是一个 Tauri 桌面工具，用于把小说或书籍源文件转换成 YouTube 听书视频素材。核心工作台命名为“流水线”，按素材、音频、视频三个阶段逐步处理。当前阶段已覆盖“文本素材生成”和“旁白音频生成”，视频阶段的设计基线已明确为“高清原图资产 + 字幕时间轴 + 剪映草稿/ffmpeg 渲染”，后续实现必须沿该链路落地。
+`A Book in 30 Minutes` 是一个 Tauri 桌面工具，用于把小说或书籍源文件转换成 YouTube 听书视频素材。核心工作台命名为“流水线”，按素材、音频、视频三个阶段逐步处理。当前阶段已覆盖“文本素材生成”和“旁白音频生成”，视频阶段的设计基线已明确为“字幕时间轴 + 统一视觉资产 + 剪映草稿/ffmpeg/白板动画渲染”。视觉资产可以走电影感 AI 原图路线，也可以走程序化白板解释插画路线，但都必须和字幕时间轴绑定，后续实现必须沿该链路落地。
 
 - 中文频道名：`半小时听完一本书`
 - 英文产品名：`A Book in 30 Minutes`
@@ -38,8 +38,8 @@
 14. 用户切换到“生成音频”页，可一键使用素材页生成的旁白，也可直接粘贴文本。
 15. 后端使用配置中的微软语音 Speech Key、区域、音色和输出格式生成 mp3；长文本会自动分段。
 16. 如果文本分为多个音频片段，后端使用配置中的外部 `ffmpeg.exe` 路径拼接最终 mp3。`ffmpeg.exe` 不随安装包打包。
-17. 视频阶段必须先生成或导入与旁白内容相关的高清原图，保存到素材包 `visual_assets/originals`，并写入 SQLite `visual_assets`；禁止只使用截图、缩略图、视频帧或经过模糊处理的派生图作为最终视频背景源。
-18. 生成图片时必须记录它对应的字幕/旁白片段，形成 `visual_timeline`：每张图绑定 `start_subtitle_index`、`end_subtitle_index`、`start_time`、`end_time` 和对应文本摘要。视频生成时按该时间轴铺设图片片段，而不是平均切图。
+17. 视频阶段必须先生成或导入与旁白内容相关的正式视觉资产，电影感路线保存高清原图到素材包 `visual_assets/originals` 并写入 SQLite `visual_assets`；程序化白板插画路线保存 4K PNG、`scene_plan.json` 和 `image_timeline.json`。禁止只使用截图、缩略图、视频帧或经过模糊处理的派生图作为最终视频背景源。
+18. 生成图片时必须记录它对应的字幕/旁白片段，形成 `visual_timeline` 或 `image_timeline.json`：每张图绑定 `start_subtitle_index`、`end_subtitle_index`、`start_time`、`end_time` 和对应文本摘要。视频生成时按该时间轴铺设图片片段或白板动画片段，而不是平均切图。
 
 ## 前端结构
 
@@ -867,3 +867,61 @@ a-book-in-30-minutes/src-tauri/target/x86_64-pc-windows-gnu/release/bundle/nsis
 - 端到端验证必须检查 `pipeline_manifest.json` 中 `subtitleTiming` 为 `aeneas`，并抽查 ASS 首条字幕应在片头之后约 3 秒开始，而不是 6 秒或 10 秒。
 - 首页流水线按钮包含【素材】【音频】【视频】【发布】四步；【发布】读取当前任务 `output` 目录中的 `materials.json`、`hard_subtitle.aeneas.zh-en.srt` 和 `pipeline_manifest.json`，在同一 `output` 根目录生成 `youtube_publish.md`。Markdown 必须包含推荐标题、备选标题、视频简介、关键时间线、标签、Hashtags、置顶评论和发布文件路径，便于直接复制到 YouTube。
 - 后续迁移到 MacMini n8n 时，n8n 只应调用同一套命令行脚本；SSH 免密访问按 `D:\0030_codex\tools\ssh-免密登录排障与复用指南.md` 复用已生效 key，并通过环境变量或参数显式传入 ffmpeg、Python/aeneas、header 音频和背景音乐路径。
+## 2026-06-25 专业听书视频视觉规则
+
+- `a-book-in-30-minutes` 的视频目标是“专业、漂亮的 30 分钟读一本书”成片，不再是静态封面加固定背景图轮播，也不是白板动画。
+- 视频合成层必须把每张正式图片当作一个镜头处理：每个镜头有独立的 `motionProfile`，包括中心慢推、左右漂移、上升、下降和缓慢拉远，避免全片使用相同的缩放节奏。
+- 无字幕母版视频必须应用统一的电影感处理：轻微压暗、适度对比度、低饱和、锐化、暗角和极轻微颗粒，让不同来源的视觉图统一到同一套听书频道气质。
+- `visual_timeline.json` 必须记录封面和内容片段的 `motionProfile`，方便后续在 UI、n8n 或命令行中复查每张图的镜头语言。
+- `visual_story_plan.json` 是吸收 `whiteboard-video-workflow` 思路后的视觉策划产物，必须包含统一风格规则、每个内容镜头的起止时间、图片路径、`motionProfile` 和可交给 Codex/n8n/Images API 的提示词。
+- 后续正式图片生成层应产出少量高质量主题图和明确的视觉时间轴，而不是按每句字幕生成一张图。图片生成可以先由 Codex `$imagegen` 编排保证审美和连续性，量产后再迁移到 n8n + 真实 Images API。
+- 0.1.84 起，视频脚本的默认本地合成效果应优先服务专业听书视频：慢节奏、稳定、细腻、有连续镜头感，避免占位图、机械推拉和过度动画。
+- 0.1.85 起，流水线页面选择新的 EPUB 文件时必须同步更新当前任务并清空旧的批量勾选状态；视频和发布阶段的目标解析必须优先使用输入框中的 `epubPath`，避免旧选中任务抢占新路径。
+- 0.1.86 起，应用启动日志和状态读取日志不得包含乱码；历史任务列表读取时不会把上次中断留下的 `generating` 状态继续显示为生成中，而是恢复为待手动继续，避免用户误以为应用启动后自动执行历史任务。
+- 0.1.87 起，前端静态资源必须包含 `favicon.ico`，避免 Tauri/WebView 启动时反复输出 `Asset 'favicon.ico' not found` DEBUG 日志。
+- 0.1.88 起，操作日志写入层必须在入库和写文件前拦截明显 mojibake/乱码内容，并按模块与动作替换为可读日志说明，避免历史硬编码乱码继续污染日志页面。
+
+## 2026-06-26 0.1.89 日志与素材链路乱码清理
+
+- 默认素材配置必须使用正常 UTF-8 中文：频道名、分类名、飞书测试消息和生成方向不得再包含历史 mojibake 字符。
+- 操作日志写入层在入库和写入文本日志前统一识别明显 mojibake，并按 `module/action` 替换为可读英文日志说明，避免旧硬编码文案污染新任务日志。
+- 本地素材兜底逻辑必须输出正常中文标题、简介、标签和旁白扩展，不得再生成连续问号串。
+- 语音时长估算、句子切分和字幕切分统一使用正常中英文标点：`。？！；，,.!?;`，避免历史乱码标点造成 Rust warning 和切分异常。
+- 端到端验证指定 EPUB：`D:\books\0625新书四本\2025-01《山茶的情书》\山茶的情书.epub`。验证时必须确认任务路径、生成产物和最新日志均指向该 EPUB，且可见日志不包含明显 mojibake、替换字符或连续问号串。
+
+## 2026-06-26 0.1.90 持久化设置迁移
+
+- 现有用户机器上的 `settings.json` 可能已经保存过旧版本乱码配置，不能只依赖代码默认值修复。
+- 应用启动读取设置后必须自动清理明显 mojibake 的默认配置字段：飞书测试消息、素材频道名、分类名、分类列表和生成方向。
+- 迁移只处理明显历史乱码默认文案，不修改用户真实连接配置，例如 OpenAI 兼容 `baseURL`、`model`、`apiKey`、Azure Speech Key、ffmpeg 路径和流水线开关。
+- 系统托盘菜单和 settings get/save 日志必须使用正常 UTF-8 文案。
+
+## 2026-06-26 0.1.91 端到端验证入口
+
+- release exe 支持 `--e2e-materials <epub-path>` 开发验证入口，用于在不依赖 UI 自动化的情况下复验素材生成核心链路。
+- 该入口必须读取真实应用数据目录 `%APPDATA%\com.abookin30minutes.desktop` 下的 `settings.json`、`app.db` 和 logs，复用真实 AI 配置、EPUB 解析、素材 JSON 解析/本地兜底、输出目录写入和操作日志写入。
+- 指定 EPUB 端到端验证命令：`a_book_in_30_minutes.exe --e2e-materials "D:\books\0625新书四本\2025-01《山茶的情书》\山茶的情书.epub"`。
+- 验证通过条件：命令退出码为 0；输出目录存在 `materials.json`、`narration.txt`、`subtitles.txt` 等素材文件；旁白中文字数位于配置目标范围内；SQLite/text logs 最新 trace 不含明显乱码；产物内容不包含历史问号串或 mojibake。
+
+## 2026-06-26 0.1.92 音频端到端验证入口
+
+- release exe 支持 `--e2e-audio <epub-path>` 开发验证入口，用于读取源书 `output/narration.txt` 并使用真实 Azure Speech 配置生成旁白音频。
+- 该入口复用应用后端 `generate_audio_from_text()`，输出 `书名.mp3`、`part_*.mp3`、`part_*.ssml`、`narration.ssml` 和 `audio_manifest.json` 到同一 `output` 目录。
+- 视频流水线验证前必须先确认 output 目录存在可被 `book_video_pipeline.py` 发现的根目录 mp3，否则视频阶段应明确失败为缺少音频。
+
+## 2026-06-28 MacMini4 本地图片服务方案 A
+
+- MacMini4 已部署轻量 OpenAI-compatible 图片服务，Tailscale 地址为 `http://100.96.199.26:30019`，接口为 `POST /v1/images/generations` 和 `GET /health`。
+- 服务目录固定为 `/Volumes/System/docker/book-image-service`，仓库源码在 `tools/book-image-service`；默认模型为 `Lykon/dreamshaper-8-lcm`，输出尺寸默认 `768x432`，适合作为读书视频分镜配图的本地预览和中等质量素材来源。
+- MacMini4 使用 Apple MPS 推理时默认必须走 float32；历史验证中 float16 会导致 VAE 输出 NaN，最终生成纯黑图。服务通过 `BOOK_IMAGE_DTYPE=auto` 在 MPS 上选择 float32。
+- Hugging Face 直连不稳定，模型已通过 `HF_ENDPOINT=https://hf-mirror.com` 补齐缓存；运行服务时设置 `HF_HUB_OFFLINE=1`，避免生成请求临时访问外网导致失败。
+- 当前常驻方式采用 `install-watchdog.sh` 安装的 cron watchdog，每分钟检查 `http://127.0.0.1:30019/health`，服务不可用时调用 `start.sh` 拉起。launchd plist 已保留在仓库中，但 MacMini4 当前验证时出现 `EX_CONFIG`，后续可单独修复。
+- 端到端 smoke test 已通过：Windows 通过 Tailscale 调用 `http://100.96.199.26:30019/v1/images/generations`，样张保存到 `tmp/macmini_book_image_smoke/scene_02.png` 和 `scene_03.png`；`scene_03.png` 约 514KB，颜色数 24633，服务端耗时约 12.72 秒。
+- 后续接入 `a-book-in-30-minutes` 时，应把该服务作为可配置 image provider，而不是写死在视频流水线里；配置项至少包含 `baseURL`、`model`、`size`、`steps`、`guidanceScale` 和 `seed`。图片内容提示词必须来自字幕区间/分镜摘要，避免生成与文本无关的通用背景图。
+
+## 2026-06-30 0.1.95 发版与新 EPUB 验证
+
+- `a-book-in-30-minutes` 版本同步提升到 `0.1.95`，覆盖 `package.json`、`src-tauri/Cargo.toml`、`src-tauri/Cargo.lock`、`src-tauri/tauri.conf.json` 和 `src/config/app.ts`。
+- 本轮发版验证指定 EPUB：`D:\books\理想国译丛系列（74册）整理截止2026.018\001没有宽恕就没有未来\001没有宽恕就没有未来.epub`。
+- 端到端验证仍按素材、音频、视频三阶段拆分执行，避免失败时无法定位。素材和音频优先使用 release exe 的 `--e2e-materials` 与 `--e2e-audio`；视频阶段必须复用同一套 `tmp/book_video_pipeline.py` 和应用设置中的 AI/ffmpeg/aeneas 配置。
+- 本轮触达的视频入口错误文案必须保持正常 UTF-8，不得新增 mojibake；历史遗留乱码仍由日志写入层拦截，后续可单独做全量清理。
