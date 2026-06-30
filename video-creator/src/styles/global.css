@@ -426,6 +426,24 @@ button:disabled {
   opacity: 0.62;
 }
 
+.nav .nav-item {
+  width: 100%;
+  justify-content: flex-start;
+  border: 0;
+  border-radius: 0;
+  margin: 1px 0;
+  padding: 0 20px;
+  background: transparent;
+}
+
+.nav .nav-item:hover,
+.nav .nav-item.active {
+  background:
+    linear-gradient(90deg, rgba(0, 208, 132, 0.16), rgba(0, 208, 132, 0.075) 72%, transparent),
+    rgba(0, 208, 132, 0.075);
+  transform: none;
+}
+
 .button-row,
 .skill-buttons,
 .toolbar {
