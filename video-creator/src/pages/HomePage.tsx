@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { FolderOpen, Play, RefreshCw } from "lucide-react";
 import { frameworkApi } from "@/services/frameworkApi";
+import { useDashboard } from "@/pages/useDashboard";
 import { useAppStore } from "@/store/useAppStore";
 import type { SkillConfigEntry } from "@/types";
-import { useDashboard } from "@/pages/useDashboard";
 
 export function HomePage() {
   const settings = useAppStore((state) => state.settings);
@@ -18,7 +18,7 @@ export function HomePage() {
 
   async function runSkill(skill: SkillConfigEntry) {
     setRunning(skill.command);
-    setMessage(`正在执行 ${skill.title}...`);
+    setMessage(`正在提交 ${skill.title} 到后台执行...`);
     await updateSettings({ defaultEpisode: episode, outputDir });
     try {
       const result = await frameworkApi.runVideoWorkflow({
@@ -101,7 +101,7 @@ export function HomePage() {
         <div className="skill-buttons">
           {skills.map((skill) => (
             <button disabled={Boolean(running)} key={skill.key} type="button" onClick={() => void runSkill(skill)}>
-              <Play size={14} /> {running === skill.command ? "执行中..." : skill.title}
+              <Play size={14} /> {running === skill.command ? "提交中..." : skill.title}
             </button>
           ))}
         </div>
@@ -114,7 +114,7 @@ export function HomePage() {
         <h2>使用说明</h2>
         <ol className="tips">
           <li>输入 6 位课程号，例如 260409。</li>
-          <li>点击技能按钮后，任务会通过旧 Java 能力层执行。</li>
+          <li>点击技能按钮后，任务会通过旧 Java 能力层在后台执行。</li>
           <li>步骤跟踪页会显示总步骤、开始时间、结束时间和实时耗时。</li>
           <li>执行日志页同时展示业务事件日志和运行日志文件。</li>
           <li>应用启动和页面加载不会自动续跑上次未完成任务。</li>

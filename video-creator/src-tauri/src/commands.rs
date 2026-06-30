@@ -10,6 +10,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Mutex;
+use std::thread;
 use tauri::{Manager, State};
 
 const LEGACY_DB: &str = r"D:\04_GitHub\video-easy-creator\data\video-easy-creator.db";
@@ -129,10 +130,10 @@ pub fn save_skill_configs(data: State<'_, AppData>, skills: Vec<SkillConfigEntry
 #[tauri::command]
 pub fn run_video_workflow(data: State<'_, AppData>, request: RunWorkflowRequest) -> Result<RunWorkflowResult, CommandError> {
     let settings = data.settings.lock().map_err(lock_error)?.clone();
-    run_video_workflow_with_settings(&settings, &data.logger, request)
+    run_video_workflow_in_background(&settings, &data.logger, request)
 }
 
-pub fn run_video_workflow_with_settings(
+pub fn run_video_workflow_in_background(
     settings: &AppSettings,
     logger: &OperationLogger,
     request: RunWorkflowRequest,
@@ -147,43 +148,60 @@ pub fn run_video_workflow_with_settings(
     }
 
     let args = build_legacy_args(settings, &request);
-    logger.info("video", "run_workflow", &format!("Run legacy command: {}", args.join(" ")));
-
     let classpath = legacy_classpath(&project_dir);
-    let output = Command::new("java")
-        .current_dir(&project_dir)
-        .arg("-Dfile.encoding=UTF-8")
-        .arg("-Dsun.stdout.encoding=UTF-8")
-        .arg("-Dsun.stderr.encoding=UTF-8")
-        .arg("-cp")
-        .arg(classpath)
-        .arg("com.coderdream.app.VideoEasyCreatorLauncher")
-        .args(&args)
-        .output()
-        .map_err(|error| command_error(format!("Failed to start Java command: {error}")))?;
+    let logger = logger.clone();
+    let command_name = command.to_string();
+    let args_text = args.join(" ");
+    logger.info("video", "run_workflow", &format!("Background task submitted: {args_text}"));
 
-    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-    let exit_code = output.status.code();
-    let ok = output.status.success();
-    let message = if ok {
-        format!("Command {command} completed.")
-    } else {
-        format!("Command {command} failed with exit code {}.", exit_code.map_or_else(|| "unknown".to_string(), |value| value.to_string()))
-    };
+    thread::Builder::new()
+        .name(format!("video-workflow-{command_name}"))
+        .spawn(move || {
+            logger.info("video", "run_workflow", &format!("Background task started: {args_text}"));
+            let output = Command::new("java")
+                .current_dir(&project_dir)
+                .arg("-Dfile.encoding=UTF-8")
+                .arg("-Dsun.stdout.encoding=UTF-8")
+                .arg("-Dsun.stderr.encoding=UTF-8")
+                .arg("-cp")
+                .arg(classpath)
+                .arg("com.coderdream.app.VideoEasyCreatorLauncher")
+                .args(&args)
+                .output();
 
-    if ok {
-        logger.info("video", "run_workflow", &message);
-    } else {
-        logger.error("video", "run_workflow", &message, &stderr);
-    }
+            match output {
+                Ok(output) => {
+                    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+                    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+                    let exit_code = output.status.code();
+                    if output.status.success() {
+                        logger.info("video", "run_workflow", &format!("Background task {command_name} completed."));
+                        if !stdout.trim().is_empty() {
+                            logger.trace_info("video", "run_workflow_stdout", "Background task stdout", stdout.trim(), &command_name);
+                        }
+                    } else {
+                        let message = format!(
+                            "Background task {command_name} failed with exit code {}.",
+                            exit_code.map_or_else(|| "unknown".to_string(), |value| value.to_string())
+                        );
+                        logger.error("video", "run_workflow", &message, stderr.trim());
+                    }
+                }
+                Err(error) => {
+                    logger.error("video", "run_workflow", &format!("Failed to start background task {command_name}."), error.to_string());
+                }
+            }
+        })
+        .map_err(|error| command_error(format!("Failed to create background task: {error}")))?;
+
+    let message = format!("Command {command} has started in the background.");
 
     Ok(RunWorkflowResult {
-        ok,
+        ok: true,
         message,
-        exit_code,
-        stdout,
-        stderr,
+        exit_code: None,
+        stdout: String::new(),
+        stderr: String::new(),
     })
 }
 
