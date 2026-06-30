@@ -1,6 +1,6 @@
 import { useEffect, useState, type MouseEvent, type ReactNode } from "react";
 import clsx from "clsx";
-import { Copy, Minus, Square, Video, X } from "lucide-react";
+import { Clock3, Copy, Minus, Moon, PanelLeft, Shield, Square, Video, X } from "lucide-react";
 import { APP_NAME, APP_SUBTITLE } from "@/config/app";
 import { navItems, routeMeta } from "@/config/navigation";
 import { useAppStore } from "@/store/useAppStore";
@@ -9,7 +9,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const route = useAppStore((state) => state.route);
   const setRoute = useAppStore((state) => state.setRoute);
   const version = useAppStore((state) => state.version);
+  const settings = useAppStore((state) => state.settings);
   const current = routeMeta[route];
+  const time = useBeijingTime();
   const [isMaximized, setIsMaximized] = useState(false);
 
   useEffect(() => {
@@ -35,44 +37,65 @@ export function AppLayout({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <div className="studio-shell">
-      <header className="studio-header" onMouseDown={(event) => void startWindowDrag(event)}>
-        <div className="brand-inline">
-          <Video size={26} />
-          <div>
-            <strong>{APP_NAME}</strong>
-            <span>{APP_SUBTITLE}</span>
+    <div className="app-shell">
+      <aside className="sidebar">
+        <div className="brand">
+          <div className="brand-icon">
+            <Video size={21} />
           </div>
-          <b>Desktop</b>
-          <b>SQLite</b>
-          <b>Steps</b>
-          <b>Skills</b>
+          <div>
+            <div className="brand-title">{APP_NAME}</div>
+            <div className="brand-subtitle">{APP_SUBTITLE}</div>
+          </div>
         </div>
-        <div className="window-actions">
-          <span>v{version}</span>
-          <button type="button" title="最小化" onClick={() => void minimizeWindow()}>
-            <Minus size={15} />
-          </button>
-          <button type="button" title={isMaximized ? "还原" : "最大化"} onClick={() => void toggleMaximizeWindow()}>
-            {isMaximized ? <Copy size={14} /> : <Square size={13} />}
-          </button>
-          <button type="button" title="关闭" onClick={() => void closeWindow()}>
-            <X size={14} />
-          </button>
+
+        <nav className="nav">
+          {navItems.map((item) => (
+            <button className={clsx("nav-item", item.key === route && "active")} key={item.key} onClick={() => setRoute(item.key)} type="button">
+              <span className="nav-icon">{item.icon}</span>
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </nav>
+
+        <div className="compliance">
+          <div><Shield size={15} /> 视频工坊开发版</div>
+          <p>复用旧 Java 能力层，Tauri 外壳负责配置、执行与状态查看。v{version}</p>
         </div>
-      </header>
+      </aside>
 
-      <nav className="studio-tabs">
-        {navItems.map((item) => (
-          <button className={clsx(item.key === route && "active")} key={item.key} onClick={() => setRoute(item.key)} type="button">
-            {item.label}
-          </button>
-        ))}
-      </nav>
-
-      <main className="studio-main">
-        <div className="breadcrumb">{current.breadcrumb}</div>
-        {children}
+      <main className="main">
+        <header className="topbar" onMouseDown={(event) => void startWindowDrag(event)}>
+          <div className="page-title-row">
+            <button className="square-btn" type="button" aria-label="折叠菜单">
+              <PanelLeft size={18} />
+            </button>
+            <div>
+              <h1>{current.label}</h1>
+              <p>{current.breadcrumb}</p>
+            </div>
+          </div>
+          <div className="top-actions">
+            <div className="clock-pill">
+              <Clock3 className="clock-icon" size={17} />
+              <span>{time}</span>
+              <small>北京时间 UTC+8</small>
+            </div>
+            <button className="square-btn ghost" type="button" title={`主题：${settings.theme}`}>
+              <Moon size={18} />
+            </button>
+            <button className="window-btn" type="button" title="最小化" onClick={() => void minimizeWindow()}>
+              <Minus size={15} />
+            </button>
+            <button className="window-btn" type="button" title={isMaximized ? "还原" : "最大化"} onClick={() => void toggleMaximizeWindow()}>
+              {isMaximized ? <Copy size={14} /> : <Square size={13} />}
+            </button>
+            <button className="window-btn" type="button" title="关闭" onClick={() => void closeWindow()}>
+              <X size={14} />
+            </button>
+          </div>
+        </header>
+        <section className="content">{children}</section>
       </main>
     </div>
   );
@@ -118,4 +141,25 @@ async function closeWindow() {
   } catch {
     // Browser preview has no native window API.
   }
+}
+
+function useBeijingTime() {
+  const [time, setTime] = useState(() => formatBeijingTime());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setTime(formatBeijingTime()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  return time;
+}
+
+function formatBeijingTime() {
+  return new Intl.DateTimeFormat("zh-CN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+    timeZone: "Asia/Shanghai"
+  }).format(new Date());
 }
