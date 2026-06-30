@@ -1199,3 +1199,15 @@ D:\books\理想国译丛系列（74册）整理截止2026.018\001没有宽恕就
 - 预览 contact_sheet_8.png 和 scene_02_0345_0730.png，边缘比第六版更顺，没有明显过度模糊。
 
 当前判断：第七版适合作为下一次完整视频接入候选。仍有少量几何斜线锯齿，这是 Pillow 程序化几何绘制路线的自然上限；如果还要进一步提升，需要改为更高倍 supersampling，或切换到 SVG/Cairo/Skia 这类矢量渲染后再输出位图。
+
+## 0.1.98 打包版流水线脚本定位修复
+
+用户在 0.1.97 打包版流水线页面看到“找不到视频流水线脚本 tmp/book_video_pipeline.py”。源码和构建输出中脚本存在，问题在于安装版资源目录不一定等同于开发目录。
+
+本版调整 `find_video_pipeline`：
+
+- 保留开发目录查找：`book_video_pipeline.py`、`tmp/book_video_pipeline.py`。
+- 增加 Tauri 打包资源查找：`_up_/tmp/book_video_pipeline.py`。
+- 增加安装版资源目录查找：`resources/tmp/book_video_pipeline.py`。
+
+目标是让开发版、构建输出目录和安装版都能找到同一套视频流水线脚本，避免用户在流水线页面无法继续生成视频。

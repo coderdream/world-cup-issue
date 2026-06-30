@@ -4727,10 +4727,39 @@ fn find_video_pipeline(app: &tauri::AppHandle) -> Result<(PathBuf, PathBuf), Com
         if direct.exists() {
             return Ok((seed.clone(), direct));
         }
+        let seed_tmp = seed.join("tmp").join("book_video_pipeline.py");
+        if seed_tmp.exists() {
+            return Ok((seed.clone(), seed_tmp));
+        }
+        let seed_up_tmp = seed.join("_up_").join("tmp").join("book_video_pipeline.py");
+        if seed_up_tmp.exists() {
+            return Ok((seed.join("_up_"), seed_up_tmp));
+        }
+        let seed_resources_tmp = seed
+            .join("resources")
+            .join("tmp")
+            .join("book_video_pipeline.py");
+        if seed_resources_tmp.exists() {
+            return Ok((seed.join("resources"), seed_resources_tmp));
+        }
         for candidate in seed.ancestors() {
             let script = candidate.join("tmp").join("book_video_pipeline.py");
             if script.exists() {
                 return Ok((candidate.to_path_buf(), script));
+            }
+            let up_script = candidate
+                .join("_up_")
+                .join("tmp")
+                .join("book_video_pipeline.py");
+            if up_script.exists() {
+                return Ok((candidate.join("_up_"), up_script));
+            }
+            let resources_script = candidate
+                .join("resources")
+                .join("tmp")
+                .join("book_video_pipeline.py");
+            if resources_script.exists() {
+                return Ok((candidate.join("resources"), resources_script));
             }
             let nested = candidate.join("a-book-in-30-minutes");
             let nested_script = nested.join("tmp").join("book_video_pipeline.py");
