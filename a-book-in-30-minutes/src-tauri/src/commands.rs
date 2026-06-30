@@ -1561,7 +1561,7 @@ pub fn reset_material_tasks(
     {
         connection
             .execute(
-                "UPDATE material_tasks SET status = 'pending', progress = 0, narration_chars = NULL, message = '', updated_at = ?2 WHERE path = ?1",
+                "UPDATE material_tasks SET status = 'pending', progress = 0, narration_chars = NULL, material_output_dir = NULL, message = '', audio_status = 'pending', audio_progress = 0, audio_output_dir = NULL, audio_file = NULL, audio_duration_ms = NULL, audio_chunks = NULL, audio_message = '', video_status = 'pending', video_progress = 0, video_file = NULL, video_duration_ms = NULL, video_file_size = NULL, video_message = '', updated_at = ?2 WHERE path = ?1",
                 params![path, now],
             )
             .map_err(|error| command_error(format!("闁插秶鐤嗙槐鐘虫綏娴犺濮熸径杈Е閿涙{error}")))?;
@@ -1573,7 +1573,7 @@ pub fn reset_material_tasks(
     } else {
         connection
             .execute(
-                "UPDATE material_tasks SET status = 'pending', progress = 0, narration_chars = NULL, message = '', updated_at = ?1",
+                "UPDATE material_tasks SET status = 'pending', progress = 0, narration_chars = NULL, material_output_dir = NULL, message = '', audio_status = 'pending', audio_progress = 0, audio_output_dir = NULL, audio_file = NULL, audio_duration_ms = NULL, audio_chunks = NULL, audio_message = '', video_status = 'pending', video_progress = 0, video_file = NULL, video_duration_ms = NULL, video_file_size = NULL, video_message = '', updated_at = ?1",
                 params![now],
             )
             .map_err(|error| command_error(format!("閹靛綊鍣洪柌宥囩枂缁辩姵娼楁禒璇插婢惰精瑙﹂敍姝縠{error}")))?;

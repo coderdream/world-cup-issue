@@ -748,7 +748,11 @@ export function HomePage() {
   async function loadStoredTasks(category: string) {
     try {
       const result = await frameworkApi.getMaterialTasks({ category });
-      updateWorkbench({ scanResult: result, fileStatuses: statusesFromFiles(result.files) });
+      const requestPath = useAppStore.getState().materialsWorkbench.request.epubPath.trim();
+      const selectedPatch = requestPath && result.files.some((file) => file.path === requestPath)
+        ? { selectedTaskPath: requestPath }
+        : {};
+      updateWorkbench({ scanResult: result, fileStatuses: statusesFromFiles(result.files), ...selectedPatch });
       setSelectedTaskPaths((current) => current.filter((taskPath) => result.files.some((file) => file.path === taskPath)));
     } catch (caught) {
       updateWorkbench({ error: caught instanceof Error ? caught.message : String(caught) });
@@ -803,7 +807,33 @@ export function HomePage() {
 
   async function clearTaskStatus(path: string) {
     await frameworkApi.resetMaterialTasks({ path });
-    await updateTaskStatus(path, { status: "pending", progress: 0, narrationChars: null, message: "" });
+    const current = useAppStore.getState().materialsWorkbench;
+    const resetFile = (file: MaterialFile): MaterialFile =>
+      file.path === path
+        ? {
+            ...file,
+            status: "pending",
+            progress: 0,
+            narrationChars: null,
+            materialOutputDir: null,
+            message: "",
+            audioStatus: "pending",
+            audioProgress: 0,
+            audioOutputDir: null,
+            audioFile: null,
+            audioDurationMs: null,
+            audioChunks: null,
+            audioMessage: "",
+            videoStatus: "pending",
+            videoProgress: 0,
+            videoFile: null,
+            videoDurationMs: null,
+            videoFileSize: null,
+            videoMessage: ""
+          }
+        : file;
+    const files = current.scanResult?.files.map(resetFile) ?? [];
+    updateWorkbench({ fileStatuses: statusesFromFiles(files), scanResult: current.scanResult ? { ...current.scanResult, files } : current.scanResult });
   }
 
   async function clearAllTaskStatuses() {
@@ -814,7 +844,21 @@ export function HomePage() {
       status: "pending" as const,
       progress: 0,
       narrationChars: null,
-      message: ""
+      materialOutputDir: null,
+      message: "",
+      audioStatus: "pending" as const,
+      audioProgress: 0,
+      audioOutputDir: null,
+      audioFile: null,
+      audioDurationMs: null,
+      audioChunks: null,
+      audioMessage: "",
+      videoStatus: "pending" as const,
+      videoProgress: 0,
+      videoFile: null,
+      videoDurationMs: null,
+      videoFileSize: null,
+      videoMessage: ""
     })) ?? [];
     updateWorkbench({ fileStatuses: statusesFromFiles(files), scanResult: current.scanResult ? { ...current.scanResult, files } : current.scanResult });
   }

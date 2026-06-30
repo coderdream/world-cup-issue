@@ -50,6 +50,7 @@ const STEP_SPECS: StepSpec[] = [
 export function AudioPage() {
   const settings = useAppStore((state) => state.settings);
   const currentTraceId = useAppStore((state) => state.materialsWorkbench.currentTraceId);
+  const requestPath = useAppStore((state) => state.materialsWorkbench.request.epubPath);
   const selectedTaskPath = useAppStore((state) => state.materialsWorkbench.selectedTaskPath);
   const scanResult = useAppStore((state) => state.materialsWorkbench.scanResult);
   const updateWorkbench = useAppStore((state) => state.updateMaterialsWorkbench);
@@ -75,7 +76,7 @@ export function AudioPage() {
     };
   }, [settings.materialProfile.categoryName, updateWorkbench]);
 
-  const currentTask = useMemo(() => pickCurrentTask(scanResult?.files ?? [], selectedTaskPath), [scanResult?.files, selectedTaskPath]);
+  const currentTask = useMemo(() => pickCurrentTask(scanResult?.files ?? [], requestPath, selectedTaskPath), [scanResult?.files, requestPath, selectedTaskPath]);
   const steps = useMemo(() => buildStepRows(currentTask), [currentTask]);
   const successCount = steps.filter((step) => step.status === "SUCCESS").length;
   const failedCount = steps.filter((step) => step.status === "FAILED").length;
@@ -140,13 +141,47 @@ function SummaryItem({ label, value }: { label: string; value: string }) {
   );
 }
 
-function pickCurrentTask(files: MaterialFile[], selectedTaskPath: string) {
+function pickCurrentTask(files: MaterialFile[], requestPath: string, selectedTaskPath: string) {
+  const normalizedRequestPath = requestPath.trim();
   return (
+    files.find((file) => file.path === normalizedRequestPath) ??
     files.find((file) => file.path === selectedTaskPath) ??
     files.find((file) => file.status === "generating" || file.audioStatus === "generating" || file.videoStatus === "generating") ??
+    (normalizedRequestPath ? materialFileFromPath(normalizedRequestPath) : null) ??
     files[0] ??
     null
   );
+}
+
+function materialFileFromPath(path: string): MaterialFile {
+  const normalized = path.trim();
+  const name = normalized.split(/[\\/]/).filter(Boolean).pop() ?? normalized;
+  const extension = name.includes(".") ? name.split(".").pop() ?? "" : "";
+  return {
+    path: normalized,
+    name,
+    extension: extension.toLowerCase(),
+    size: 0,
+    category: "",
+    status: "pending",
+    progress: 0,
+    narrationChars: null,
+    materialOutputDir: null,
+    message: "",
+    audioStatus: "pending",
+    audioProgress: 0,
+    audioOutputDir: null,
+    audioFile: null,
+    audioDurationMs: null,
+    audioChunks: null,
+    audioMessage: "",
+    videoStatus: "pending",
+    videoProgress: 0,
+    videoFile: null,
+    videoDurationMs: null,
+    videoFileSize: null,
+    videoMessage: ""
+  };
 }
 
 function buildStepRows(file: MaterialFile | null): StepRow[] {
