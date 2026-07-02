@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import difflib
 import json
 import os
 import re
@@ -48,6 +49,12 @@ CINEMATIC_MOTION_PROFILES = (
     ("descend_slow", "min(1.025+on*0.00014,1.13)", "(iw-iw/zoom)*0.48", "(ih-ih/zoom)*(0.25+0.30*on/{den})"),
     ("slow_pull_back", "max(1.13-on*0.00012,1.025)", "(iw-iw/zoom)*0.50", "(ih-ih/zoom)*0.50"),
 )
+CINEMATIC_ENABLE_MOTION = os.environ.get("ABOOK_CINEMATIC_MOTION", "").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
 
 
 def safe_stem(path: Path) -> str:
@@ -289,25 +296,242 @@ def split_subtitle_text(text: str, max_chars: int = MAX_SUBTITLE_LINE_CHARS) -> 
     if not text:
         return []
     hard_breaks = "。！？；!?;"
+    soft_breaks = "，、：:“”‘’"
     chunks: list[str] = []
     current = ""
     for ch in text:
         current += ch
-        if ch in hard_breaks or len(current) >= max_chars:
-            chunks.append(current.strip())
+        if ch in hard_breaks or (ch in soft_breaks and len(current) >= 12):
+            chunks.append(clean_subtitle_line(current))
             current = ""
     if current.strip():
-        chunks.append(current.strip())
+        chunks.append(clean_subtitle_line(current))
     lines: list[str] = []
     for chunk in chunks:
+        chunk = clean_subtitle_line(chunk)
+        if not chunk:
+            continue
         if len(chunk) <= max_chars:
             lines.append(chunk)
         else:
-            for index in range(0, len(chunk), max_chars):
-                lines.append(chunk[index : index + max_chars])
-    return [line for line in lines if line]
+            lines.extend(split_long_subtitle_line(chunk, max_chars))
+    return merge_short_subtitle_tails([line for line in lines if line], max_chars=max_chars)
 
 
+def clean_subtitle_line(text: str) -> str:
+    return text.strip()
+
+
+def split_long_subtitle_line(text: str, max_chars: int) -> list[str]:
+    chars = list(text)
+    lines: list[str] = []
+    start = 0
+    protected_patterns = ["《天会亮的，你有我呢》", "三十三个四季小故事", "蒲公英", "你有我呢"]
+    while start < len(chars):
+        if len(chars) - start <= max_chars:
+            lines.append(clean_subtitle_line("".join(chars[start:])))
+            break
+        end = min(start + max_chars, len(chars))
+        tail = len(chars) - end
+        if 0 < tail < 6:
+            end = max(start + 1, len(chars) - 6)
+        split_at = None
+        for index in range(end - 1, min(start + 10, end) - 1, -1):
+            if chars[index] in "\uFF0C\u3001\uFF1A\uFF1B\u3002\uFF01\uFF1F!?;":
+                split_at = index + 1
+                break
+        if split_at is None:
+            for index in range(end - 1, min(start + 10, end) - 1, -1):
+                if chars[index] in " \u7684\u4E86\u7740\u4E5F\u548C\u4E0E\u5728\u628A\u7ED9\u662F\u6709\u5C31\u90FD\u800C\u4F46\u53EF\u6216\u5E76":
+                    split_at = index + 1
+                    break
+        end = split_at or end
+        candidate = "".join(chars[start:end])
+        full_text = "".join(chars)
+        for pattern in protected_patterns:
+            pos = full_text.find(pattern)
+            if pos >= 0 and start < pos + len(pattern) and end > pos and end < pos + len(pattern):
+                end = pos + len(pattern)
+                candidate = "".join(chars[start:end])
+                break
+        line = clean_subtitle_line(candidate)
+        if line:
+            lines.append(line)
+        start = end
+    return lines
+
+
+def merge_short_subtitle_tails(lines: list[str], min_tail_chars: int = 6, max_chars: int = MAX_SUBTITLE_LINE_CHARS) -> list[str]:
+    merged: list[str] = []
+    for line in lines:
+        if len(line) < min_tail_chars and merged and len(merged[-1]) + len(line) <= max_chars + 4:
+            merged[-1] += line
+        else:
+            merged.append(line)
+    return merged
+
+
+
+def trim_text_at_sentence_boundary(text: str) -> str:
+    text = text.strip()
+    if not text:
+        return text
+    last = -1
+    for mark in ("\u3002", "\uFF01", "\uFF1F", ";", "\uFF1B"):
+        last = max(last, text.rfind(mark))
+    if last >= max(80, len(text) // 2):
+        return text[: last + 1].strip()
+    return text
+
+
+def split_text_for_subtitle_batches(text: str, max_chars: int) -> list[str]:
+    text = " ".join(text.replace("\r", "\n").split()).strip()
+    if not text:
+        return []
+    batches: list[str] = []
+    start = 0
+    while start < len(text):
+        end = min(start + max_chars, len(text))
+        if end < len(text):
+            candidate = trim_text_at_sentence_boundary(text[start:end])
+            if len(candidate) >= max(120, max_chars // 2):
+                end = start + len(candidate)
+        chunk = text[start:end].strip()
+        if chunk:
+            batches.append(chunk)
+        start = end
+    return batches
+
+def parse_subtitle_lines_from_ai_response(content: str) -> list[str]:
+    text = content.strip()
+    if text.startswith("```"):
+        text = re.sub(r"^```(?:json|text|txt)?\s*", "", text, flags=re.IGNORECASE)
+        text = re.sub(r"\s*```$", "", text).strip()
+    try:
+        parsed = json.loads(text)
+        if isinstance(parsed, list):
+            return [str(item).strip() for item in parsed if str(item).strip()]
+        if isinstance(parsed, dict):
+            items = parsed.get("subtitles") or parsed.get("lines")
+            if isinstance(items, list):
+                return [str(item).strip() for item in items if str(item).strip()]
+    except json.JSONDecodeError:
+        pass
+    lines: list[str] = []
+    for line in text.splitlines():
+        cleaned = re.sub(r"^\s*[-*]\s*", "", line).strip()
+        cleaned = cleaned.strip().strip('"')
+        if cleaned:
+            lines.append(cleaned)
+    return lines
+
+
+def build_chinese_subtitle_editor_prompt(narration: str, reference_text: str = "") -> str:
+    reference_block = ""
+    if reference_text.strip():
+        reference_block = (
+            "\nReference style sample:\n"
+            "Only learn its rhythm, punctuation density, and healing layout. Do not copy content unsupported by Input Narration.\n"
+            f"{reference_text.strip()[:5000]}\n"
+        )
+    return (
+        "Role:\n"
+        "You are a senior Chinese short-video subtitle editor and healing late-night radio copywriter. "
+        "You are good at using line breaks to guide reading rhythm, emotional rise and fall, and breathing.\n\n"
+        "Task:\n"
+        "Convert Input Narration into a polished Chinese subtitle script for video. Do not modify narration.txt on disk; only output subtitles.\n\n"
+        "Hard constraints:\n"
+        "1. Output plain subtitle text only. No JSON, no Markdown, no timestamps.\n"
+        "2. One subtitle per line. Most lines must be 12-20 Chinese characters including punctuation; allow up to 26 when it keeps a phrase natural. Avoid making many 1-10 character fragments.\n"
+        "3. Preserve or restore natural Chinese punctuation: \uFF0C\u3002\uFF1F\uFF01\uFF1B\uFF1A\u3001\u300A\u300B\u2026\u2026.\n"
+        "4. Never split words, titles, names, fixed phrases, or number expressions, such as \u84B2\u516C\u82F1, \u5B8C\u7F8E, \u4F60\u6709\u6211\u5462, \u4E09\u5341\u4E09\u4E2A\u56DB\u5B63\u5C0F\u6545\u4E8B.\n"
+        "5. Generate a polished subtitle script from ONLY the given Input Narration segment. You may lightly condense wording and restore punctuation, but do not continue the story beyond the input, do not add later chapters, and do not invent new examples. Later audio will be generated from this subtitle text.\n"
+        "Segmentation logic:\n"
+        "1. Prefer breaks at punctuation. If a sentence is too long, split only at semantic pauses.\n"
+        "2. Use a gentle healing late-night radio rhythm. Target about 50-65 lines for 1000 Chinese input characters. Prefer fewer, fuller lines over many tiny fragments.\n"
+        "3. Avoid 1-10 character fragments unless they intentionally emphasize emotion; merge overly short fragments into nearby lines so the average line length is close to the reference style.\n"
+        "4. A comma may stay at the end of a line; split after it only when both sides are meaningful.\n"
+        "5. If a tail is too short, merge it with the previous or next line.\n\n"
+        "Bad examples:\n"
+        "\u5B8C / \u7F8E\n"
+        "\u7684\u4E66\n"
+        "\u5929\u4F1A\u4EAE\u7684 / \u4F60\u6709\u6211\u5462\n"
+        "\u4E09\u5341\u4E09 / \u4E2A\u56DB\u5B63\u5C0F\u6545\u4E8B\n\n"
+        "Output example:\n"
+        "\u4ECA\u665A\u8981\u4E00\u8D77\u8BFB\u7684\u662F\uFF0C\n"
+        "\u4E00\u5E73\u8457\u7ED8\u7684\u300A\u5929\u4F1A\u4EAE\u7684\uFF0C\u4F60\u6709\u6211\u5462\u300B\u3002\n"
+        "\u5148\u628A\u706F\u5149\u8C03\u6697\u4E00\u70B9\uFF0C\n"
+        "\u628A\u767D\u5929\u6CA1\u6709\u8BF4\u5B8C\u7684\u8BDD\uFF0C\n"
+        "\u8F7B\u8F7B\u653E\u5728\u6795\u8FB9\u3002\n"
+        f"{reference_block}\n"
+        "Stop exactly when the Input Narration segment ends. Do not write any subtitle about content that is not present in the input segment.\n\n"
+        "Input Narration:\n"
+        f"{narration.strip()}"
+    )
+
+
+def generate_chinese_subtitles_with_ai(
+    material_root: Path,
+    reference_file: Path | None = None,
+    max_input_chars: int = 0,
+    batch_chars: int = 0,
+) -> tuple[list[str], dict]:
+    narration = read_text(material_root / "narration.txt")
+    if not narration:
+        raise RuntimeError(f"narration.txt not found or empty: {material_root / 'narration.txt'}")
+    source_narration_chars = len(narration)
+    if max_input_chars and len(narration) > max_input_chars:
+        narration = trim_text_at_sentence_boundary(narration[:max_input_chars])
+    base_url = os.environ.get("ABOOK_AI_BASE_URL", "").strip()
+    api_key = os.environ.get("ABOOK_AI_API_KEY", "").strip()
+    model = os.environ.get("ABOOK_AI_MODEL", "").strip()
+    if not (base_url and api_key and model):
+        raise RuntimeError("Chinese subtitle generation requires ABOOK_AI_BASE_URL, ABOOK_AI_API_KEY and ABOOK_AI_MODEL.")
+    reference_text = read_text(reference_file) if reference_file else ""
+    batch_list = split_text_for_subtitle_batches(narration, batch_chars) if batch_chars else [narration]
+    lines: list[str] = []
+    batch_reports: list[dict] = []
+    for batch_index, batch_text in enumerate(batch_list, start=1):
+        prompt = build_chinese_subtitle_editor_prompt(batch_text, reference_text if batch_index == 1 else "")
+        content = chat_completion_text(
+            base_url,
+            api_key,
+            model,
+            [
+                {"role": "system", "content": "You are a professional Chinese subtitle editor. Output plain subtitle lines only, no explanation."},
+                {"role": "user", "content": prompt},
+            ],
+            timeout=900,
+        )
+        batch_lines = parse_subtitle_lines_from_ai_response(content)
+        lines.extend(batch_lines)
+        batch_reports.append({"batch": batch_index, "inputChars": len(batch_text), "lineCount": len(batch_lines)})
+        print(
+            f"Generated subtitle batch {batch_index}/{len(batch_list)}: input={len(batch_text)} lines={len(batch_lines)}",
+            file=sys.stderr,
+            flush=True,
+        )
+    if len(lines) < 10:
+        raise RuntimeError(f"AI returned too few subtitle lines: {len(lines)}")
+    report = {
+        "provider": "openai_compatible",
+        "model": model,
+        "lineCount": len(lines),
+        "narrationChars": len(narration),
+        "sourceNarrationChars": source_narration_chars,
+        "maxInputChars": max_input_chars,
+        "batchChars": batch_chars,
+        "batchCount": len(batch_list),
+        "batches": batch_reports,
+        "generatedAt": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "referenceFile": str(reference_file) if reference_file else None,
+    }
+    if reference_text.strip():
+        generated_joined = "\n".join(lines)
+        matcher = difflib.SequenceMatcher(None, generated_joined, reference_text.strip())
+        report["referenceSimilarity"] = matcher.ratio()
+        report["referenceLineCount"] = len([line for line in reference_text.splitlines() if line.strip()])
+    return lines, report
 def load_chinese_subtitle_lines(material_root: Path) -> list[str]:
     text = read_text(material_root / "subtitles.txt")
     if text.strip():
@@ -602,7 +826,36 @@ def generate_english_lines_with_ai(material_root: Path, source_lines: list[str])
         "Translate each source cue idiomatically into natural English. Preserve cue count and order. "
         "Return only a JSON array of strings, with no markdown and no extra keys."
     )
+    cache_file = material_root / "translation_cache.json"
+    partial_cache_file = material_root / "translation_cache.partial.json"
     translated: list[str] = []
+    if partial_cache_file.exists():
+        try:
+            partial = json.loads(partial_cache_file.read_text(encoding="utf-8"))
+            items = partial.get("items") if isinstance(partial, dict) else None
+            if isinstance(items, list):
+                for item in items:
+                    if isinstance(item, dict):
+                        translated.append(str(item.get("en") or "").strip())
+        except json.JSONDecodeError:
+            translated = []
+
+    def write_translation_cache(path: Path, completed: bool) -> None:
+        cache = {
+            "provider": "openai_compatible",
+            "model": model,
+            "sourceLanguage": os.environ.get("ABOOK_SUBTITLE_SOURCE_LANGUAGE", "cmn"),
+            "targetLanguage": "eng",
+            "generatedAt": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "completed": completed,
+            "total": len(source_lines),
+            "items": [
+                {"index": index + 1, "source": source, "en": english}
+                for index, (source, english) in enumerate(zip(source_lines, translated))
+            ],
+        }
+        path.write_text(json.dumps(cache, ensure_ascii=False, indent=2), encoding="utf-8")
+
     def translate_batch(batch: list[str], start_index: int) -> list[str]:
         user_prompt = (
             f"Translate these subtitle cues into English. Return exactly {len(batch)} strings as JSON.\n"
@@ -629,24 +882,22 @@ def generate_english_lines_with_ai(material_root: Path, source_lines: list[str])
         return repaired
 
     batch_size = int(os.environ.get("ABOOK_TRANSLATE_BATCH_SIZE", "20") or "20")
-    for start in range(0, len(source_lines), batch_size):
+    batch_size = max(1, min(batch_size, 50))
+    resume_index = len(translated)
+    if resume_index > len(source_lines):
+        translated = translated[: len(source_lines)]
+        resume_index = len(translated)
+    if resume_index:
+        print(f"Resuming subtitle translation from {resume_index}/{len(source_lines)}.", file=sys.stderr, flush=True)
+    for start in range(resume_index, len(source_lines), batch_size):
         batch = source_lines[start : start + batch_size]
         translated.extend(translate_batch(batch, start))
+        write_translation_cache(partial_cache_file, completed=False)
+        print(f"Translated subtitle cues {len(translated)}/{len(source_lines)}.", file=sys.stderr, flush=True)
 
-    cache = {
-        "provider": "openai_compatible",
-        "model": model,
-        "sourceLanguage": os.environ.get("ABOOK_SUBTITLE_SOURCE_LANGUAGE", "cmn"),
-        "targetLanguage": "eng",
-        "generatedAt": time.strftime("%Y-%m-%d %H:%M:%S"),
-        "items": [
-            {"index": index + 1, "source": source, "en": english}
-            for index, (source, english) in enumerate(zip(source_lines, translated))
-        ],
-    }
-    (material_root / "translation_cache.json").write_text(
-        json.dumps(cache, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    write_translation_cache(cache_file, completed=True)
+    if partial_cache_file.exists():
+        partial_cache_file.unlink()
     return translated
 
 
@@ -1091,6 +1342,19 @@ def split_cover_title(title: str) -> tuple[str, int]:
     return wrap_text(title, 9, 2), 70
 
 
+def youtube_thumbnail_lines(title: str, subtitle: str = "") -> list[str]:
+    book_title = extract_book_title(title)
+    if "亲爱的老爸" in book_title or "亲爱的老爸" in title:
+        return ["海明威写给", "儿子的信"]
+    if book_title and book_title != "本期书籍":
+        compact = compact_text(book_title, 12)
+        if len(compact) <= 6:
+            return [compact, "一本书听懂"]
+        return wrap_text(compact, 6, 2).splitlines()
+    fallback = compact_text(clean_label(subtitle, "半小时听懂一本书"), 12)
+    return wrap_text(fallback, 6, 2).splitlines()
+
+
 def font_path(*names: str) -> str | None:
     fonts_dir = Path(os.environ.get("WINDIR", r"C:\Windows")) / "Fonts"
     for name in names:
@@ -1115,6 +1379,36 @@ def load_font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont | ImageFo
 def text_size(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.ImageFont) -> tuple[int, int]:
     bbox = draw.textbbox((0, 0), text, font=font)
     return bbox[2] - bbox[0], bbox[3] - bbox[1]
+
+
+def draw_centered_label(
+    draw: ImageDraw.ImageDraw,
+    box: tuple[int, int, int, int],
+    text: str,
+    font: ImageFont.ImageFont,
+    fill: tuple[int, int, int] | tuple[int, int, int, int],
+    text_fill: tuple[int, int, int] | tuple[int, int, int, int],
+    outline: tuple[int, int, int] | tuple[int, int, int, int] | None = None,
+    radius: int = 8,
+    width: int = 2,
+    stroke_width: int = 0,
+    stroke_fill: tuple[int, int, int] | tuple[int, int, int, int] | None = None,
+) -> tuple[int, int, int, int]:
+    draw.rounded_rectangle(box, radius=radius, fill=fill, outline=outline, width=width)
+    bbox = draw.textbbox((0, 0), text, font=font, stroke_width=stroke_width)
+    text_width = bbox[2] - bbox[0]
+    text_height = bbox[3] - bbox[1]
+    x = box[0] + (box[2] - box[0] - text_width) // 2 - bbox[0]
+    y = box[1] + (box[3] - box[1] - text_height) // 2 - bbox[1]
+    draw.text(
+        (x, y),
+        text,
+        font=font,
+        fill=text_fill,
+        stroke_width=stroke_width,
+        stroke_fill=stroke_fill,
+    )
+    return box
 
 
 def wrap_text_by_width(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.ImageFont, max_width: int) -> list[str]:
@@ -1808,6 +2102,93 @@ def render_cover_image(
     return cover
 
 
+def render_youtube_thumbnail(
+    output_path: Path,
+    title: str,
+    subtitle: str = "",
+    author: str = "",
+) -> Path:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    image = Image.new("RGB", (1280, 720), (18, 23, 21))
+    draw = ImageDraw.Draw(image)
+
+    bg_top = (42, 50, 45)
+    bg_bottom = (12, 16, 15)
+    for y in range(720):
+        ratio = y / 719
+        color = tuple(round(bg_top[i] * (1 - ratio) + bg_bottom[i] * ratio) for i in range(3))
+        draw.line((0, y, 1280, y), fill=color)
+
+    gold = (236, 194, 86)
+    warm = (255, 244, 214)
+    white = (255, 255, 255)
+    red = (201, 46, 42)
+    ink = (28, 24, 21)
+    muted = (176, 162, 125)
+
+    draw.rectangle((0, 0, 1280, 38), fill=red)
+    badge_font = load_font(34, bold=True)
+    badge_text = "半小时听完一本书"
+    badge_w, _ = text_size(draw, badge_text, badge_font)
+    draw_centered_label(
+        draw,
+        (54, 56, 54 + badge_w + 54, 116),
+        badge_text,
+        badge_font,
+        fill=(12, 12, 12),
+        text_fill=white,
+        outline=gold,
+        radius=8,
+        width=2,
+    )
+
+    # Right-side bold symbolic scene: letter, father/son silhouettes, and warm spotlight.
+    draw.ellipse((760, 70, 1320, 630), fill=(48, 67, 54))
+    draw.ellipse((850, 145, 1240, 535), fill=(66, 83, 62))
+    draw.polygon([(765, 235), (1162, 152), (1210, 486), (810, 575)], fill=(236, 225, 190), outline=gold)
+    draw.line((785, 250, 990, 376, 1188, 170), fill=(156, 122, 55), width=5)
+    draw.line((808, 554, 1000, 377, 1204, 468), fill=(156, 122, 55), width=5)
+    draw.ellipse((890, 292, 978, 380), fill=ink)
+    draw.rounded_rectangle((848, 382, 1018, 582), radius=50, fill=ink)
+    draw.ellipse((1054, 352, 1118, 416), fill=ink)
+    draw.rounded_rectangle((1028, 418, 1146, 572), radius=40, fill=ink)
+    draw.line((1015, 470, 1036, 502), fill=gold, width=10)
+    draw.line((1036, 502, 1060, 474), fill=gold, width=10)
+
+    title_font = load_font(92, bold=True)
+    lines = youtube_thumbnail_lines(title, subtitle)
+    if len(lines) == 1:
+        lines.append("慢慢靠近")
+    y = 214
+    for line in lines[:2]:
+        draw.text((62, y), line, font=title_font, fill=white, stroke_width=7, stroke_fill=(0, 0, 0))
+        y += 104
+
+    hook_font = load_font(50, bold=True)
+    hook = "笨拙父亲的温柔"
+    hook_w, _ = text_size(draw, hook, hook_font)
+    draw_centered_label(
+        draw,
+        (62, 470, 62 + hook_w + 86, 548),
+        hook,
+        hook_font,
+        fill=red,
+        text_fill=warm,
+        radius=10,
+        width=0,
+        stroke_width=2,
+        stroke_fill=(80, 0, 0),
+    )
+
+    author_label = clean_label(author, "海明威父子家书")
+    small_font = load_font(34, bold=True)
+    draw.text((66, 592), compact_text(author_label, 16), font=small_font, fill=muted)
+    draw.text((66, 636), "睡前听书 / 30 分钟", font=small_font, fill=gold)
+
+    image.save(output_path, quality=96, subsampling=0)
+    return output_path
+
+
 def render_placeholder_background(video_dir: Path, title: str) -> Path:
     ffmpeg = shutil.which("ffmpeg")
     if not ffmpeg:
@@ -1849,6 +2230,14 @@ def common_video_encode_args(output: Path) -> list[str]:
 
 
 def cinematic_motion_profile(index: int, frames: int, is_cover: bool = False) -> dict[str, str]:
+    if not CINEMATIC_ENABLE_MOTION:
+        return {
+            "name": "stable_still",
+            "zoom": "1.0",
+            "x": "0",
+            "y": "0",
+        }
+
     den = str(max(1, frames - 1))
     if is_cover:
         return {
@@ -1869,14 +2258,16 @@ def cinematic_motion_profile(index: int, frames: int, is_cover: bool = False) ->
 def cinematic_filter_chain(index: int, duration: float) -> tuple[str, str]:
     frames = max(1, int(round(duration * CINEMATIC_FPS)))
     profile = cinematic_motion_profile(index, frames, is_cover=index == 0)
-    motion_filter = (
-        f"zoompan=z='{profile['zoom']}':d={frames}:"
-        f"x='{profile['x']}':y='{profile['y']}':s={WIDTH}x{HEIGHT}:fps={CINEMATIC_FPS},"
-    )
+    if CINEMATIC_ENABLE_MOTION:
+        motion_filter = (
+            f"zoompan=z='{profile['zoom']}':d={frames}:"
+            f"x='{profile['x']}':y='{profile['y']}':s={WIDTH}x{HEIGHT}:fps={CINEMATIC_FPS},"
+        )
+    else:
+        motion_filter = f"fps={CINEMATIC_FPS},"
     treatment = (
         "eq=brightness=0.035:saturation=1.03:contrast=1.02,"
         "unsharp=5:5:0.28:3:3:0.08,"
-        "noise=alls=1:allf=t+u,"
     )
     return motion_filter + treatment, profile["name"]
 
@@ -2192,6 +2583,11 @@ def main() -> int:
     parser.add_argument("--force-aeneas", action="store_true")
     parser.add_argument("--audio-subtitle-only", action="store_true")
     parser.add_argument("--visual-assets-only", action="store_true")
+    parser.add_argument("--subtitles-only", action="store_true")
+    parser.add_argument("--subtitle-reference")
+    parser.add_argument("--subtitle-output-name", default="subtitles_ai_test.txt")
+    parser.add_argument("--subtitle-max-input-chars", type=int, default=0)
+    parser.add_argument("--subtitle-batch-chars", type=int, default=0)
     parser.add_argument("--controlled-programmatic-visuals", action="store_true")
     parser.add_argument("--ignore-existing-visual-assets", action="store_true")
     args = parser.parse_args()
@@ -2222,6 +2618,138 @@ def main() -> int:
     output_stem = safe_output_name(extract_book_title(title, epub.stem) or epub.stem, safe_stem(epub))
     source_audio_target = video_dir / f"{output_stem}.mp3"
     prepared_audio_target = video_dir / f"{output_stem}_video_mix.mp3"
+
+    if args.subtitles_only:
+        reference_file = Path(args.subtitle_reference) if args.subtitle_reference else None
+        lines, report = generate_chinese_subtitles_with_ai(
+            material_root,
+            reference_file,
+            max_input_chars=max(0, args.subtitle_max_input_chars),
+            batch_chars=max(0, args.subtitle_batch_chars),
+        )
+        output_name = args.subtitle_output_name.strip() or "subtitles_ai_test.txt"
+        subtitle_output = material_root / output_name
+        subtitle_output.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        report["subtitleOutput"] = str(subtitle_output)
+        report_file = material_root / f"{Path(output_name).stem}_report.json"
+        report_file.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+        result = {
+            "materialDir": str(material_root),
+            "subtitleOutput": str(subtitle_output),
+            "report": str(report_file),
+            "lineCount": len(lines),
+            "referenceSimilarity": report.get("referenceSimilarity"),
+            "subtitlesOnly": True,
+        }
+        print(json.dumps(result, ensure_ascii=False))
+        return 0
+
+    if args.visual_assets_only:
+        manifest = video_dir / "pipeline_manifest.json"
+        header_duration_ms = HEADER_AUDIO_DURATION_MS
+        header_seconds = header_duration_ms / 1000.0
+        duration_ms = audio_manifest_expected_duration(material_root) or 30 * 60 * 1000
+        subtitle_lines = load_chinese_subtitle_lines(material_root)
+        events = build_subtitle_events(subtitle_lines, duration_ms, 0) if subtitle_lines else []
+        if args.ignore_existing_visual_assets:
+            content_images, visual_source_dir, visual_source_kind = [], None, "none"
+        else:
+            content_images, visual_source_dir, visual_source_kind = migrate_visual_assets(material_root, video_dir)
+        if not content_images and args.controlled_programmatic_visuals:
+            content_images, visual_source_dir, visual_source_kind = generate_controlled_programmatic_assets(
+                epub,
+                material_root,
+                video_dir,
+            )
+        if not content_images:
+            try:
+                content_images, visual_source_dir, visual_source_kind = generate_whiteboard_skill_assets(
+                    video_dir,
+                    material_root,
+                    title,
+                    description,
+                    events,
+                )
+            except Exception:
+                if not args.allow_placeholder_visuals:
+                    raise
+                content_images = [render_placeholder_background(video_dir, title)]
+                visual_source_dir = video_dir
+                visual_source_kind = "explicit_placeholder_visuals"
+        cover = render_cover_image(
+            video_dir,
+            content_images[0] if content_images else None,
+            title,
+            subtitle_label,
+            author,
+            epub.stem,
+            cover_kicker,
+        )
+        visual_segments = build_content_visual_segments(
+            content_images,
+            duration_ms,
+            header_duration_ms,
+            events,
+        )
+        visual_story_plan = video_dir / "visual_story_plan.json"
+        visual_timeline = video_dir / "visual_timeline.json"
+        write_visual_story_plan(
+            visual_story_plan,
+            title,
+            description,
+            visual_segments,
+            visual_source_kind,
+        )
+        build_visual_timeline(
+            visual_timeline,
+            cover,
+            content_images,
+            duration_ms,
+            visual_source_dir,
+            visual_source_kind,
+            header_duration_ms,
+            visual_segments,
+        )
+        result = {
+            "materialDir": str(material_root),
+            "pipelineManifest": str(manifest),
+            "hardSubtitleManifest": None,
+            "hardSubtitleSrt": None,
+            "subtitleTiming": "visual_assets_only",
+            "subtitleManifest": None,
+            "narrationAudioForVideo": None,
+            "narrationAudioWithoutHeader": None,
+            "headerAudio": None,
+            "sourceAudio": None,
+            "sourceAudioKind": None,
+            "expectedSourceAudioDurationMs": None,
+            "sourceAudioDurationMs": None,
+            "narrationAudioWithoutHeaderDurationMs": None,
+            "headerAudioDurationMs": header_duration_ms,
+            "narrationAudioForVideoDurationMs": None,
+            "coverSeconds": header_seconds,
+            "subtitleCount": len(events),
+            "stretchRatio": 1.0,
+            "subtitleAlignmentAudio": None,
+            "elapsedSeconds": 0.0,
+            "audioSubtitleOnly": False,
+            "cover": str(cover),
+            "background": str(content_images[0]) if content_images else None,
+            "visualAssetsDir": str(visual_source_dir) if visual_source_dir else None,
+            "visualSourceKind": visual_source_kind,
+            "visualAssetCount": len(content_images),
+            "visualStoryPlan": str(visual_story_plan),
+            "visualTimeline": str(visual_timeline),
+            "noSubtitleVideo": None,
+            "hardSubtitleVideo": None,
+            "backgroundMusic": None,
+            "noSubtitleVideoDurationMs": None,
+            "videoDurationMs": None,
+            "visualAssetsOnly": True,
+        }
+        manifest.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+        print(json.dumps(result, ensure_ascii=False))
+        return 0
 
     source_audio, source_audio_kind, expected_source_audio_duration_ms = select_narration_source_audio(
         material_root,

@@ -57,7 +57,7 @@
 
 界面字体配置保存在 `settings.uiProfile`，包括 `menuFontFamily`、`menuFontSize`、`contentFontFamily` 和 `contentFontSize`。配置页“基础配置”允许分别设置左侧菜单字体和页面内容字体；默认菜单字号为 `13px`，内容字号为 `12px`。前端通过 CSS 变量 `--menu-font-family`、`--menu-font-size`、`--content-font-family` 和 `--content-font-size` 应用配置，页面表格、配置项和步骤跟踪内容默认跟随内容字体。
 
-流水线跳过策略保存在 `settings.pipelineProfile`，包括 `skipExistingMaterials`、`skipExistingAudio` 和 `skipExistingVideo`。三项默认均为 `true`，配置页显示为“已有则跳过：是”；选择“否，每次重新生成”时，对应阶段不再因为已有素材包、音频或视频产物而跳过。任务列表列名使用 `素材进度`、`音频进度`、`视频进度`，状态列只显示阶段状态，进度列单独显示百分比。
+流水线跳过策略保存在 `settings.pipelineProfile`，包括 `skipExistingText`、`skipExistingImages`、`skipExistingAudio`、`skipExistingSubtitles`、`skipExistingVideo` 和 `skipExistingPublish`。六项默认均为 `true`，配置页显示为“已有则跳过：是”；选择“否，每次重新生成”时，对应阶段不再因为已有产物而跳过。`skipExistingMaterials` 作为旧版兼容字段保留，并与 `skipExistingText` 同步。任务列表列名使用 `素材进度`、`音频进度`、`视频进度`，状态列只显示阶段状态，进度列单独显示百分比。
 
 流水线任务列表必须优先保证任务名称可读。列间距控制在 `2-4px`，当前实现为 `2px`；固定列使用窄列宽，任务列使用弹性宽度并设置最小宽度。视频状态不能只看是否存在视频文件：如果视频标记为成功，但视频时长明显短于音频时长，列表显示“异常”，视频进度显示 `-`，避免出现音频和视频都显示“已完成 / 100%”但实际产物明显不一致的误导。
 
@@ -856,6 +856,8 @@ a-book-in-30-minutes/src-tauri/target/x86_64-pc-windows-gnu/release/bundle/nsis
 ## 2026-06-24 视频管线修正规则
 
 - 视频片头封面段必须保持静态渲染，不使用 `zoompan` 或任何逐帧缩放表达式，避免前 3 秒封面文字和矩形元素出现抖动。
+- 2026-07-02 减抖更新：ffmpeg 直出视频默认对封面和内容图都使用稳定静帧，不再默认启用 `zoompan` 缓慢缩放/平移，也移除逐帧随机噪声滤镜，避免小数坐标取整和时间噪声导致文字、线条、边框出现像素级抖动。需要保留电影感推拉镜头时，可在命令环境中显式设置 `ABOOK_CINEMATIC_MOTION=1`，此时才启用旧的运动配置。
+- 2026-07-02 发布记录：版本号同步递增到 `0.1.122`，包含上述视频减抖优化。本次按用户要求只发布代码版本，不生成新的 Windows 安装包，因此不会新增安装包产物或更新安装包下载资产。
 - 视频流水线必须使用固定 `header.mp3` 作为 3 秒无声片头音频。开发环境固定路径为 `a-book-in-30-minutes/tmp/assets/header.mp3`；打包或绿色版运行时也必须在 exe 同级或资源目录保留一份。脚本缺失该文件时可用 ffmpeg 生成同规格无声音频。
 - 视频生成前必须把 `header.mp3` 前置拼接到旁白音频，输出 `书名.mp3` 作为最终视频旁白音频；视频渲染使用这个已带片头的音频。aeneas 对齐使用原始旁白音频，再在写出 SRT/ASS/LRC 时统一增加精确 `3000ms` 偏移，避免 3 秒静音片头误吸收第一句字幕。
 - 双语硬字幕时间轴必须优先由 aeneas 基于原始旁白音频重新对齐生成，并在输出阶段补齐片头偏移；人工估算字幕只能作为缺少 aeneas 环境时的失败前占位，不能标记为最终成片。
@@ -1234,3 +1236,251 @@ D:\books\理想国译丛系列（74册）整理截止2026.018\001没有宽恕就
 - 新增 `get_material_task` 命令，可按 path 读取单条任务真实状态。
 - 首页 `loadStoredTasks` 在分类列表缺少当前输入路径时，按 path 补读真实任务并插入列表。
 - 如果数据库确实没有当前任务，才使用全 pending 占位，避免步骤页跳到旧任务。
+## 0.1.101 字幕翻译断点缓存
+
+用户要求通过桌面快捷方式对《亲爱的老爸》重新端到端生成素材、音频、视频和发布材料。排查发现当前视频准备阶段卡在中英双语字幕生成：中文 aeneas 对齐已经完成，但 895 条字幕需要调用 Codex 中转逐批翻译为英文，旧脚本在长时间翻译过程中没有落盘进度，进程中断后会从头开始，界面上也容易表现为 `VID_PREP` 长时间无进展。
+
+本版本调整 `tmp/book_video_pipeline.py`：
+
+- AI 字幕翻译每批完成后写入 `translation_cache.partial.json`。
+- 再次运行时自动从 partial cache 续跑，避免重新翻译已完成字幕。
+- 完整翻译完成后写入 `translation_cache.json`，并删除 partial cache。
+- stderr 输出 `Translated subtitle cues 当前/总数`，便于日志和后续 UI 进度排查。
+
+本地验证：使用《亲爱的老爸》输出目录，以 `ABOOK_TRANSLATE_BATCH_SIZE=5` 运行视频素材准备流程，5 分钟内从 0 翻译到 230/895，并生成 `translation_cache.partial.json`，证明 Codex 中转配置可用且断点缓存有效。
+
+## 0.1.102 恢复真实任务刷新模型
+
+用户反馈 0.1.101 中新增 EPUB 后列表首屏只有当前 1 条、切换菜单后历史任务才回来，步骤跟踪没有及时显示素材解析进度，日志页看起来也没有持续刷新。回看 2026-06-22 日报和 0.1.49-0.1.53 历史实现后确认：正确模型应以 SQLite `material_tasks` 为唯一任务真相，前端只展示真实入库任务；日志按主 trace 聚合子 trace；视频后台启动后前端释放 busy，真实进度从任务表和操作日志读取。
+
+本版本恢复这一模型：
+
+- 流水线页扫描结果与历史任务列表合并，不再用单文件扫描结果覆盖整个任务列表。
+- 当前输入路径只有在后端 `get_material_task` 读到真实任务时才插入列表，不再构造前端假 pending 任务。
+- 步骤跟踪页只展示真实任务，不再因为输入框路径构造全 pending 占位。
+- 操作日志页保留 2 秒刷新，并在用户停留底部时自动跟随最新日志，同时显示最后刷新时间和日志条数。
+
+## 0.1.103 修复素材流转显示与素材日志乱码
+
+用户选择《亲爱的老爸》后点击【素材】，日志显示后端实际已启动：09:46:32 读取 EPUB，09:46:33 发起 AI 请求，主请求 226 秒后返回，09:51:11 完成素材生成并导出。但 UI 表现仍像没有正常流转：步骤页可能展示输入框默认路径而非选中任务，前端初始状态短暂显示 0%，后端素材生成 message 中还残留乱码。
+
+本版本调整：
+
+- 步骤跟踪页当前任务选择改为优先使用用户在流水线列表中选中的任务，其次才使用输入框路径。
+- 点击【素材】后前端立即写入 `generating / 10% / 正在准备素材生成任务`，避免长时间 AI 请求期间被误判为未启动。
+- 清理素材生成主链路运行时文案，覆盖任务准备、源书读取、AI 请求、AI 返回、旁白修复、字幕切分、素材导出等阶段，避免 `material_tasks.message` 和 `operate_log.message` 继续写入 mojibake。
+- 本轮《亲爱的老爸》素材生成成功，输出旁白 7629 个汉字、字幕 918 行，素材包位于书籍目录的 `output`。
+
+## 0.1.104 历史任务消息净化
+
+0.1.103 修复了新写入的素材生成 message，但本机数据库中仍有旧版本写入的乱码 `message`、`audio_message`、`video_message`。这些旧数据会在读取历史任务时继续显示到流水线列表和步骤页。
+
+本版本在 `material_task_from_row` 读取任务时增加 message 净化：如果检测到 mojibake，则按阶段替换为可读文案。该处理只影响展示层读取结果，不会自动续跑历史任务，也不会修改任务状态。
+
+## 0.1.105 修复后台视频任务被展示层重置
+
+用户点击【视频】后，后端已经写入 `video_status=generating / video_progress=45` 并启动 Python 视频流水线，但前端轮询 `get_material_tasks` 时，后端展示层会把所有 `generating` 状态改成 `pending`，这是历史“启动时不自动续跑未完成任务”的保护逻辑，误伤了当前正在运行的视频后台任务。
+
+本版本调整：
+
+- `get_material_tasks` 和 `get_material_task` 读取任务时不再把 `generating` 改成 `pending`，只展示数据库真实状态。
+- 防止自动续跑仍由前端按钮触发模型保证：应用启动、页面加载和读取历史列表只展示状态，不主动调用素材、音频、视频或发布任务。
+- 扩展乱码检测，覆盖旧库中常见 `闂`、`瀵` 等 mojibake 片段，减少旧任务说明污染步骤页。
+
+## 0.1.106 六阶段按钮与 A-F 步骤编码
+
+用户要求流水线顶部阶段改成 6 个横向按钮：【文本】、【图片】、【音频】、【字幕】、【视频】、【发布】，并同步把步骤跟踪编码改成 `A-01`、`A-02`、`B-01`、`B-02` 到 `F-01` 的分组格式。
+
+本版本调整：
+
+- 首页阶段按钮改为六阶段并横向一字排开，按钮宽度固定，窄视图下允许横向滚动但不换成两行。
+- 【文本】承接原素材生成；【音频】承接原音频生成；【视频】承接原视频生成；【发布】承接发布资料生成。
+- 【图片】和【字幕】先接入现有视频流水线入口，因为当前图片、字幕由视频流水线统一生成；后续后端拆出独立图片/字幕命令时，前端阶段入口已就位。
+- 步骤跟踪改为：A=文本、B=图片、C=音频、D=字幕、E=视频、F=发布。
+
+## 0.1.107 配置页同步六阶段跳过策略
+
+用户指出设置页里的“已有则跳过”配置仍然只有原来的 3 项，和首页 6 个阶段按钮不一致。
+
+本版本调整：
+
+- 设置页跳过配置改为 6 项：文本、图片、音频、字幕、视频、发布资料。
+- 前端 `PipelineProfile`、默认配置、Tauri 设置模型同步扩展 6 个字段。
+- 本地配置读取时会合并默认值，旧 settings.json 缺少新字段时仍能正常显示和保存。
+- `skipExistingMaterials` 作为旧版兼容字段保留，和 `skipExistingText` 双向同步；首页文本阶段判断优先使用 `skipExistingText`，旧字段只作为后备。
+
+## 0.1.108 图片和字幕状态拆分
+
+用户反馈 0.1.107 虽然已有六个阶段按钮，但任务列表仍只有素材、音频、视频三段状态；点击【图片】时还会进入视频流水线前置逻辑并补生成音频。
+
+本版本调整：
+
+- `MaterialFile` 和 SQLite `material_tasks` 增加图片阶段字段：`imageStatus`、`imageProgress`、`imageOutputDir`、`imageMessage`。
+- 增加字幕阶段字段：`subtitleStatus`、`subtitleProgress`、`subtitleFile`、`subtitleMessage`。
+- 首页任务列表新增“图片 / 图片进度 / 字幕 / 字幕进度”四列，让六阶段状态可见。
+- 【图片】按钮只补文本素材，不再补音频；后端收到 `pipelineStage=image` 后给脚本传 `--visual-assets-only`，只生成封面、分镜图、视觉计划和时间线，不渲染音频与视频。
+- 【字幕】阶段仍允许补音频，因为 aeneas 对齐需要旁白音频作为时间轴输入。
+- 修复 `material_tasks` 新建表和迁移中的默认分类乱码，统一为“半小时听完一本书”。
+
+## 0.1.109 图片阶段提前退出字幕流程
+
+用户点击【图片】后，列表显示图片失败。排查任务表发现 `imageMessage` 写入的是字幕翻译进度，说明 `--visual-assets-only` 参数虽然传给了脚本，但脚本分支位于音频准备、aeneas 对齐和英文字幕翻译之后，图片阶段仍会先进入字幕流程。
+
+本版本调整：
+
+- `book_video_pipeline.py` 在解析素材包后立即处理 `--visual-assets-only`。
+- 图片阶段使用 `subtitles.txt` 和音频 manifest 的预估时长构造视觉分段，不再准备音频、不再执行 aeneas、不再翻译英文字幕。
+- 图片阶段仍输出 `cover.jpg`、`controlled_programmatic_visuals`、`visual_story_plan.json`、`visual_timeline.json` 和 `pipeline_manifest.json`。
+
+## 0.1.110 图片按钮目标选择修复
+
+用户想重新生成图片时发现【图片】按钮灰掉，并且状态提示仍在“补生成文本”。根因是图片、字幕、视频、发布按钮共用 `getVideoPipelineTarget`，目标筛选一直要求 `shouldGenerateVideo`；同时旧任务虽然已经有 `materialOutputDir`，但 `status=generating` 会触发文本补生成。
+
+本版本调整：
+
+- 按阶段拆分目标判断：图片按钮使用 `shouldGenerateImage`，字幕按钮使用 `shouldGenerateSubtitle`，视频按钮才使用 `shouldGenerateVideo`。
+- 发布按钮不再被视频是否待生成限制。
+- `needsMaterialGeneration` 看到已有 `materialOutputDir` 时不再强制补文本，避免旧状态卡住图片重生成。
+- 已对《天会亮的，你有我呢》重新生成一版图片，输出 8 张 scene 图、封面、contact sheet 和 visual timeline。
+
+## 0.1.111 文本阶段字幕语义分句
+
+用户指出 `subtitles.txt` 不能只按固定长度硬切。旧逻辑会把“完美”拆成“完 / 美”，把“的书”“你有我呢”等短语拆成孤立行，影响后续字幕、图片分镜和视频节奏。
+
+本版本调整：
+
+- AI 素材生成 JSON 增加可选 `subtitles` 字段。
+- 文本生成提示词要求模型先写完并理解最终 `narration`，再按语义、朗读停顿和短句完整性生成 `subtitles` 数组。
+- 提示词明确要求字幕行通常不超过 16-20 个中文，长句只在语义边界拆为两句。
+- 提示词明确禁止机械拆分短书名、人名、固定短语，例如“完美”“的书”“你有我呢”“天会亮的，你有我呢”。
+- 后端优先使用 AI 返回的语义字幕；如果缺失或覆盖明显不足，再用本地分句兜底。
+- 本地兜底从“逗号也断 + 14 字硬切”改为：句号/问号/叹号/分号优先断句，逗号等软停顿只在 16 字以上才断；超长句按 20 字上限柔性拆分，并合并 1-5 字短尾，避免孤立短词。
+- 视频脚本中的 Python 兜底分句同步同一策略，避免旧素材被二次硬切。
+
+## 字幕策略演进记录
+
+字幕生成必须作为可持续演进的独立策略维护，每次改动都要记录目标、失败案例、规则变化和验证方式。
+
+当前策略：
+
+要什么：
+
+- 优先让 AI 在理解最终 `narration` 后输出 `subtitles` 数组，而不是只在后端机械切分。
+- `subtitles.txt` 必须保留自然中文标点，包括逗号、句号、问号、叹号、书名号和必要停顿。
+- 每行是一句语义完整的朗读短句，通常 16-22 个中文字符含标点。
+- 长句只在标点或清晰语义边界拆分，不拆固定短语、短书名、人名和短词。
+- 字幕要像人自然朗读时会停顿的地方：一个画面、一口气、一层意思。
+- 同一段情绪或动作可以拆成两句，但每句都必须单独成立。
+
+不要什么：
+
+- 不要为了凑长度硬切短词、短语、书名、人名。
+- 不要把“完美”“希望”“的书”“你有我呢”这类短语拆成孤立行。
+- 不要把标点全部删除，字幕需要保留自然阅读节奏。
+- 不要出现大量 1-5 个字的孤行，除非它本身是刻意的短句。
+- 不要让一行塞入多个无关分句，导致字幕太长、读不完。
+- 不要为了断句改变原文含义、增删内容或把前后句拼成新意思。
+
+失败案例库：
+
+- 明确失败案例：“完 / 美”、“的书”、“你有我呢”、“天会亮的 / 你有我呢”、“三十三 / 个四季小故事”。
+- 后端本地兜底只用于模型未返回字幕或字幕覆盖明显不足时，兜底规则必须比 AI 规则更保守。
+
+后续每次字幕相关问题都要在本节追加一版，不能覆盖历史判断。
+
+## 0.1.112 字幕保留标点与旁白总长度约束
+
+用户指出 0.1.111 生成的 `narration.txt` 总字符达到 9000+，体感过长；同时 `subtitles.txt` 被去掉标点，断句仍然生硬。
+
+本版本调整：
+
+- 默认文本目标从 7000-8300 下调为 6200-7600 中文字，默认提示改为 25-30 分钟听书节奏。
+- 提示词新增总长度约束：`narration.txt` 通常控制在 8200 个总字符以内，避免只按中文字符统计导致文件总长过大。
+- 提示词改为要求字幕保留自然中文标点，不再去标点。
+- 后端 `clean_subtitle_line` 改为只清理首尾空白，不删除逗号、句号、问号、书名号等。
+- Python 视频兜底分句同步保留标点。
+- 旁白长度修复提示词也必须继承同一套字幕规则库，避免第一次生成过长后进入 repair 流程时，又回到机械切分、删除标点或拆碎书名短语。
+- 当前字幕提示词边界分为四层：先理解最终旁白、保留标点和语义短句；明确禁止机械定长切分和孤词孤句；维护失败案例库；用好例子约束模型输出节奏。
+
+## 0.1.114 字幕提示词结构化升级
+
+用户提供了 Gemini 对《天会亮的，你有我呢》第一段字幕断句的参考结果。该结果的优势不是规则更多，而是提示词结构更接近专业任务说明：先设定“资深短视频字幕编辑与治愈系电台文案策划”的角色，再给出任务、技术限制、断句准则和输出示例。
+
+本版本将素材生成提示词和旁白长度修复提示词同步改为结构化字幕提示词：
+
+- `Role`：要求模型以短视频字幕编辑和治愈系深夜电台文案策划身份处理字幕，关注朗读节奏、情绪起伏和呼吸感。
+- `Constraint`：字幕行尽量控制在 18 个中文字符以内，含标点；必须保留自然中文标点；输出仍是 JSON 字符串数组，无时间戳。
+- `Segmentation logic`：优先在标点和语义停顿处断句，长短结合，避免 1-5 字孤行，保护书名、人名、固定短语、数字表达和情绪短句。
+- `What to avoid`：禁止机械按 14、16、18、20 字切分，禁止去标点，禁止把《天会亮的，你有我呢》、“蒲公英”、“三十三个四季小故事”等拆碎。
+- `Output example`：直接引用更接近目标效果的断句样式，例如“今晚要一起读的是，”“一平著绘的《天会亮的，你有我呢》。”“先把灯光调暗一点，”“把白天没有说完的话，”“轻轻放在枕边。”
+
+后续字幕策略继续以该结构为模板演进：新增规则要放入对应栏目，新增失败案例放入 `What to avoid` 或失败案例库，不能把提示词退回散装规则堆叠。
+
+## 0.1.115 独立字幕生成单元测试
+
+用户指出当前 `subtitles.txt` 与 `Gemini.txt` 差异仍然很大，并明确新的流程边界：`narration.txt` 已经生成就不要动；当前只优化 `subtitles.txt`；后续音频会根据字幕生成，因此字幕可以作为更高质量的“字幕成稿”，不必逐字对齐旧旁白音频。
+
+本版本在 `tmp/book_video_pipeline.py` 新增独立字幕测试入口：
+
+- `--subtitles-only`：只读取当前 output 中的 `narration.txt`，生成新的字幕文本，不执行音频、图片、视频流程。
+- `--subtitle-output-name`：指定输出文件名，默认不覆盖原 `subtitles.txt`。
+- `--subtitle-max-input-chars`：只处理前 N 个字符，便于做第一段单元测试。
+- `--subtitle-batch-chars`：按句子边界分批调用 AI，规避中转平台 120 秒 524 超时。
+- 修复 Python 兜底分句中的旧乱码标点表，改用正常中文标点/Unicode 转义，避免再次出现标点识别失败。
+
+本轮对《天会亮的，你有我呢》完成了多轮字幕单测：
+
+- 旧 `subtitles.txt`：552 行、7828 字、平均行长 13.18。
+- `Gemini.txt`：267 行、4009 字、平均行长 14.02。
+- AI 完整分批原稿 `subtitles_ai_full_v2_b1000.txt`：690 行、7133 字、平均行长 9.34，仍偏碎。
+- 后处理合并候选 `subtitles_ai_full_v2_merged.txt`：367 行、6810 字、平均行长 17.56，是当前推荐候选结果，但尚未覆盖原 `subtitles.txt`。
+
+结论：如果以完整 6415 字 `narration.txt` 为输入，候选字幕不可能与 4009 字的 `Gemini.txt` 达到 99% 字符相似；要达到 99%，必须把目标定义为“同长度压缩改写稿”，或直接以 `Gemini.txt` 作为黄金样本覆盖。后续正式接入应用时，应把【字幕】阶段改为独立 AI 字幕成稿流程，先生成候选、展示统计与预览，再由用户确认是否覆盖 `subtitles.txt`。
+
+## 0.1.116 桌面文本阶段字幕标点修复
+
+用户用桌面快捷方式《A Book in 30 Minutes 开发版》生成《亲爱的老爸》后，发现 `output/subtitles.txt` 仍然没有标点，并且出现“信 / 纸”这类错误断句。排查确认桌面文本阶段实际写入 `subtitles.txt` 的 Rust 后端仍使用旧乱码标点表，导致中文 `，。？！；：` 无法被识别，最终退化为按长度硬切。
+
+本版本修复 Rust 文本阶段字幕切分：
+
+- `split_subtitles` 改为保留当前字符后再判断断点，硬断点使用 `。？！；!?;`，软断点使用 `，、：“”‘’`。
+- `best_subtitle_split` 改为使用统一的标点判断函数，移除旧乱码标点表。
+- `normalize_ai_subtitles` 增加标点密度质量门槛：AI 返回字幕如果标点过少，会被视为不可用，自动回退到本地保留标点分句，避免再次写出无标点 `subtitles.txt`。
+- `MAX_SUBTITLE_CHARS` 调整为 24，降低把“信纸”等短词拆开的概率。
+
+已对现有《亲爱的老爸》输出目录执行一次文件级修复：备份旧 `subtitles.txt` 为 `subtitles_before_punctuation_fix_*.txt`，并基于现有 `narration.txt` 重新生成带标点的 `subtitles.txt`。修复后前几行包括“一个名字在信纸上慢慢长大。”，不再拆成“信 / 纸”。
+
+## 2026-07-02 0.1.117 Pipeline Stage Semantics
+
+This version fixes the main pipeline contract for the desktop workflow:
+
+1. Text: generate `narration.txt`, `subtitles.txt`, and material metadata.
+2. Audio: generate narration audio from `subtitles.txt`; it must ensure Text exists first.
+3. Subtitle: generate timed `SRT/ASS` files from `subtitles.txt` plus audio; it must ensure Text and Audio exist first.
+4. Image: generate visual assets from subtitle text and timing context; it must ensure Text exists first and must not generate Audio.
+5. Video: generate video from visual assets, audio, and timed subtitles; it must ensure Text, Audio, and Subtitle exist first.
+6. Publish: generate release/publish materials from the completed task outputs.
+
+Frontend buttons are now six separate actions: Text, Image, Audio, Subtitle, Video, Publish. The Subtitle backend stage maps to `--audio-subtitle-only`, so it only creates timed subtitle files and does not render images or video.
+
+## 2026-07-02 0.1.118 Text Skip Fix
+
+The Text stage skip decision now follows the visible setting `skipExistingText` first and falls back to the legacy `skipExistingMaterials` value only for compatibility. When text skipping is enabled, an existing `materialOutputDir` is treated as sufficient evidence that text assets already exist, so later Video status changes must not force Text regeneration.
+
+The Step Tracking page now reads Image status from `imageStatus/imageProgress`, Subtitle status from `subtitleStatus/subtitleProgress`, and treats Text as complete when a material output directory exists. This prevents Video progress from polluting Image/Subtitle rows and prevents a stale top-level `generating` state from making existing text assets look unfinished.
+
+## 2026-07-02 0.1.120 Background Music and Chinese Status Text
+
+The video pipeline restores background music for generated videos. `toolProfile.backgroundMusicPath` defaults to `D:\04_GitHub\world-cup-issue\a-book-in-30-minutes\music\01-蝴蝶飞呀.mp3`, and `toolProfile.backgroundMusicMode` records whether the UI uses single-track loop or playlist loop. The current renderer passes one background music file to `book_video_pipeline.py`; the Python renderer loops that track and mixes it into the no-subtitle video at low volume. The hard-subtitle video is rendered from the no-subtitle video, so it keeps the same mixed audio.
+
+Visible stage status and the pipeline messages touched by this change must be Chinese. Step status labels render as `成功`、`失败`、`进行中`、`待处理`. Missing text/audio/image/subtitle/video artifact messages are normalized to Chinese when task rows are loaded.
+
+When only updating the desktop shortcut development build, use `pnpm -C a-book-in-30-minutes tauri build --ci --target x86_64-pc-windows-gnu --no-bundle`; this updates the release exe and embeds frontend assets without creating an installer.
+
+## 2026-07-02 配置与跳过逻辑修复设计记录
+
+- 配置持久化统一使用 SQLite：应用配置保存到 `app.db` 的 `app_settings` 表，键名为 `settings`，值为完整 `AppSettings` JSON。`settings.json` 只作为旧版本迁移来源；数据库无配置且旧文件存在时读取一次，写入 SQLite 成功后删除旧文件。
+- 前端点击【图片】【字幕】【视频】等阶段按钮时，先调用后端 `get_settings` 刷新最新配置，再调用 `get_material_task` 刷新当前任务。阶段跳过判断不再依赖页面缓存中的旧任务对象。
+- 文本阶段跳过以归一化后的任务为准：`status=success`、`progress=100` 且 `materialOutputDir` 存在即可跳过，不再因为 `narrationChars` 为空而误触发文本生成。后端读取任务时会根据 `narration.txt` 自动补齐 `narration_chars`。
+- 后端 `material_task_from_row` 会在返回前按磁盘真实产物归一化阶段状态：文本、音频、图片、字幕、视频产物缺失时对应阶段回到 `pending`；已有产物时保持或修正为可跳过状态。
+- 阶段流水线提示必须使用中文；新增或修改的提示优先使用源码安全写法，避免 Windows 控制台编码把中文写成问号或 mojibake。
