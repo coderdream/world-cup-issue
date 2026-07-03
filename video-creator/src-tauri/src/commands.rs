@@ -153,6 +153,7 @@ pub fn run_video_workflow_in_background(
     let args = build_legacy_args(settings, &request);
     let classpath = legacy_classpath(&project_dir);
     let logger = logger.clone();
+    let settings_for_background = settings.clone();
     let command_name = command.to_string();
     let args_text = args.join(" ");
     let sync_episode = request.episode.clone();
@@ -182,7 +183,7 @@ pub fn run_video_workflow_in_background(
                         logger.info("video", "run_workflow", &format!("Background task {command_name} completed."));
                         if command_name == "prepare-sixminutes" {
                             if let Some(episode) = sync_episode.as_deref().filter(|value| !value.trim().is_empty()) {
-                                match sync_jianying_draft(episode) {
+                                match sync_jianying_draft(&settings_for_background, episode) {
                                     Ok(summary) => logger.info("video", "sync_jianying_draft", &summary),
                                     Err(error) => logger.error("video", "sync_jianying_draft", "Failed to sync Jianying draft", error),
                                 }
@@ -855,10 +856,9 @@ struct SrtCue {
     text: String,
 }
 
-fn sync_jianying_draft(episode: &str) -> Result<String, String> {
+fn sync_jianying_draft(settings: &AppSettings, episode: &str) -> Result<String, String> {
     let publish_dir = Path::new(r"D:\0000\video\0001_SixMinutes_Draft");
-    let draft_name = format!("六分钟英语_{}", episode.trim().chars().take(4).collect::<String>());
-    let draft_dir = Path::new(r"D:\03_Software\JianyingPro Drafts").join(draft_name);
+    let draft_dir = resolve_jianying_draft_dir(settings, episode)?;
     if !draft_dir.exists() {
         return Err(format!("剪映草稿目录不存在：{}", draft_dir.display()));
     }
@@ -876,6 +876,42 @@ fn sync_jianying_draft(episode: &str) -> Result<String, String> {
     sync_draft_cover(&draft_dir, &cover_path)?;
     sync_draft_subtitles(&draft_dir, &eng_srt_path, &chn_srt_path)?;
     Ok(format!("已同步剪映草稿封面和字幕：{}", draft_dir.display()))
+}
+
+fn resolve_jianying_draft_dir(settings: &AppSettings, episode: &str) -> Result<PathBuf, String> {
+    let configured = PathBuf::from(settings.jianying_draft_dir.trim());
+    if configured.exists() {
+        return Ok(configured);
+    }
+
+    let root = Path::new(r"D:\03_Software\JianyingPro Drafts");
+    if !root.exists() {
+        return Err(format!("剪映草稿根目录不存在：{}", root.display()));
+    }
+
+    let mut candidates = Vec::new();
+    let trimmed = episode.trim();
+    if trimmed.len() >= 4 {
+        candidates.push(root.join(format!("六分钟英语_{}", &trimmed[..4])));
+    }
+    candidates.push(root.join("六分钟英语_2606"));
+
+    for candidate in candidates {
+        if candidate.exists() {
+            return Ok(candidate);
+        }
+    }
+
+    fs::read_dir(root)
+        .map_err(|error| format!("读取剪映草稿目录失败：{error}"))?
+        .filter_map(Result::ok)
+        .filter(|entry| {
+            entry.file_type().map(|file_type| file_type.is_dir()).unwrap_or(false)
+                && entry.file_name().to_string_lossy().starts_with("六分钟英语_")
+        })
+        .max_by_key(|entry| entry.metadata().and_then(|metadata| metadata.modified()).ok())
+        .map(|entry| entry.path())
+        .ok_or_else(|| "没有找到 六分钟英语_* 剪映草稿".to_string())
 }
 
 fn sync_draft_cover(draft_dir: &Path, cover_path: &Path) -> Result<(), String> {

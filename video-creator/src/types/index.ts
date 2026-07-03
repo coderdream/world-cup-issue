@@ -8,6 +8,7 @@ export interface AppSettings {
   apiKey: string;
   javaProjectDir: string;
   outputDir: string;
+  jianyingDraftDir: string;
   defaultEpisode: string;
   quarkYears: string;
   aiProfile: AiProfile;

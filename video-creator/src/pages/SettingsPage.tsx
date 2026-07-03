@@ -30,6 +30,24 @@ export function SettingsPage() {
     <div className="page">
       <Panel>
         <SectionTitle icon={<Settings size={16} />} title="基础配置" inline />
+        <div className="field-grid">
+          <label className="field">
+            <span>默认课程号</span>
+            <input value={settings.defaultEpisode} onChange={(event) => void updateSettings({ defaultEpisode: event.target.value })} />
+          </label>
+          <label className="field">
+            <span>输出根目录</span>
+            <input value={settings.outputDir} onChange={(event) => void updateSettings({ outputDir: event.target.value })} />
+          </label>
+        </div>
+        <label className="field">
+          <span>旧 Java 项目目录</span>
+          <input value={settings.javaProjectDir} onChange={(event) => void updateSettings({ javaProjectDir: event.target.value })} />
+        </label>
+        <label className="field">
+          <span>剪映固定草稿目录</span>
+          <input value={settings.jianyingDraftDir} onChange={(event) => void updateSettings({ jianyingDraftDir: event.target.value })} />
+        </label>
         <div className="setting-row">
           <div>
             <b>开机启动</b>

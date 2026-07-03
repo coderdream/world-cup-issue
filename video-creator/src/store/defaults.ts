@@ -8,6 +8,7 @@ export const defaultSettings: AppSettings = {
   apiKey: "",
   javaProjectDir: "D:\\04_GitHub\\video-easy-creator",
   outputDir: "D:\\14_LearnEnglish\\6MinuteEnglish",
+  jianyingDraftDir: "D:\\03_Software\\JianyingPro Drafts\\六分钟英语_2606",
   defaultEpisode: "260625",
   quarkYears: "2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025,2026",
   aiProfile: {
