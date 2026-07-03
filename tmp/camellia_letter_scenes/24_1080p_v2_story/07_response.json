@@ -1,0 +1,17 @@
+{
+  "created": 1782661415,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782661414.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs/book_image_1782661414.png",
+      "revised_prompt": "cinematic realistic watercolor book illustration, professional visual for a Chinese 30-minute book-summary video, quiet Kamakura and Izu Oshima atmosphere, Japanese seaside town, camellia flowers, paper letters, fountain pens, warm natural film lighting, detailed environment, emotional healing tone, soft but rich colors, storybook realism, consistent art direction across a 24-image sequence, 16:9, no readable text, no logo, no watermark. Main protagonist: one East Asian woman in her early 30s, shoulder-length black hair, soft cream cardigan, calm tired eyes. Mother: East Asian woman in her late 50s with short grey hair and muted green cardigan, clearly older than the protagonist. Daughter: teenage East Asian girl with school uniform and ponytail, clearly much younger. When a scene includes multiple people, make them different ages, different clothes, different hairstyles, different faces. Scene 07/24, story beat: Wooden box discovery. Composition: dusty storage corner, an old wooden box opened on tatami, bundles of aged letters tied with cord, camellia-pattern cloth, the protagonist kneels and discovers family history. People rule: single protagonist only. Keep this image narratively connected to the nearby subtitle meaning, but do not draw readable words: 这样的片刻极其珍贵鸠子怀念独自生活时的轻盈并不是不爱现在的家而是人在承担许多身份之后依然需要一个不被任何角色占用的角落妻子、母亲、店主、代笔人这些身份都是真实的可在这些名字之外她也只是鸠子她需要听见自己的声音哪怕那声音很小像热红酒蒸汽里一点甜而辛香的气味书名叫《山茶的情书》情书当然是重要的可是这里的",
+      "metrics": {
+        "colors": 28572,
+        "nonBgRatio": 0.984
+      },
+      "elapsedSeconds": 68.56,
+      "model": "Lykon/dreamshaper-8-lcm",
+      "device": "mps"
+    }
+  ]
+}

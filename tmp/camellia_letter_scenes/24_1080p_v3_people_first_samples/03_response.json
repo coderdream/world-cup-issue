@@ -1,0 +1,17 @@
+{
+  "created": 1782663085,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782663085.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs/book_image_1782663085.png",
+      "revised_prompt": "photorealistic cinematic Japanese drama film still, 16:9. A teenage East Asian daughter in school uniform and ponytail stands in a half-open sliding doorway, looking away with guarded emotion. The adult protagonist in cream cardigan is seated deeper inside the room, slightly out of focus. The doorway creates emotional distance. Exactly two people, clearly adult and teenager, no readable text.",
+      "metrics": {
+        "colors": 19010,
+        "nonBgRatio": 0.887
+      },
+      "elapsedSeconds": 77.68,
+      "model": "Lykon/dreamshaper-8-lcm",
+      "device": "mps"
+    }
+  ]
+}

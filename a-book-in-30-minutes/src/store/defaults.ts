@@ -23,9 +23,9 @@ export const defaultSettings: AppSettings = {
     categoryName: "半小时听完一本书",
     categories: ["半小时听完一本书", "睡前听完一本书", "A Book in 30 Minutes"],
     language: "zh-CN",
-    targetMinChars: 7000,
-    targetMaxChars: 8300,
-    extraDirection: "睡前听书风格，温柔、克制、有陪伴感。旁白目标为 30-35 分钟，配合 0% 原速语音，最佳约 7600 个中文字；标题和简介服务于 YouTube 中文频道。"
+    targetMinChars: 6200,
+    targetMaxChars: 7600,
+    extraDirection: "睡前听书风格，温柔、克制、有陪伴感。旁白目标为 25-30 分钟，配合 0% 原速语音，最佳约 6800 个中文字；标题和简介服务于 YouTube 中文频道。"
   },
   speechProfile: {
     provider: "azure_microsoft",
@@ -39,7 +39,9 @@ export const defaultSettings: AppSettings = {
     pitch: "+0Hz"
   },
   toolProfile: {
-    ffmpegPath: ""
+    ffmpegPath: "",
+    backgroundMusicMode: "single",
+    backgroundMusicPath: "D:\\04_GitHub\\world-cup-issue\\a-book-in-30-minutes\\music\\01-蝴蝶飞呀.mp3"
   },
   uiProfile: {
     menuFontFamily: "\"Microsoft YaHei UI\", \"Microsoft YaHei\", \"PingFang SC\", \"Noto Sans SC\", \"Segoe UI\", Arial, sans-serif",
@@ -49,7 +51,11 @@ export const defaultSettings: AppSettings = {
   },
   pipelineProfile: {
     skipExistingMaterials: true,
+    skipExistingText: true,
+    skipExistingImages: true,
     skipExistingAudio: true,
-    skipExistingVideo: true
+    skipExistingSubtitles: true,
+    skipExistingVideo: true,
+    skipExistingPublish: true
   }
 };

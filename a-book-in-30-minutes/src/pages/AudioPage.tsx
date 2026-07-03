@@ -1,12 +1,12 @@
 import { ListChecks } from "lucide-react";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Panel, SectionTitle } from "@/pages/primitives";
 import { frameworkApi } from "@/services/frameworkApi";
 import { useAppStore } from "@/store/useAppStore";
-import type { MaterialFile } from "@/types";
+import type { MaterialFile, MaterialTaskStep } from "@/types";
 
 type StepStatus = "PENDING" | "RUNNING" | "SUCCESS" | "FAILED";
-type StageKey = "material" | "audio" | "video";
+type StageKey = "text" | "image" | "audio" | "subtitle" | "video" | "publish";
 type TaskStatus = MaterialFile["status"];
 
 interface StepRow {
@@ -15,6 +15,7 @@ interface StepRow {
   name: string;
   status: StepStatus;
   progress: number;
+  duration: string;
   detail: string;
 }
 
@@ -29,22 +30,23 @@ interface StepSpec {
 const text = (value: string) => value;
 
 const STEP_SPECS: StepSpec[] = [
-  { code: "MAT_A", name: text("\u751f\u6210 A\uff1a\u89e3\u6790\u4e66\u7c4d"), stage: "material", threshold: 10, detail: sourceDetail },
-  { code: "MAT_B", name: text("\u751f\u6210 B\uff1a\u6807\u9898\u7b80\u4ecb\u6807\u7b7e"), stage: "material", threshold: 35, detail: aiMaterialDetail },
-  { code: "MAT_C", name: text("\u751f\u6210 C\uff1a\u65c1\u767d\u6587\u672c"), stage: "material", threshold: 60, detail: narrationDetail },
-  { code: "MAT_D", name: text("\u751f\u6210 D\uff1a\u5b57\u5e55\u6587\u672c"), stage: "material", threshold: 75, detail: subtitleMaterialDetail },
-  { code: "MAT_SAVE", name: text("\u4fdd\u5b58\u7d20\u6750\u5305"), stage: "material", threshold: 100, detail: materialDirDetail },
-  { code: "AUD_TEXT", name: text("\u8bfb\u53d6\u65c1\u767d\u6587\u672c"), stage: "audio", threshold: 10, detail: audioTextDetail },
-  { code: "AUD_SPLIT", name: text("\u62c6\u5206\u97f3\u9891\u7247\u6bb5"), stage: "audio", threshold: 35, detail: audioChunkDetail },
-  { code: "AUD_TTS", name: text("\u751f\u6210\u8bed\u97f3\u7247\u6bb5"), stage: "audio", threshold: 85, detail: audioChunkDetail },
-  { code: "AUD_MERGE", name: text("\u5408\u6210\u6700\u7ec8\u97f3\u9891"), stage: "audio", threshold: 100, detail: audioFileDetail },
-  { code: "VID_PREP", name: text("\u51c6\u5907\u89c6\u9891\u6d41\u6c34\u7ebf"), stage: "video", threshold: 20, detail: videoMessageDetail },
-  { code: "VID_COVER", name: text("\u751f\u6210\u5c01\u9762"), stage: "video", threshold: 35, detail: coverDetail },
-  { code: "VID_IMAGES", name: text("\u751f\u6210\u56fe\u7247"), stage: "video", threshold: 45, detail: imageDetail },
-  { code: "VID_SUBTITLE", name: text("\u751f\u6210\u5b57\u5e55"), stage: "video", threshold: 60, detail: subtitleDetail },
-  { code: "VID_NO_SUB", name: text("\u751f\u6210\u65e0\u5b57\u5e55\u89c6\u9891"), stage: "video", threshold: 75, detail: noSubtitleVideoDetail },
-  { code: "VID_HARD_SUB", name: text("\u751f\u6210\u786c\u5b57\u5e55\u89c6\u9891"), stage: "video", threshold: 90, detail: hardSubtitleVideoDetail },
-  { code: "VID_REGISTER", name: text("\u767b\u8bb0\u89c6\u9891\u4ea7\u7269"), stage: "video", threshold: 100, detail: videoFileDetail }
+  { code: "A-01", name: text("文本：解析书籍"), stage: "text", threshold: 10, detail: sourceDetail },
+  { code: "A-02", name: text("文本：标题简介标签"), stage: "text", threshold: 35, detail: aiMaterialDetail },
+  { code: "A-03", name: text("文本：旁白文稿"), stage: "text", threshold: 70, detail: narrationDetail },
+  { code: "A-04", name: text("文本：保存素材包"), stage: "text", threshold: 100, detail: materialDirDetail },
+  { code: "B-01", name: text("图片：生成封面"), stage: "image", threshold: 35, detail: coverDetail },
+  { code: "B-02", name: text("图片：生成分镜图"), stage: "image", threshold: 45, detail: imageDetail },
+  { code: "C-01", name: text("音频：读取旁白"), stage: "audio", threshold: 10, detail: audioTextDetail },
+  { code: "C-02", name: text("音频：拆分片段"), stage: "audio", threshold: 35, detail: audioChunkDetail },
+  { code: "C-03", name: text("音频：生成语音"), stage: "audio", threshold: 85, detail: audioChunkDetail },
+  { code: "C-04", name: text("音频：合成音频"), stage: "audio", threshold: 100, detail: audioFileDetail },
+  { code: "D-01", name: text("字幕：生成中文字幕"), stage: "subtitle", threshold: 55, detail: subtitleMaterialDetail },
+  { code: "D-02", name: text("字幕：生成双语字幕"), stage: "subtitle", threshold: 65, detail: subtitleDetail },
+  { code: "E-01", name: text("视频：准备流水线"), stage: "video", threshold: 20, detail: videoMessageDetail },
+  { code: "E-02", name: text("视频：生成无字幕母版"), stage: "video", threshold: 75, detail: noSubtitleVideoDetail },
+  { code: "E-03", name: text("视频：生成硬字幕版"), stage: "video", threshold: 90, detail: hardSubtitleVideoDetail },
+  { code: "E-04", name: text("视频：登记视频产物"), stage: "video", threshold: 100, detail: videoFileDetail },
+  { code: "F-01", name: text("发布：生成发布资料"), stage: "publish", threshold: 100, detail: publishDetail }
 ];
 
 export function AudioPage() {
@@ -54,12 +56,21 @@ export function AudioPage() {
   const selectedTaskPath = useAppStore((state) => state.materialsWorkbench.selectedTaskPath);
   const scanResult = useAppStore((state) => state.materialsWorkbench.scanResult);
   const updateWorkbench = useAppStore((state) => state.updateMaterialsWorkbench);
+  const [persistedSteps, setPersistedSteps] = useState<MaterialTaskStep[]>([]);
+  const [nowMs, setNowMs] = useState(() => Date.now());
 
   useEffect(() => {
     let canceled = false;
     async function load() {
       try {
-        const result = await frameworkApi.getMaterialTasks({ category: settings.materialProfile.categoryName });
+        const categoryResult = await frameworkApi.getMaterialTasks({ category: settings.materialProfile.categoryName });
+        const normalizedRequestPath = useAppStore.getState().materialsWorkbench.request.epubPath.trim();
+        const requestTask = normalizedRequestPath && !categoryResult.files.some((file) => file.path === normalizedRequestPath)
+          ? await frameworkApi.getMaterialTask({ path: normalizedRequestPath })
+          : null;
+        const result = requestTask
+          ? { ...categoryResult, files: [requestTask, ...categoryResult.files] }
+          : categoryResult;
         if (!canceled) {
           updateWorkbench({ scanResult: result });
         }
@@ -77,7 +88,36 @@ export function AudioPage() {
   }, [settings.materialProfile.categoryName, updateWorkbench]);
 
   const currentTask = useMemo(() => pickCurrentTask(scanResult?.files ?? [], requestPath, selectedTaskPath), [scanResult?.files, requestPath, selectedTaskPath]);
-  const steps = useMemo(() => buildStepRows(currentTask), [currentTask]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNowMs(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    let canceled = false;
+    async function loadSteps() {
+      if (!currentTraceId && !currentTask?.path) {
+        setPersistedSteps([]);
+        return;
+      }
+      try {
+        const result = await frameworkApi.getMaterialTaskSteps({ traceId: currentTraceId || undefined, path: currentTask?.path });
+        if (!canceled) setPersistedSteps(result.steps);
+      } catch {
+        if (!canceled) setPersistedSteps([]);
+      }
+    }
+
+    void loadSteps();
+    const timer = window.setInterval(() => void loadSteps(), 2000);
+    return () => {
+      canceled = true;
+      window.clearInterval(timer);
+    };
+  }, [currentTask?.path, currentTraceId]);
+
+  const steps = useMemo(() => buildStepRows(currentTask, persistedSteps, nowMs), [currentTask, nowMs, persistedSteps]);
   const successCount = steps.filter((step) => step.status === "SUCCESS").length;
   const failedCount = steps.filter((step) => step.status === "FAILED").length;
   const runningCount = steps.filter((step) => step.status === "RUNNING").length;
@@ -106,6 +146,7 @@ export function AudioPage() {
             <span>{text("\u6b65\u9aa4\u540d\u79f0")}</span>
             <span>{text("\u72b6\u6001")}</span>
             <span>{text("\u8fdb\u5ea6")}</span>
+            <span>{text("耗时")}</span>
             <span>{text("\u8bf4\u660e")}</span>
           </div>
           {steps.length > 0 ? (
@@ -116,6 +157,7 @@ export function AudioPage() {
                 <span>{step.name}</span>
                 <span className={`step-status ${step.status.toLowerCase()}`}>{formatStepStatus(step.status)}</span>
                 <span>{step.progress}%</span>
+                <span>{step.duration}</span>
                 <span title={step.detail}>{step.detail || "-"}</span>
               </div>
             ))
@@ -144,49 +186,31 @@ function SummaryItem({ label, value }: { label: string; value: string }) {
 function pickCurrentTask(files: MaterialFile[], requestPath: string, selectedTaskPath: string) {
   const normalizedRequestPath = requestPath.trim();
   return (
-    files.find((file) => file.path === normalizedRequestPath) ??
     files.find((file) => file.path === selectedTaskPath) ??
+    files.find((file) => file.path === normalizedRequestPath) ??
     files.find((file) => file.status === "generating" || file.audioStatus === "generating" || file.videoStatus === "generating") ??
-    (normalizedRequestPath ? materialFileFromPath(normalizedRequestPath) : null) ??
     files[0] ??
     null
   );
 }
 
-function materialFileFromPath(path: string): MaterialFile {
-  const normalized = path.trim();
-  const name = normalized.split(/[\\/]/).filter(Boolean).pop() ?? normalized;
-  const extension = name.includes(".") ? name.split(".").pop() ?? "" : "";
-  return {
-    path: normalized,
-    name,
-    extension: extension.toLowerCase(),
-    size: 0,
-    category: "",
-    status: "pending",
-    progress: 0,
-    narrationChars: null,
-    materialOutputDir: null,
-    message: "",
-    audioStatus: "pending",
-    audioProgress: 0,
-    audioOutputDir: null,
-    audioFile: null,
-    audioDurationMs: null,
-    audioChunks: null,
-    audioMessage: "",
-    videoStatus: "pending",
-    videoProgress: 0,
-    videoFile: null,
-    videoDurationMs: null,
-    videoFileSize: null,
-    videoMessage: ""
-  };
-}
-
-function buildStepRows(file: MaterialFile | null): StepRow[] {
+function buildStepRows(file: MaterialFile | null, persistedSteps: MaterialTaskStep[], nowMs: number): StepRow[] {
   if (!file) return [];
+  const persistedByCode = new Map(persistedSteps.map((step) => [step.stepCode, step]));
   return STEP_SPECS.map((spec, index) => {
+    const persisted = persistedByCode.get(spec.code);
+    if (persisted) {
+      const status = mapPersistedStepStatus(persisted.status);
+      return {
+        order: index + 1,
+        code: spec.code,
+        name: persisted.stepName || spec.name,
+        status,
+        progress: status === "SUCCESS" ? 100 : status === "PENDING" ? 0 : clampProgress(persisted.progress),
+        duration: formatStepDuration(persisted, nowMs),
+        detail: persisted.detail || spec.detail(file)
+      };
+    }
     const stage = getStage(file, spec.stage);
     const status = mapSubStepStatus(stage.status, stage.progress, spec.threshold, spec.stage, file);
     return {
@@ -195,14 +219,26 @@ function buildStepRows(file: MaterialFile | null): StepRow[] {
       name: spec.name,
       status,
       progress: status === "SUCCESS" ? 100 : status === "PENDING" ? 0 : clampProgress(stage.progress),
+      duration: "-",
       detail: stage.message || spec.detail(file)
     };
   });
 }
 
+function mapPersistedStepStatus(status: MaterialTaskStep["status"]): StepStatus {
+  if (status === "success") return "SUCCESS";
+  if (status === "failed") return "FAILED";
+  if (status === "generating") return "RUNNING";
+  return "PENDING";
+}
+
 function getStage(file: MaterialFile, stage: StageKey) {
   if (stage === "audio") return { status: file.audioStatus, progress: clampProgress(file.audioProgress), message: file.audioMessage };
+  if (stage === "image") return { status: file.imageStatus, progress: clampProgress(file.imageProgress), message: file.imageMessage };
+  if (stage === "subtitle") return { status: file.subtitleStatus, progress: clampProgress(file.subtitleProgress), message: file.subtitleMessage };
   if (stage === "video") return { status: file.videoStatus, progress: clampProgress(file.videoProgress), message: file.videoMessage };
+  if (stage === "publish") return { status: file.videoFile ? "success" : file.videoStatus, progress: file.videoFile ? 100 : clampProgress(file.videoProgress), message: file.videoFile ? "等待生成发布资料" : file.videoMessage };
+  if (file.materialOutputDir) return { status: "success" as TaskStatus, progress: 100, message: file.message };
   return { status: file.status, progress: clampProgress(file.progress), message: file.message };
 }
 
@@ -240,11 +276,34 @@ function estimateOverallProgress(steps: StepRow[]) {
   return Math.round(steps.reduce((sum, step) => sum + step.progress, 0) / steps.length);
 }
 
+function formatStepDuration(step: MaterialTaskStep, nowMs: number) {
+  if (typeof step.elapsedMs === "number") return formatDurationMs(step.elapsedMs);
+  if (step.status !== "generating" || !step.startedAt) return "-";
+  const started = parseSqliteDateTime(step.startedAt);
+  if (!started) return "-";
+  return formatDurationMs(Math.max(0, nowMs - started.getTime()));
+}
+
+function parseSqliteDateTime(value: string) {
+  const parsed = new Date(value.replace(" ", "T"));
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function formatDurationMs(value: number) {
+  const totalSeconds = Math.max(0, Math.round(value / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if (hours > 0) return `${hours}时${minutes.toString().padStart(2, "0")}分${seconds.toString().padStart(2, "0")}秒`;
+  if (minutes > 0) return `${minutes}分${seconds.toString().padStart(2, "0")}秒`;
+  return `${seconds}秒`;
+}
+
 function formatStepStatus(status: StepStatus) {
-  if (status === "SUCCESS") return "SUCCESS";
-  if (status === "FAILED") return "FAILED";
-  if (status === "RUNNING") return "RUNNING";
-  return "PENDING";
+  if (status === "SUCCESS") return "成功";
+  if (status === "FAILED") return "失败";
+  if (status === "RUNNING") return "进行中";
+  return "待处理";
 }
 
 function formatTaskTitle(name: string) {
@@ -329,6 +388,11 @@ function videoFileDetail(file: MaterialFile) {
   if (file.videoFile) return `${text("\u89c6\u9891\u6587\u4ef6\uff1a")}${file.videoFile}`;
   if (file.videoFileSize) return `${text("\u89c6\u9891\u5927\u5c0f\uff1a")}${formatBytes(file.videoFileSize)}`;
   return text("\u7b49\u5f85\u767b\u8bb0\u89c6\u9891\u4ea7\u7269");
+}
+
+function publishDetail(file: MaterialFile) {
+  if (file.videoFile) return text("视频已就绪，可生成发布资料");
+  return text("等待最终视频产物");
 }
 
 function formatBytes(value: number) {

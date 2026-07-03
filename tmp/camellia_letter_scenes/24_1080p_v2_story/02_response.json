@@ -1,0 +1,17 @@
+{
+  "created": 1782661046,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782661046.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs/book_image_1782661046.png",
+      "revised_prompt": "cinematic realistic watercolor book illustration, professional visual for a Chinese 30-minute book-summary video, quiet Kamakura and Izu Oshima atmosphere, Japanese seaside town, camellia flowers, paper letters, fountain pens, warm natural film lighting, detailed environment, emotional healing tone, soft but rich colors, storybook realism, consistent art direction across a 24-image sequence, 16:9, no readable text, no logo, no watermark. Main protagonist: one East Asian woman in her early 30s, shoulder-length black hair, soft cream cardigan, calm tired eyes. Mother: East Asian woman in her late 50s with short grey hair and muted green cardigan, clearly older than the protagonist. Daughter: teenage East Asian girl with school uniform and ponytail, clearly much younger. When a scene includes multiple people, make them different ages, different clothes, different hairstyles, different faces. Scene 02/24, story beat: Stationery shop interior. Composition: interior still life of the letter-writing shop, wooden shelves of envelopes, ink bottles, fountain pens, a camellia in a vase, sunlight through a paper window, no person, the room itself feels ready for stories. People rule: no people. Keep this image narratively connected to the nearby subtitle meaning, but do not draw readable words: 可是到了这一部里鸠子的生活已经不再只是文具店、信纸和墨水她有了丈夫蜜朗有了长女阳菜也就是大家熟悉的QP妹妹还有两个年幼的孩子小梅和莲太朗她从一个独自守店的年轻女人变成了五口之家的母亲她仍然爱文字爱代笔爱那些纸上微小而郑重的仪式可现实生活已经把她卷进了更细碎也更真实的漩涡里故事开始时鸠子写了一封通知信",
+      "metrics": {
+        "colors": 27966,
+        "nonBgRatio": 0.921
+      },
+      "elapsedSeconds": 81.6,
+      "model": "Lykon/dreamshaper-8-lcm",
+      "device": "mps"
+    }
+  ]
+}

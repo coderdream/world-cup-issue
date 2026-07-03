@@ -1,0 +1,17 @@
+{
+  "created": 1782655989,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782655989.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs/book_image_1782655989.png",
+      "revised_prompt": "professional cinematic realistic watercolor illustration for a Chinese 30-minute book-summary video, consistent young East Asian woman with shoulder-length black hair and soft cream cardigan, quiet Japanese seaside town and warm stationery-room atmosphere, camellia flowers as recurring motif, letters and notebooks with no readable text, emotional healing tone, elegant composition, soft film lighting, detailed background, 16:9, no readable text, no logo, no watermark, scene 02 of 24, inside the small letter-writing stationery shop at night, she writes a letter under a brass desk lamp, envelope and camellia vase on the wooden desk, visualize this subtitle meaning without drawing readable text: 可是到了这一部里鸠子的生活已经不再只是文具店、信纸和墨水她有了丈夫蜜朗有了长女阳菜也就是大家熟悉的QP妹妹还有两个年幼的孩子小梅和莲太朗她从一个独自守店的年轻女人变成了五口之家的母亲她仍然爱文字爱代笔爱那些纸上微小而郑重的仪式可现实生活已经",
+      "metrics": {
+        "colors": 22540,
+        "nonBgRatio": 0.878
+      },
+      "elapsedSeconds": 121.23,
+      "model": "Lykon/dreamshaper-8-lcm",
+      "device": "mps"
+    }
+  ]
+}

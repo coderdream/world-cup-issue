@@ -1,0 +1,17 @@
+{
+  "created": 1782688223,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782688223.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs-rv/book_image_1782688223.png",
+      "revised_prompt": "photorealistic cinematic Japanese drama film still, professional book-summary video visual, warm natural light, quiet emotional realism, shallow depth of field, detailed lived-in environment, 16:9, no readable text. same main character in every image: East Asian woman in her early 30s, shoulder-length straight black bob haircut with soft bangs, cream knit cardigan over a plain white top, dark skirt, calm tired eyes, natural face, no heavy makeup. Scene 06/8, Ferry to the island. Specific shot: single woman standing alone on a ferry deck holding the wrapped wooden box close, grey-blue sea and island silhouette behind her, wind moves her cream cardigan. Exactly one visible person. Blank paper only, no readable words. Connect to this Chinese subtitle theme without writing text in the image: 变成某一天忽然想起时胸口的温热读这本书也是在读鸠子对女性身份的重新整理她不是只作为母亲而存在也不是只作为代笔人而存在她会爱孩子也会厌倦家务她会珍惜家庭也会怀念独处她能替别人写出细腻的信却也会在自己的生活里语塞她温柔却并不总是从容这样的不完美让她可信很多时候我们也像鸠子一样在别人眼里已经做得很好却在心里暗暗觉得自己不够好我们承担了许多却仍然怀疑自己是否有价值我",
+      "metrics": {
+        "colors": 10906,
+        "nonBgRatio": 0.991
+      },
+      "elapsedSeconds": 39.25,
+      "model": "SG161222/Realistic_Vision_V5.1_noVAE",
+      "device": "mps"
+    }
+  ]
+}

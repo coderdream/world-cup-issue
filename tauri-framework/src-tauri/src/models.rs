@@ -120,6 +120,32 @@ pub struct FeishuSendResult {
     pub message: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GetOperationLogsRequest {
+    pub limit: usize,
+    pub trace_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OperationLogEntry {
+    pub id: i64,
+    pub created_at: String,
+    pub level: String,
+    pub module: String,
+    pub action: String,
+    pub message: String,
+    pub detail: Option<String>,
+    pub trace_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GetOperationLogsResult {
+    pub entries: Vec<OperationLogEntry>,
+}
+
 #[derive(Debug, Serialize)]
 pub struct ChatCompletionRequest {
     pub model: String,

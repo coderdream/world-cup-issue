@@ -1,0 +1,17 @@
+{
+  "created": 1782664728,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782664728.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs/book_image_1782664728.png",
+      "revised_prompt": "photorealistic cinematic Japanese drama film still, professional 30-minute book-summary video visual, warm natural movie lighting, detailed lived-in interior, emotional quiet realism, Kamakura letter shop mood, red camellia motif, paper letters and fountain pen, 16:9, no readable text. One visible main protagonist only: East Asian woman in her early 30s, shoulder-length black hair, cream cardigan, calm tired eyes. Do not show any second person. Do not show twins. Do not show crowds. Scene 17/24, Dictation memory. Specific shot: close-up of protagonist writing with fountain pen, an older hand implied only by a folded cardigan on the chair, no second person visible. Connect to subtitle theme without drawing readable words: 某天能认真吃饭某天终于回了一封消息某天忽然发现自己又能分辨风里的花香故事中的旧信供养也有一种很东方的哀悼感供养不是销毁而是让无法抵达的心意获得安息那些信曾经承载爱、思念、秘密和岁月如今被送往终点并不是为了抹去而是为了让它们不再孤单鸠子对木盒说话的场景尤其温柔她把信当成有生命的存在",
+      "metrics": {
+        "colors": 16668,
+        "nonBgRatio": 0.958
+      },
+      "elapsedSeconds": 83.71,
+      "model": "Lykon/dreamshaper-8-lcm",
+      "device": "mps"
+    }
+  ]
+}

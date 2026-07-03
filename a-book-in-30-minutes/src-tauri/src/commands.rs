@@ -7,9 +7,10 @@ use crate::models::{
     FeishuSendRequest, FeishuSendResult, FeishuWebhookResponse, GenerateAudioRequest,
     GenerateAudioResult, GenerateBookVideoRequest, GenerateBookVideoResult,
     GenerateMaterialTaskAudioRequest, GeneratePublishMaterialsRequest,
-    GeneratePublishMaterialsResult, GetMaterialTasksRequest, GetOperationLogsRequest,
-    GetOperationLogsResult, GetSpeechVoicesResult, MaterialFile, MaterialOutputDirRequest,
-    MaterialTaskPathRequest, MaterialTaskProgressEvent, OperationLogEntry,
+    GeneratePublishMaterialsResult, GetMaterialTaskStepsRequest, GetMaterialTaskStepsResult,
+    GetMaterialTasksRequest, GetOperationLogsRequest, GetOperationLogsResult,
+    GetSpeechVoicesResult, MaterialFile, MaterialOutputDirRequest, MaterialTaskPathRequest,
+    MaterialTaskProgressEvent, MaterialTaskStep, OperationLogEntry,
     ResetMaterialTasksRequest, ScanMaterialFilesRequest, ScanMaterialFilesResult,
     SpeechPreviewRequest, SpeechProfile, SpeechRegionKeyRequest, SpeechRegionKeyResult,
     SpeechTestResult, SpeechVoice, ToolTestResult, UpdateInfo, UpdateMaterialTaskStatusRequest,
@@ -21,10 +22,11 @@ use rusqlite::params;
 use rusqlite::Connection;
 use serde::Deserialize;
 use std::fs;
-use std::io::Write;
+use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::Mutex;
+use std::thread;
 use std::time::{Duration, Instant};
 use tauri::{Emitter, Manager, State};
 
@@ -38,7 +40,8 @@ const SPEECH_CHUNK_MAX_SENTENCES: usize = 100;
 const SPEECH_CHUNK_MAX_ESTIMATED_MS: u64 = 8 * 60 * 1000;
 const MICROSOFT_TTS_LANGUAGE_SUPPORT_URL: &str =
     "https://learn.microsoft.com/zh-cn/azure/ai-services/speech-service/language-support?tabs=tts";
-const DEFAULT_MATERIAL_CATEGORY: &str = "閸楀﹤鐨弮璺烘儔鐎瑰奔绔撮張顑垮姛";
+const DEFAULT_MATERIAL_CATEGORY: &str = "半小时听完一本书";
+const MATERIAL_TASK_SELECT_COLUMNS: &str = "path, name, extension, size, category, status, progress, narration_chars, material_output_dir, message, audio_status, audio_progress, audio_output_dir, audio_file, audio_duration_ms, audio_chunks, audio_message, image_status, image_progress, image_output_dir, image_message, subtitle_status, subtitle_progress, subtitle_file, subtitle_message, video_status, video_progress, video_file, video_duration_ms, video_file_size, video_message";
 const MATERIAL_PROGRESS_STEPS: usize = 4;
 
 const SPEECH_VOICE_SEEDS: &[(&str, &str, &str, &str, &str, &str, &str)] = &[
@@ -86,7 +89,6 @@ const SPEECH_VOICE_SEEDS: &[(&str, &str, &str, &str, &str, &str, &str)] = &[
 
 pub struct AppData {
     settings: Mutex<AppSettings>,
-    settings_path: PathBuf,
     db_path: PathBuf,
     logger: OperationLogger,
     app_started_at: String,
@@ -132,44 +134,37 @@ impl AppData {
         let log_dir = app_local_data_dir.join("logs");
         let logger = OperationLogger::new(db_path.clone(), log_dir);
 
-        let settings_file_exists = settings_path.exists();
-        let settings_load_result = fs::read_to_string(&settings_path)
-            .map_err(|error| error.to_string())
-            .and_then(|content| {
-                serde_json::from_str::<AppSettings>(content.trim_start_matches('\u{feff}'))
-                    .map_err(|error| error.to_string())
-            });
+        init_app_tables(&db_path, &logger);
+
+        let legacy_settings_file_exists = settings_path.exists();
+        let settings_load_result = load_settings_from_database_or_migrate_legacy_json(&db_path, &settings_path);
         let settings_load_error = settings_load_result.as_ref().err().cloned();
+        let settings_loaded = settings_load_result.is_ok();
         let mut settings = settings_load_result.unwrap_or_default();
         let settings_migrated = sanitize_persisted_settings(&mut settings);
-        if settings_migrated {
-            if let Ok(content) = serde_json::to_string_pretty(&settings) {
-                let _ = fs::write(&settings_path, content);
-            }
+        if settings_migrated || settings_loaded {
+            let _ = save_settings_to_database(&db_path, &settings);
         }
 
         let app_started_at = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
-        logger.info("app", "startup", "A Book in 30 Minutes started");
+        logger.info("app", "startup", "应用已启动。");
         logger.debug(
             "settings",
             "load",
-            "Settings loaded from disk.",
+            "配置已从数据库加载。",
             format!(
-                "settings_path={} exists={} migrated={} ai_key_present={} ai_key_length={} load_error={}",
+                "配置源=app.db；旧配置路径={}；旧配置存在={}；已清理异常配置={}；密钥已填写={}；密钥长度={}；加载错误={}",
                 settings_path.to_string_lossy(),
-                settings_file_exists,
+                legacy_settings_file_exists,
                 settings_migrated,
                 !settings.ai_profile.api_key.trim().is_empty(),
                 settings.ai_profile.api_key.trim().chars().count(),
-                settings_load_error.unwrap_or_else(|| "none".to_string())
+                settings_load_error.unwrap_or_else(|| "无".to_string())
             ),
             "startup",
         );
-        init_app_tables(&db_path, &logger);
-
         Self {
             settings: Mutex::new(settings),
-            settings_path,
             db_path,
             logger,
             app_started_at,
@@ -177,16 +172,8 @@ impl AppData {
     }
 
     fn save_settings(&self, settings: &AppSettings) -> Result<(), CommandError> {
-        if let Some(parent) = self.settings_path.parent() {
-            fs::create_dir_all(parent).map_err(|error| {
-                command_error(format!("Create settings directory failed: {error}"))
-            })?;
-        }
-        let content = serde_json::to_string_pretty(settings)
-            .map_err(|error| command_error(format!("Serialize settings failed: {error}")))?;
-        fs::write(&self.settings_path, content)
-            .map_err(|error| command_error(format!("Write settings failed: {error}")))?;
-        self.logger.info("settings", "save", "Settings saved.");
+        save_settings_to_database(&self.db_path, settings)?;
+        self.logger.info("settings", "save", "配置已保存到数据库。");
         Ok(())
     }
 }
@@ -197,23 +184,16 @@ pub async fn run_e2e_materials_cli(epub_path: &str) -> Result<(), CommandError> 
         .map(PathBuf::from)
         .unwrap_or_else(|| std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")))
         .join("com.abookin30minutes.desktop");
-    let settings_path = app_data_dir.join("settings.json");
     let db_path = app_data_dir.join("app.db");
+    let settings_path = app_data_dir.join("settings.json");
     let log_dir = app_data_dir.join("logs");
     let logger = OperationLogger::new(db_path.clone(), log_dir);
-    let mut settings = fs::read_to_string(&settings_path)
-        .ok()
-        .and_then(|content| {
-            serde_json::from_str::<AppSettings>(content.trim_start_matches('\u{feff}')).ok()
-        })
+    init_app_tables(&db_path, &logger);
+    let mut settings = load_settings_from_database_or_migrate_legacy_json(&db_path, &settings_path)
         .unwrap_or_default();
     if sanitize_persisted_settings(&mut settings) {
-        if let Ok(content) = serde_json::to_string_pretty(&settings) {
-            let _ = fs::create_dir_all(&app_data_dir);
-            let _ = fs::write(&settings_path, content);
-        }
+        let _ = save_settings_to_database(&db_path, &settings);
     }
-    init_app_tables(&db_path, &logger);
 
     let trace_id = format!("e2e-{}", chrono::Local::now().format("%Y%m%d-%H%M%S"));
     logger.trace_info(
@@ -312,7 +292,8 @@ pub async fn run_e2e_materials_cli(epub_path: &str) -> Result<(), CommandError> 
             final_chars, min_chars, max_chars
         )));
     }
-    let subtitles = split_subtitles(&payload.narration);
+    let subtitles = normalize_ai_subtitles(&payload.subtitles, &payload.narration)
+        .unwrap_or_else(|| split_subtitles(&payload.narration));
     let materials = BookMaterials {
         video_title: payload.video_title,
         description: payload.description,
@@ -326,7 +307,6 @@ pub async fn run_e2e_materials_cli(epub_path: &str) -> Result<(), CommandError> 
     let output_dir = source_output_dir(&epub)?.to_string_lossy().into_owned();
     let data = AppData {
         settings: Mutex::new(settings),
-        settings_path,
         db_path: db_path.clone(),
         logger: logger.clone(),
         app_started_at: chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
@@ -373,23 +353,16 @@ pub async fn run_e2e_audio_cli(epub_path: &str) -> Result<(), CommandError> {
         .map(PathBuf::from)
         .unwrap_or_else(|| std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")))
         .join("com.abookin30minutes.desktop");
-    let settings_path = app_data_dir.join("settings.json");
     let db_path = app_data_dir.join("app.db");
+    let settings_path = app_data_dir.join("settings.json");
     let log_dir = app_data_dir.join("logs");
     let logger = OperationLogger::new(db_path.clone(), log_dir);
-    let mut settings = fs::read_to_string(&settings_path)
-        .ok()
-        .and_then(|content| {
-            serde_json::from_str::<AppSettings>(content.trim_start_matches('\u{feff}')).ok()
-        })
+    init_app_tables(&db_path, &logger);
+    let mut settings = load_settings_from_database_or_migrate_legacy_json(&db_path, &settings_path)
         .unwrap_or_default();
     if sanitize_persisted_settings(&mut settings) {
-        if let Ok(content) = serde_json::to_string_pretty(&settings) {
-            let _ = fs::create_dir_all(&app_data_dir);
-            let _ = fs::write(&settings_path, content);
-        }
+        let _ = save_settings_to_database(&db_path, &settings);
     }
-    init_app_tables(&db_path, &logger);
     let epub = PathBuf::from(epub_path.trim());
     if !epub.exists() {
         return Err(command_error(format!("EPUB file does not exist: {epub_path}")));
@@ -404,7 +377,6 @@ pub async fn run_e2e_audio_cli(epub_path: &str) -> Result<(), CommandError> {
     })?;
     let data = AppData {
         settings: Mutex::new(settings),
-        settings_path,
         db_path: db_path.clone(),
         logger: logger.clone(),
         app_started_at: chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
@@ -486,6 +458,8 @@ fn looks_like_garbled_text(value: &str) -> bool {
     value.contains('�')
         || value.contains("???")
         || value.contains("鍗")
+        || value.contains("闂")
+        || value.contains("瀵")
         || value.contains("鐫")
         || value.contains("闁")
         || value.contains("閻")
@@ -502,7 +476,7 @@ pub struct CommandError {
 #[tauri::command]
 pub fn get_app_state(data: State<'_, AppData>) -> Result<AppStatePayload, CommandError> {
     data.logger
-        .info("app", "get_app_state", "App state requested.");
+        .info("app", "get_app_state", "已读取应用状态。");
     Ok(AppStatePayload {
         settings: data.settings.lock().map_err(lock_error)?.clone(),
         version: env!("CARGO_PKG_VERSION").to_string(),
@@ -511,7 +485,7 @@ pub fn get_app_state(data: State<'_, AppData>) -> Result<AppStatePayload, Comman
 
 #[tauri::command]
 pub fn get_settings(data: State<'_, AppData>) -> Result<AppSettings, CommandError> {
-    data.logger.info("settings", "get", "Settings requested.");
+    data.logger.info("settings", "get", "已读取配置。");
     Ok(data.settings.lock().map_err(lock_error)?.clone())
 }
 
@@ -688,12 +662,12 @@ pub async fn generate_book_materials(
         request.epub_path.trim(),
         "generating",
         10,
-        "濮濓絽婀憴锝嗙€藉┃鎰姛濮濓絾鏋?",
+        "正在准备素材生成任务",
     );
     data.logger.trace_info(
         "materials",
         "generate.start",
-        "瀵偓婵鏁撻幋鎰拱濞?YouTube 閸氼兛鍔熺槐鐘虫綏",
+        "Start generating book materials.",
         format!(
             "trace_id={} source={} target={}..{} channel={} language={} extra_direction_chars={}",
             trace_id,
@@ -710,7 +684,7 @@ pub async fn generate_book_materials(
     data.logger.debug(
         "materials",
         "settings.snapshot",
-        "鐠囪褰囬張顒侇偧閻㈢喐鍨氭担璺ㄦ暏閻?AI 闁板秶鐤?",
+        "Loaded AI settings for material generation.",
         ai_profile_debug_detail(&settings),
         &trace_id,
     );
@@ -719,30 +693,30 @@ pub async fn generate_book_materials(
         data.logger.trace_error(
             "materials",
             "generate.validate",
-            "缁辩姵娼楃捄顖氱窞娑撹櫣鈹?",
-            "鐠囧嘲鍘涙繅顐㈠晸缁辩姵娼楅弬鍥︽鐠侯垰绶為妴?",
+            "Source path is empty.",
+            "Please choose an EPUB file before generating materials.",
             &trace_id,
         );
         return Err(command_error(
-            "鐠囧嘲鍘涙繅顐㈠晸缁辩姵娼楅弬鍥︽鐠侯垰绶為妴?",
+            "Please choose an EPUB file before generating materials.",
         ));
     }
     if !epub_path.exists() {
         data.logger.trace_error(
             "materials",
             "generate.validate",
-            "缁辩姵娼楅弬鍥︽娑撳秴鐡ㄩ崷?",
+            "Source file does not exist.",
             request.epub_path.trim(),
             &trace_id,
         );
         return Err(command_error(
-            "缁辩姵娼楅弬鍥︽娑撳秴鐡ㄩ崷顭掔礉鐠囬攱顥呴弻銉ㄧ熅瀵板嫨鈧?",
+            "Source file does not exist. Please check the EPUB path.",
         ));
     }
     data.logger.debug(
         "materials",
         "source.file",
-        "濠ф劖鏋冩禒鍫曠崣鐠囦線鈧俺绻?",
+        "Source file resolved.",
         source_file_detail(epub_path),
         &trace_id,
     );
@@ -753,12 +727,22 @@ pub async fn generate_book_materials(
         &trace_id,
         request.epub_path.trim(),
         1,
-        "鐟欙絾鐎藉┃鎰姛濮濓絾鏋?",
+        "Reading source book.",
+    );
+    upsert_material_task_step_db(
+        &data.db_path,
+        &trace_id,
+        request.epub_path.trim(),
+        "A-01",
+        "文本：解析书籍",
+        "generating",
+        10,
+        "正在读取并解析 EPUB 源文件。",
     );
     data.logger.trace_info(
         "materials",
         "source.read",
-        "瀵偓婵袙閺嬫劖绨稊锔筋劀閺?",
+        "Reading source book.",
         source_file_detail(epub_path),
         &trace_id,
     );
@@ -770,7 +754,7 @@ pub async fn generate_book_materials(
             data.logger.trace_info(
                 "materials",
                 "source.read.done",
-                "濠ф劒鍔熷锝嗘瀮鐟欙絾鐎界€瑰本鍨?",
+                "Source book read successfully.",
                 format!(
                     "elapsed_ms={} title={} creator={} publisher={} language={} total_han_chars={} chapters={} first_chapters={}",
                     read_started.elapsed().as_millis(),
@@ -789,7 +773,17 @@ pub async fn generate_book_materials(
                 request.epub_path.trim(),
                 "generating",
                 25,
-                "濠ф劒鍔熷锝嗘瀮鐟欙絾鐎界€瑰本鍨氶敍灞绢劀閸︺劍鐎?AI 閹绘劗銇氱拠?",
+                "Source book read successfully. Preparing AI prompt.",
+            );
+            upsert_material_task_step_db(
+                &data.db_path,
+                &trace_id,
+                request.epub_path.trim(),
+                "A-01",
+                "文本：解析书籍",
+                "success",
+                100,
+                "EPUB 解析完成，已提取章节和基础信息。",
             );
             book
         }
@@ -801,6 +795,16 @@ pub async fn generate_book_materials(
                 &error.message,
                 &trace_id,
             );
+            upsert_material_task_step_db(
+                &data.db_path,
+                &trace_id,
+                request.epub_path.trim(),
+                "A-01",
+                "文本：解析书籍",
+                "failed",
+                10,
+                &error.message,
+            );
             return Err(error);
         }
         SourceReadResult::Panic(message) => {
@@ -810,6 +814,16 @@ pub async fn generate_book_materials(
                 "Source reader panicked",
                 &message,
                 &trace_id,
+            );
+            upsert_material_task_step_db(
+                &data.db_path,
+                &trace_id,
+                request.epub_path.trim(),
+                "A-01",
+                "文本：解析书籍",
+                "failed",
+                10,
+                &message,
             );
             return Err(command_error(format!("Source reader panicked: {message}")));
         }
@@ -823,12 +837,22 @@ pub async fn generate_book_materials(
             data.logger.trace_error(
                 "materials",
                 "source.read.timeout",
-                "濠ф劒鍔熷锝嗘瀮鐟欙絾鐎界搾鍛",
+                "Source book read timed out.",
                 detail,
                 &trace_id,
             );
+            upsert_material_task_step_db(
+                &data.db_path,
+                &trace_id,
+                request.epub_path.trim(),
+                "A-01",
+                "文本：解析书籍",
+                "failed",
+                10,
+                "EPUB 解析超时。",
+            );
             return Err(command_error(format!(
-                "濠ф劒鍔熷锝嗘瀮鐟欙絾鐎界搾鍛扮箖 {} 缁夋帗婀€瑰本鍨氶敍灞藉嚒閸嬫粍顒涚粵澶婄窡閵嗗倽顕Λ鈧弻?EPUB 閺勵垰鎯侀幑鐔锋綎閿涘本鍨ㄩ弻銉ф箙閺堫剚顐兼禒璇插閺冦儱绻旂€规矮缍呴崡鈥茬秶娴ｅ秶鐤嗛妴?",
+                "Source book read timed out after {} seconds. Please check whether the EPUB is too large or malformed.",
                 SOURCE_READ_TIMEOUT_SECONDS
             )));
         }
@@ -839,12 +863,22 @@ pub async fn generate_book_materials(
         request.epub_path.trim(),
         "generating",
         35,
-        "AI 閹绘劗銇氱拠宥嗙€鍝勭暚閹存劧绱濋崙鍡楊槵鐠囬攱鐪扮槐鐘虫綏 JSON",
+        "AI prompt built. Waiting to request material JSON.",
+    );
+    upsert_material_task_step_db(
+        &data.db_path,
+        &trace_id,
+        request.epub_path.trim(),
+        "A-02",
+        "文本：标题简介标签",
+        "generating",
+        25,
+        "已构建 AI 提示词，准备生成标题、简介和标签。",
     );
     data.logger.debug(
         "materials",
         "prompt.build",
-        "閻㈢喐鍨氶幓鎰仛鐠囧秵鐎鍝勭暚閹?",
+        "AI prompt built.",
         format!(
             "prompt_chars={} prompt_han_chars={} prompt_preview={}",
             prompt.chars().count(),
@@ -854,7 +888,7 @@ pub async fn generate_book_materials(
         &trace_id,
     );
     let system_prompt =
-        "娴ｇ姵妲告稉鈧稉顏冭厬閺?YouTube 閸氼兛鍔熺憴鍡涱暥缁涙牕鍨濋崪灞炬⒑閻х晫顭堟担婊嗏偓鍛偓鍌欑稑閸欘亣绶崙杞板紬閺?JSON閿涘奔绗夋潏鎾冲毉 Markdown閵?"
+        "You are writing a Chinese audiobook video package. Return only valid JSON with keys: videoTitle, description, tags, narration. The narration must be a continuous Chinese script. Do not output markdown."
             .to_string();
     let ai_started = Instant::now();
     emit_material_progress(
@@ -862,19 +896,29 @@ pub async fn generate_book_materials(
         &trace_id,
         request.epub_path.trim(),
         2,
-        "鐠囬攱鐪?AI 閻㈢喐鍨氱槐鐘虫綏",
+        "Requesting AI material generation.",
     );
     update_material_task_progress_db(
         &data.db_path,
         request.epub_path.trim(),
         "generating",
         45,
-        "濮濓絽婀拠閿嬬湴 AI 閻㈢喐鍨氱槐鐘虫綏 JSON",
+        "Requesting AI material generation JSON.",
+    );
+    upsert_material_task_step_db(
+        &data.db_path,
+        &trace_id,
+        request.epub_path.trim(),
+        "A-02",
+        "文本：标题简介标签",
+        "generating",
+        45,
+        "正在请求 AI 生成素材 JSON。",
     );
     data.logger.trace_info(
         "materials",
         "ai.request",
-        "瀵偓婵顕Ч?AI 閻㈢喐鍨氱槐鐘虫綏 JSON",
+        "Requesting AI material generation JSON.",
         format!(
             "model={} messages=2 system_prompt_chars={} user_prompt_chars={} base_url={}",
             settings.ai_profile.model,
@@ -903,7 +947,7 @@ pub async fn generate_book_materials(
             data.logger.trace_info(
                 "materials",
                 "ai.response",
-                "AI 閸掓繄顭堟潻鏂挎礀閹存劕濮?",
+                "AI material generation response received.",
                 format!(
                     "elapsed_ms={} response_chars={} response_han_chars={} response_preview={}",
                     ai_started.elapsed().as_millis(),
@@ -913,6 +957,16 @@ pub async fn generate_book_materials(
                 ),
                 &trace_id,
             );
+            upsert_material_task_step_db(
+                &data.db_path,
+                &trace_id,
+                request.epub_path.trim(),
+                "A-02",
+                "文本：标题简介标签",
+                "generating",
+                70,
+                "AI 已返回素材 JSON，正在解析。",
+            );
             content
         }
         Err(error) => {
@@ -921,12 +975,22 @@ pub async fn generate_book_materials(
                 request.epub_path.trim(),
                 "generating",
                 45,
-                "AI 閸掓繄顭堟径杈Е閿涘本顒滈崷銊ゅ▏閻劍绨稊锕€鍞寸€硅婀伴崷鎵晸閹存劗绀岄弶?",
+                "AI material generation failed. Using local fallback when possible.",
+            );
+            upsert_material_task_step_db(
+                &data.db_path,
+                &trace_id,
+                request.epub_path.trim(),
+                "A-02",
+                "文本：标题简介标签",
+                "failed",
+                45,
+                "AI 素材请求失败。",
             );
             data.logger.trace_error(
                 "materials",
                 "ai.request.failed",
-                "缁辩姵娼楅悽鐔稿灇 AI 鐠囬攱鐪版径杈Е閿涘本鏁奸悽銊︽拱閸︾増绨稊锕€鍘规惔?",
+                "AI material generation request failed.",
                 &error.message,
                 &trace_id,
             );
@@ -939,7 +1003,7 @@ pub async fn generate_book_materials(
         data.logger.warn(
             "materials",
             "ai.local_initial_fallback",
-            "AI 閸掓繄顭堟稉宥呭讲閻㈩煉绱濆韫▏閻劍绨稊锔芥拱閸︽壆鏁撻幋鎰灥缁?",
+            "AI returned no usable content. Using local material fallback.",
             format!(
                 "title={} narration_han_chars={} tags={}",
                 payload.video_title,
@@ -955,7 +1019,7 @@ pub async fn generate_book_materials(
                 data.logger.debug(
                     "materials",
                     "ai.parse",
-                    "AI 閸掓繄顭?JSON 鐟欙絾鐎介幋鎰",
+                    "AI material JSON parsed.",
                     format!(
                         "title={} description_chars={} tags={} narration_han_chars={}",
                         payload.video_title,
@@ -965,15 +1029,45 @@ pub async fn generate_book_materials(
                     ),
                     &trace_id,
                 );
+                upsert_material_task_step_db(
+                    &data.db_path,
+                    &trace_id,
+                    request.epub_path.trim(),
+                    "A-02",
+                    "文本：标题简介标签",
+                    "success",
+                    100,
+                    "标题、简介和标签已解析完成。",
+                );
+                upsert_material_task_step_db(
+                    &data.db_path,
+                    &trace_id,
+                    request.epub_path.trim(),
+                    "A-03",
+                    "文本：旁白文稿",
+                    "generating",
+                    35,
+                    "正在检查旁白长度并按目标字数修复。",
+                );
                 payload
             }
             Err(error) => {
                 data.logger.trace_error(
                     "materials",
                     "ai.parse.failed",
-                    "AI 閸掓繄顭?JSON 鐟欙絾鐎芥径杈Е",
+                    "AI material JSON parse failed.",
                     &error.message,
                     &trace_id,
+                );
+                upsert_material_task_step_db(
+                    &data.db_path,
+                    &trace_id,
+                    request.epub_path.trim(),
+                    "A-02",
+                    "文本：标题简介标签",
+                    "failed",
+                    70,
+                    "AI 素材 JSON 解析失败。",
                 );
                 return Err(error);
             }
@@ -987,7 +1081,7 @@ pub async fn generate_book_materials(
             data.logger.debug(
                 "materials",
                 "ai.repair.skip",
-                "閺冧胶娅х€涙鏆熷鍙夊姬鐡掑磭娲伴弽鍥瘱閸ヨ揪绱濈捄瀹犵箖娣囶喖顦?",
+                "Narration length is within target range.",
                 format!(
                     "narration_han_chars={} target={}..{} repair_attempts_checked={}",
                     narration_chars,
@@ -1002,7 +1096,7 @@ pub async fn generate_book_materials(
         data.logger.warn(
             "materials",
             "ai.repair.required",
-            "閺冧胶娅х€涙鏆熸稉宥呮躬閻╊喗鐖ｉ懠鍐ㄦ纯閿涘苯鍣径鍥у絺鐠ц渹鎱ㄦ径?",
+            "Narration length repair is required.",
             format!(
                 "attempt={} current_han_chars={} target={}..{} title={}",
                 repair_attempt, narration_chars, min_chars, max_chars, payload.video_title
@@ -1018,7 +1112,7 @@ pub async fn generate_book_materials(
         data.logger.debug(
             "materials",
             "ai.repair.request",
-            "瀵偓婵顕Ч?AI 娣囶喖顦茬槐鐘虫綏 JSON",
+            "Requesting AI narration repair.",
             format!(
                 "repair_prompt_chars={} repair_prompt_preview={}",
                 repair_prompt.chars().count(),
@@ -1044,7 +1138,7 @@ pub async fn generate_book_materials(
             data.logger.debug(
                 "materials",
                 "ai.repair.response",
-                "AI 娣囶喖顦茬粙鑳箲閸?",
+                "AI narration repair response received.",
                 format!(
                     "elapsed_ms={} response_chars={} response_han_chars={} response_preview={}",
                     repair_started.elapsed().as_millis(),
@@ -1061,7 +1155,7 @@ pub async fn generate_book_materials(
                     data.logger.trace_info(
                         "materials",
                         "ai.repair.done",
-                        "AI 鏉╄棄濮為弮浣烘鐟欙絾鐎介幋鎰閿涘苯鍑￠崥鍫濊嫙閸掓澘鍨电粙?",
+                        "Narration extension merged.",
                         format!(
                             "extension_han_chars={} narration_han_chars={} title={}",
                             count_han_chars(&extension),
@@ -1074,8 +1168,8 @@ pub async fn generate_book_materials(
                     data.logger.warn(
                         "materials",
                         "ai.repair.parse_failed",
-                        "AI 鏉╄棄濮為弮浣烘娑撹櫣鈹栭敍宀€鎴风紒顓濆▏閻劎骞囬張澶岊焾娴?",
-                        "娣囶喖顦叉潻鏂挎礀濞屸剝婀侀崣顖滄暏閺冧胶娅ч弬鍥ㄦ拱",
+                        "Narration repair response could not be parsed.",
+                        "Repair response did not contain usable narration text.",
                         &trace_id,
                     );
                     break;
@@ -1084,7 +1178,7 @@ pub async fn generate_book_materials(
                 data.logger.trace_info(
                     "materials",
                     "ai.repair.done",
-                    "AI 娣囶喖顦茬粙鑳掗弸鎰灇閸旂噦绱濆鍙夋禌閹广垹鍨电粙?",
+                    "Narration repair completed.",
                     format!(
                         "narration_han_chars={} tags={} title={}",
                         count_han_chars(&next_payload.narration),
@@ -1098,8 +1192,8 @@ pub async fn generate_book_materials(
                 data.logger.warn(
                     "materials",
                     "ai.repair.parse_failed",
-                    "AI 娣囶喖顦茬粙鎸庢￥濞夋洝袙閺嬫劧绱濈紒褏鐢绘担璺ㄦ暏閸掓繄顭?",
-                    "娣囶喖顦叉潻鏂挎礀娑撳秵妲搁張澶嬫櫏缁辩姵娼?JSON",
+                    "Narration repair JSON parse failed.",
+                    "Repair response was not valid material JSON.",
                     &trace_id,
                 );
                 break;
@@ -1108,8 +1202,8 @@ pub async fn generate_book_materials(
             data.logger.warn(
                 "materials",
                 "ai.repair.failed",
-                "AI 娣囶喖顦茬拠閿嬬湴婢惰精瑙﹂敍灞藉櫙婢跺洣濞囬悽銊︽拱閸︽媽藟鐡?",
-                "閸氬海鐢绘导姘辨暏濠ф劒鍔熼幗妯虹秿鐞涖儴鍐婚弮浣烘鐎涙鏆?",
+                "AI narration repair request failed.",
+                "Keeping current narration and continuing with fallback if needed.",
                 &trace_id,
             );
             break;
@@ -1124,7 +1218,7 @@ pub async fn generate_book_materials(
             data.logger.warn(
                 "materials",
                 "ai.repair.local_fallback",
-                "AI 閺冧胶娅ф禒宥勭瑝鐡掔绱濆韫▏閻劍绨稊锔芥喅瑜版洘婀伴崷鎷屗夌搾?",
+                "Using local narration repair fallback.",
                 format!(
                     "before_han_chars={} fallback_han_chars={} after_han_chars={} target={}..{}",
                     before_fallback_chars,
@@ -1137,20 +1231,46 @@ pub async fn generate_book_materials(
             );
         }
     }
+    let max_total_chars = max_chars.saturating_add(600).min(8200);
+    if payload.narration.chars().count() > max_total_chars {
+        payload.narration = trim_narration_to_total_chars(&payload.narration, max_total_chars);
+        data.logger.warn(
+            "materials",
+            "ai.repair.total_length_trimmed",
+            "Narration total length exceeded visual text target and was trimmed at a sentence boundary.",
+            format!(
+                "max_total_chars={} after_total_chars={} after_han_chars={}",
+                max_total_chars,
+                payload.narration.chars().count(),
+                count_han_chars(&payload.narration)
+            ),
+            &trace_id,
+        );
+    }
     let final_narration_chars = count_han_chars(&payload.narration);
     if final_narration_chars < min_chars || final_narration_chars > max_chars {
         data.logger.trace_error(
             "materials",
             "ai.repair.out_of_range",
-            "AI 娣囶喖顦查崥搴㈡⒑閻ц棄鐡ч弫棰佺矝娑撳秴婀惄顔界垼閼煎啫娲?",
+            "Narration length is still outside target range.",
             &format!(
                 "final_han_chars={} target={}..{} title={}",
                 final_narration_chars, min_chars, max_chars, payload.video_title
             ),
             &trace_id,
         );
+        upsert_material_task_step_db(
+            &data.db_path,
+            &trace_id,
+            request.epub_path.trim(),
+            "A-03",
+            "文本：旁白文稿",
+            "failed",
+            70,
+            "旁白字数仍不在目标范围内。",
+        );
         return Err(command_error(format!(
-            "AI 閻㈢喐鍨氶惃鍕⒑閻ф垝鑵戦弬鍥х摟閺侀璐?{}閿涘本婀潏鎯у煂闁板秶鐤嗙憰浣圭湴 {}-{}閵嗗倽顕粙宥呮倵闁插秷鐦敍灞惧灗閸︺劏顔曠純顔昏厬闁倸缍嬮梽宥勭秵閻╊喗鐖ｇ€涙鏆熼妴?",
+            "AI generated narration length is {} Chinese characters, outside target range {}-{}. Please adjust settings or retry.",
             final_narration_chars, min_chars, max_chars
         )));
     }
@@ -1159,13 +1279,33 @@ pub async fn generate_book_materials(
         &trace_id,
         request.epub_path.trim(),
         3,
-        "閺佸鎮婄紒鎾寸亯閸滃苯鐡ч獮?",
+        "Splitting narration into subtitles.",
     );
     let subtitles = split_subtitles(&payload.narration);
+    upsert_material_task_step_db(
+        &data.db_path,
+        &trace_id,
+        request.epub_path.trim(),
+        "A-03",
+        "文本：旁白文稿",
+        "success",
+        100,
+        "旁白文稿已生成并切分字幕文本。",
+    );
+    upsert_material_task_step_db(
+        &data.db_path,
+        &trace_id,
+        request.epub_path.trim(),
+        "A-04",
+        "文本：保存素材包",
+        "generating",
+        60,
+        "正在写入素材包文件。",
+    );
     data.logger.trace_info(
         "materials",
         "subtitle.split",
-        "鐎涙绠烽弬鍥ㄦ拱閸掑洤鍨庣€瑰本鍨?",
+        "Subtitles split from narration.",
         format!(
             "subtitle_lines={} narration_han_chars={} first_line={} last_line={}",
             subtitles.len(),
@@ -1188,7 +1328,7 @@ pub async fn generate_book_materials(
     data.logger.trace_info(
         "materials",
         "generate.done",
-        "閺堫剚顐?YouTube 閸氼兛鍔熺槐鐘虫綏閻㈢喐鍨氶幋鎰",
+        "Book materials generated.",
         format!(
             "elapsed_ms={} video_title={} model={} tags={} narration_han_chars={} subtitles={} source={}",
             started.elapsed().as_millis(),
@@ -1209,13 +1349,23 @@ pub async fn generate_book_materials(
             data.logger.trace_info(
                 "materials",
                 "generate.auto_export.done",
-                "缁辩姵娼楅悽鐔稿灇鐎瑰本鍨氶崥搴″嚒閼奉亜濮╅崘娆忓弳缁辩姵娼楅弬鍥︽婢?",
+                "Book materials exported.",
                 format!(
                     "files={} output_dir={}",
                     result.files.len(),
                     result.output_dir
                 ),
                 &trace_id,
+            );
+            upsert_material_task_step_db(
+                &data.db_path,
+                &trace_id,
+                request.epub_path.trim(),
+                "A-04",
+                "文本：保存素材包",
+                "success",
+                100,
+                &format!("素材包已保存：{}", result.output_dir),
             );
             if let Ok(connection) = Connection::open(&data.db_path) {
                 let _ = ensure_material_tasks_table(&connection).and_then(|_| {
@@ -1231,9 +1381,19 @@ pub async fn generate_book_materials(
             data.logger.trace_error(
                 "materials",
                 "generate.auto_export.failed",
-                "缁辩姵娼楅弬鍥︽婢剁鍤滈崝銊ュ晸閸忋儱銇戠拹?",
+                "Book materials export failed.",
                 &error.message,
                 &trace_id,
+            );
+            upsert_material_task_step_db(
+                &data.db_path,
+                &trace_id,
+                request.epub_path.trim(),
+                "A-04",
+                "文本：保存素材包",
+                "failed",
+                60,
+                &error.message,
             );
         }
     }
@@ -1251,7 +1411,7 @@ pub async fn generate_book_materials(
         &trace_id,
         request.epub_path.trim(),
         4,
-        "閻㈢喐鍨氱€瑰本鍨?",
+        "Material generation completed.",
     );
     Ok(materials)
 }
@@ -1346,6 +1506,14 @@ pub fn scan_material_files(
             audio_duration_ms: None,
             audio_chunks: None,
             audio_message: String::new(),
+            image_status: "pending".to_string(),
+            image_progress: 0,
+            image_output_dir: None,
+            image_message: String::new(),
+            subtitle_status: "pending".to_string(),
+            subtitle_progress: 0,
+            subtitle_file: None,
+            subtitle_message: String::new(),
             video_status: "pending".to_string(),
             video_progress: 0,
             video_file: None,
@@ -1387,7 +1555,7 @@ pub fn get_material_tasks(
 ) -> Result<ScanMaterialFilesResult, CommandError> {
     let connection = Connection::open(&data.db_path).map_err(|error| {
         command_error(format!(
-            "閹垫挸绱戞禒璇插閺佺増宓佹惔鎾炽亼鐠愩儻绱皗{error}"
+            "打开素材任务数据库失败：{error}"
         ))
     })?;
     ensure_material_tasks_table(&connection)?;
@@ -1395,7 +1563,7 @@ pub fn get_material_tasks(
     let mut files = if category.is_empty() {
         let mut statement = connection
             .prepare(
-                "SELECT path, name, extension, size, category, status, progress, narration_chars, material_output_dir, message, audio_status, audio_progress, audio_output_dir, audio_file, audio_duration_ms, audio_chunks, audio_message, video_status, video_progress, video_file, video_duration_ms, video_file_size, video_message FROM material_tasks ORDER BY updated_at DESC, name ASC"
+                &format!("SELECT {MATERIAL_TASK_SELECT_COLUMNS} FROM material_tasks ORDER BY updated_at DESC, name ASC")
             )
             .map_err(|error| command_error(format!("閸戝棗顦拠璇插絿缁辩姵娼楁禒璇插婢惰精瑙﹂敍姝縠{error}")))?;
         let rows = statement
@@ -1407,7 +1575,7 @@ pub fn get_material_tasks(
     } else {
         let mut statement = connection
             .prepare(
-                "SELECT path, name, extension, size, category, status, progress, narration_chars, material_output_dir, message, audio_status, audio_progress, audio_output_dir, audio_file, audio_duration_ms, audio_chunks, audio_message, video_status, video_progress, video_file, video_duration_ms, video_file_size, video_message FROM material_tasks WHERE category = ?1 ORDER BY updated_at DESC, name ASC"
+                &format!("SELECT {MATERIAL_TASK_SELECT_COLUMNS} FROM material_tasks WHERE category = ?1 ORDER BY updated_at DESC, name ASC")
             )
             .map_err(|error| command_error(format!("閸戝棗顦拠璇插絿缁辩姵娼楁禒璇插婢惰精瑙﹂敍姝縠{error}")))?;
         let rows = statement
@@ -1419,13 +1587,12 @@ pub fn get_material_tasks(
     };
     files.retain(|file| Path::new(&file.path).exists());
     for file in &mut files {
-        normalize_loaded_task_for_manual_resume(file);
         let _ = migrate_task_outputs_to_source_output(&connection, file);
     }
     data.logger.info(
         "materials",
         "tasks.get",
-        format!("Loaded material tasks: {}", files.len()),
+        format!("已读取素材任务：{} 条", files.len()),
     );
     Ok(ScanMaterialFilesResult {
         directory: String::new(),
@@ -1447,7 +1614,6 @@ pub fn get_material_task(
     ensure_material_tasks_table(&connection)?;
     let mut file = load_material_task_by_path(&connection, path)?;
     if let Some(file) = file.as_mut() {
-        normalize_loaded_task_for_manual_resume(file);
         let _ = migrate_task_outputs_to_source_output(&connection, file);
     }
     Ok(file)
@@ -1536,10 +1702,10 @@ pub fn update_material_task_status(
     data.logger.info(
         "materials",
         "tasks.status",
-        format!("閺囧瓨鏌婄槐鐘虫綏娴犺濮熼悩鑸碘偓渚婄窗path={path} status={status} progress={progress}"),
+        format!("Material task status updated: path={path} status={status} progress={progress}"),
     );
     load_material_task_by_path(&connection, path)?
-        .ok_or_else(|| command_error("閺囧瓨鏌婇崥搴㈡弓閹垫儳鍩岀槐鐘虫綏娴犺濮熼妴?"))
+        .ok_or_else(|| command_error("Material task was not found after status update."))
 }
 
 #[tauri::command]
@@ -1587,19 +1753,19 @@ pub fn reset_material_tasks(
     {
         connection
             .execute(
-                "UPDATE material_tasks SET status = 'pending', progress = 0, narration_chars = NULL, material_output_dir = NULL, message = '', audio_status = 'pending', audio_progress = 0, audio_output_dir = NULL, audio_file = NULL, audio_duration_ms = NULL, audio_chunks = NULL, audio_message = '', video_status = 'pending', video_progress = 0, video_file = NULL, video_duration_ms = NULL, video_file_size = NULL, video_message = '', updated_at = ?2 WHERE path = ?1",
+                "UPDATE material_tasks SET status = 'pending', progress = 0, narration_chars = NULL, material_output_dir = NULL, message = '', audio_status = 'pending', audio_progress = 0, audio_output_dir = NULL, audio_file = NULL, audio_duration_ms = NULL, audio_chunks = NULL, audio_message = '', image_status = 'pending', image_progress = 0, image_output_dir = NULL, image_message = '', subtitle_status = 'pending', subtitle_progress = 0, subtitle_file = NULL, subtitle_message = '', video_status = 'pending', video_progress = 0, video_file = NULL, video_duration_ms = NULL, video_file_size = NULL, video_message = '', updated_at = ?2 WHERE path = ?1",
                 params![path, now],
             )
-            .map_err(|error| command_error(format!("闁插秶鐤嗙槐鐘虫綏娴犺濮熸径杈Е閿涙{error}")))?;
+            .map_err(|error| command_error(format!("重置素材任务失败：{error}")))?;
         data.logger.info(
             "materials",
             "tasks.reset",
-            format!("闁插秶鐤嗙槐鐘虫綏娴犺濮熼敍姝盿th={path}"),
+            format!("已重置素材任务：path={path}"),
         );
     } else {
         connection
             .execute(
-                "UPDATE material_tasks SET status = 'pending', progress = 0, narration_chars = NULL, material_output_dir = NULL, message = '', audio_status = 'pending', audio_progress = 0, audio_output_dir = NULL, audio_file = NULL, audio_duration_ms = NULL, audio_chunks = NULL, audio_message = '', video_status = 'pending', video_progress = 0, video_file = NULL, video_duration_ms = NULL, video_file_size = NULL, video_message = '', updated_at = ?1",
+                "UPDATE material_tasks SET status = 'pending', progress = 0, narration_chars = NULL, material_output_dir = NULL, message = '', audio_status = 'pending', audio_progress = 0, audio_output_dir = NULL, audio_file = NULL, audio_duration_ms = NULL, audio_chunks = NULL, audio_message = '', image_status = 'pending', image_progress = 0, image_output_dir = NULL, image_message = '', subtitle_status = 'pending', subtitle_progress = 0, subtitle_file = NULL, subtitle_message = '', video_status = 'pending', video_progress = 0, video_file = NULL, video_duration_ms = NULL, video_file_size = NULL, video_message = '', updated_at = ?1",
                 params![now],
             )
             .map_err(|error| command_error(format!("閹靛綊鍣洪柌宥囩枂缁辩姵娼楁禒璇插婢惰精瑙﹂敍姝縠{error}")))?;
@@ -2192,10 +2358,28 @@ pub fn generate_book_video_pipeline(
         &connection,
         &material_file_from_path(epub_path, DEFAULT_MATERIAL_CATEGORY)?,
     )?;
-    let _ = connection.execute(
-        "UPDATE material_tasks SET status='generating', progress=20, message='Video pipeline queued', video_status='generating', video_progress=20, video_message='Video pipeline queued', updated_at=?2 WHERE path=?1",
-        params![epub_path, chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string()],
-    );
+    let pipeline_stage = normalize_video_pipeline_stage(request.pipeline_stage.as_deref());
+    let now = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+    match pipeline_stage.as_str() {
+        "image" => {
+            let _ = connection.execute(
+                "UPDATE material_tasks SET image_status='generating', image_progress=20, image_message='图片流水线已排队', updated_at=?2 WHERE path=?1",
+                params![epub_path, now],
+            );
+        }
+        "subtitle" => {
+            let _ = connection.execute(
+                "UPDATE material_tasks SET subtitle_status='generating', subtitle_progress=20, subtitle_message='字幕流水线已排队', updated_at=?2 WHERE path=?1",
+                params![epub_path, now],
+            );
+        }
+        _ => {
+            let _ = connection.execute(
+                "UPDATE material_tasks SET video_status='generating', video_progress=20, video_message='视频流水线已排队', updated_at=?2 WHERE path=?1",
+                params![epub_path, now],
+            );
+        }
+    }
 
     let db_path = data.db_path.clone();
     let logger = data.logger.clone();
@@ -2219,6 +2403,7 @@ pub fn generate_book_video_pipeline(
             allow_placeholder_visuals,
             controlled_programmatic_visuals,
             ignore_existing_visual_assets,
+            pipeline_stage,
         );
     });
 
@@ -2233,6 +2418,14 @@ pub fn generate_book_video_pipeline(
         hard_subtitle_manifest: None,
         elapsed_seconds: 0.0,
     })
+}
+
+fn normalize_video_pipeline_stage(stage: Option<&str>) -> String {
+    match stage.unwrap_or("video").trim().to_ascii_lowercase().as_str() {
+        "image" => "image".to_string(),
+        "subtitle" => "subtitle".to_string(),
+        _ => "video".to_string(),
+    }
 }
 
 #[tauri::command]
@@ -2319,6 +2512,7 @@ fn run_book_video_pipeline_background(
     allow_placeholder_visuals: bool,
     controlled_programmatic_visuals: bool,
     ignore_existing_visual_assets: bool,
+    pipeline_stage: String,
 ) {
     let started = Instant::now();
     logger.trace_info(
@@ -2333,9 +2527,10 @@ fn run_book_video_pipeline_background(
         ),
         &trace_id,
     );
-    update_video_task_after_background(
+    update_visual_stage_after_background(
         &db_path,
         &epub_path,
+        &pipeline_stage,
         "generating",
         45,
         None,
@@ -2364,7 +2559,7 @@ fn run_book_video_pipeline_background(
     if let Some(video_dir) = app_video_dir.as_ref() {
         command.arg("--output-dir").arg(video_dir);
     }
-    if let Some(music_file) = find_background_music_file() {
+    if let Some(music_file) = find_background_music_file(&settings) {
         command.arg("--background-music").arg(music_file);
     }
     if let Some(header_audio) = find_header_audio_file(&script) {
@@ -2379,9 +2574,16 @@ fn run_book_video_pipeline_background(
     if ignore_existing_visual_assets {
         command.arg("--ignore-existing-visual-assets");
     }
+    if pipeline_stage == "image" {
+        command.arg("--visual-assets-only");
+    }
+    if pipeline_stage == "subtitle" {
+        command.arg("--audio-subtitle-only");
+    }
 
-    let output = match command.output() {
-        Ok(output) => output,
+    command.stdout(Stdio::piped()).stderr(Stdio::piped());
+    let mut child = match command.spawn() {
+        Ok(child) => child,
         Err(error) => {
             let message = format!("Failed to launch video pipeline: {error}");
             logger.trace_error(
@@ -2391,18 +2593,55 @@ fn run_book_video_pipeline_background(
                 &message,
                 &trace_id,
             );
-            update_video_task_after_background(
-                &db_path, &epub_path, "failed", 0, None, None, None, None, &message,
+            update_visual_stage_after_background(
+            &db_path, &epub_path, &pipeline_stage, "failed", 0, None, None, None, None, &message,
             );
             return;
         }
     };
-    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-    update_video_task_after_background(
-        &db_path,
+    let stdout = child.stdout.take();
+    let stderr = child.stderr.take();
+    let stdout_handle = stdout.map(|stream| {
+        let logger = logger.clone();
+        let trace_id = trace_id.clone();
+        thread::spawn(move || collect_video_pipeline_stream(stream, logger, trace_id, "stdout"))
+    });
+    let stderr_handle = stderr.map(|stream| {
+        let logger = logger.clone();
+        let trace_id = trace_id.clone();
+        let db_path = db_path.clone();
+        let epub_path = epub_path.clone();
+        thread::spawn(move || {
+            collect_video_pipeline_progress_stream(stream, logger, trace_id, db_path, epub_path)
+        })
+    });
+    let status = match child.wait() {
+        Ok(status) => status,
+        Err(error) => {
+            let message = format!("Video pipeline wait failed: {error}");
+            logger.trace_error(
+                "video",
+                "pipeline.failed",
+                "Video pipeline failed",
+                &message,
+                &trace_id,
+            );
+            update_visual_stage_after_background(
+            &db_path, &epub_path, &pipeline_stage, "failed", 0, None, None, None, None, &message,
+            );
+            return;
+        }
+    };
+    let stdout = stdout_handle
+        .and_then(|handle| handle.join().ok())
+        .unwrap_or_default();
+    let stderr = stderr_handle
+        .and_then(|handle| handle.join().ok())
+        .unwrap_or_default();
+    update_visual_stage_after_background(
+            &db_path,
         &epub_path,
-        "generating",
+        &pipeline_stage, "generating",
         75,
         None,
         None,
@@ -2410,7 +2649,7 @@ fn run_book_video_pipeline_background(
         None,
         "Video pipeline finished, parsing result",
     );
-    if !output.status.success() {
+    if !status.success() {
         let detail = format!(
             "stdout:\n{}\n\nstderr:\n{}",
             text_preview(&stdout, 4000),
@@ -2423,10 +2662,10 @@ fn run_book_video_pipeline_background(
             &detail,
             &trace_id,
         );
-        update_video_task_after_background(
+        update_visual_stage_after_background(
             &db_path,
             &epub_path,
-            "failed",
+            &pipeline_stage, "failed",
             0,
             None,
             None,
@@ -2447,10 +2686,10 @@ fn run_book_video_pipeline_background(
                 &error.message,
                 &trace_id,
             );
-            update_video_task_after_background(
-                &db_path,
+            update_visual_stage_after_background(
+            &db_path,
                 &epub_path,
-                "failed",
+                &pipeline_stage, "failed",
                 0,
                 None,
                 None,
@@ -2461,10 +2700,10 @@ fn run_book_video_pipeline_background(
             return;
         }
     };
-    update_video_task_after_background(
-        &db_path,
+    update_visual_stage_after_background(
+            &db_path,
         &epub_path,
-        "generating",
+        &pipeline_stage, "generating",
         85,
         None,
         None,
@@ -2483,12 +2722,77 @@ fn run_book_video_pipeline_background(
                 message,
                 &trace_id,
             );
-            update_video_task_after_background(
-                &db_path, &epub_path, "failed", 0, None, None, None, None, message,
+            update_visual_stage_after_background(
+            &db_path, &epub_path, &pipeline_stage, "failed", 0, None, None, None, None, message,
             );
             return;
         }
     };
+    if pipeline_stage == "image" || json_bool(&json, "visualAssetsOnly").unwrap_or(false) {
+        let visual_assets_dir = json_string(&json, "visualAssetsDir").or_else(|| json_string(&json, "visualStoryPlan"));
+        let material_dir_for_db = app_material_dir
+            .as_ref()
+            .map(|path| path.to_string_lossy().into_owned())
+            .unwrap_or_else(|| material_dir.clone());
+        update_visual_stage_after_background(
+            &db_path,
+            &epub_path,
+            "image",
+            "success",
+            100,
+            Some(&material_dir_for_db),
+            visual_assets_dir.as_deref(),
+            None,
+            None,
+            "Image assets generated",
+        );
+        logger.trace_info(
+            "video",
+            "pipeline.visual_done",
+            "Image pipeline completed",
+            format!(
+                "elapsed_seconds={:.1} material_dir={} visual_assets_dir={}",
+                started.elapsed().as_secs_f64(),
+                material_dir,
+                visual_assets_dir.unwrap_or_default()
+            ),
+            &trace_id,
+        );
+        return;
+    }
+    if pipeline_stage == "subtitle" || json_bool(&json, "audioSubtitleOnly").unwrap_or(false) {
+        let subtitle_file = json_string(&json, "hardSubtitleManifest")
+            .or_else(|| json_string(&json, "hardSubtitleSrt"));
+        let material_dir_for_db = app_material_dir
+            .as_ref()
+            .map(|path| path.to_string_lossy().into_owned())
+            .unwrap_or_else(|| material_dir.clone());
+        update_visual_stage_after_background(
+            &db_path,
+            &epub_path,
+            "subtitle",
+            "success",
+            100,
+            Some(&material_dir_for_db),
+            subtitle_file.as_deref(),
+            None,
+            None,
+            "SRT/ASS subtitles generated",
+        );
+        logger.trace_info(
+            "video",
+            "pipeline.subtitle_done",
+            "Subtitle pipeline completed",
+            format!(
+                "elapsed_seconds={:.1} material_dir={} subtitle_file={}",
+                started.elapsed().as_secs_f64(),
+                material_dir,
+                subtitle_file.unwrap_or_default()
+            ),
+            &trace_id,
+        );
+        return;
+    }
     let hard_subtitle_video = json_string(&json, "hardSubtitleVideo").unwrap_or_default();
     let video_file = if hard_subtitle_video.trim().is_empty() {
         json_string(&json, "noSubtitleVideo")
@@ -2528,10 +2832,10 @@ fn run_book_video_pipeline_background(
             &message,
             &trace_id,
         );
-        update_video_task_after_background(
+        update_visual_stage_after_background(
             &db_path,
             &epub_path,
-            "failed",
+            &pipeline_stage, "failed",
             0,
             Some(&material_dir_for_db),
             video_file.as_deref(),
@@ -2545,10 +2849,10 @@ fn run_book_video_pipeline_background(
         .as_ref()
         .map(|path| path.to_string_lossy().into_owned())
         .unwrap_or_else(|| material_dir.clone());
-    update_video_task_after_background(
-        &db_path,
+    update_visual_stage_after_background(
+            &db_path,
         &epub_path,
-        "success",
+        &pipeline_stage, "success",
         100,
         Some(&material_dir_for_db),
         video_file.as_deref(),
@@ -2598,6 +2902,161 @@ fn update_video_task_after_background(
             ],
         );
     }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn update_visual_stage_after_background(
+    db_path: &Path,
+    epub_path: &str,
+    stage: &str,
+    status: &str,
+    progress: i64,
+    material_dir: Option<&str>,
+    output_file: Option<&str>,
+    video_duration_ms: Option<i64>,
+    video_file_size: Option<i64>,
+    message: &str,
+) {
+    if stage == "image" {
+        if let Ok(connection) = Connection::open(db_path) {
+            let _ = connection.execute(
+                "UPDATE material_tasks SET material_output_dir=COALESCE(?4, material_output_dir), image_status=?2, image_progress=?3, image_output_dir=COALESCE(?5, image_output_dir), image_message=?6, updated_at=?7 WHERE path=?1",
+                params![
+                    epub_path,
+                    status,
+                    progress,
+                    material_dir,
+                    output_file,
+                    message,
+                    chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string()
+                ],
+            );
+        }
+        return;
+    }
+    if stage == "subtitle" {
+        if let Ok(connection) = Connection::open(db_path) {
+            let _ = connection.execute(
+                "UPDATE material_tasks SET material_output_dir=COALESCE(?4, material_output_dir), subtitle_status=?2, subtitle_progress=?3, subtitle_file=COALESCE(?5, subtitle_file), subtitle_message=?6, updated_at=?7 WHERE path=?1",
+                params![
+                    epub_path,
+                    status,
+                    progress,
+                    material_dir,
+                    output_file,
+                    message,
+                    chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string()
+                ],
+            );
+        }
+        return;
+    }
+    update_video_task_after_background(
+        db_path,
+        epub_path,
+        status,
+        progress,
+        material_dir,
+        output_file,
+        video_duration_ms,
+        video_file_size,
+        message,
+    );
+    if status == "success" {
+        if let Ok(connection) = Connection::open(db_path) {
+            let _ = connection.execute(
+                "UPDATE material_tasks SET image_status='success', image_progress=100, image_output_dir=COALESCE(image_output_dir, ?2), image_message='Image assets generated', subtitle_status='success', subtitle_progress=100, subtitle_file=COALESCE(subtitle_file, ?3), subtitle_message='Subtitles generated', updated_at=?4 WHERE path=?1",
+                params![
+                    epub_path,
+                    material_dir,
+                    output_file,
+                    chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string()
+                ],
+            );
+        }
+    }
+}
+
+fn collect_video_pipeline_stream<R: std::io::Read>(
+    stream: R,
+    logger: OperationLogger,
+    trace_id: String,
+    stream_name: &'static str,
+) -> String {
+    let mut collected = String::new();
+    let reader = BufReader::new(stream);
+    for line in reader.lines().map_while(Result::ok) {
+        let line = line.trim().to_string();
+        if line.is_empty() {
+            continue;
+        }
+        collected.push_str(&line);
+        collected.push('\n');
+        let action = format!("pipeline.{stream_name}");
+        logger.trace_info(
+            "video",
+            &action,
+            "Video pipeline output",
+            &line,
+            &trace_id,
+        );
+    }
+    collected
+}
+
+fn collect_video_pipeline_progress_stream<R: std::io::Read>(
+    stream: R,
+    logger: OperationLogger,
+    trace_id: String,
+    db_path: PathBuf,
+    epub_path: String,
+) -> String {
+    let mut collected = String::new();
+    let reader = BufReader::new(stream);
+    for line in reader.lines().map_while(Result::ok) {
+        let line = line.trim().to_string();
+        if line.is_empty() {
+            continue;
+        }
+        collected.push_str(&line);
+        collected.push('\n');
+        logger.trace_info(
+            "video",
+            "pipeline.stderr",
+            "Video pipeline output",
+            &line,
+            &trace_id,
+        );
+        if let Some((done, total)) = parse_translated_subtitle_progress(&line) {
+            let percent = if total > 0 {
+                45 + ((done as f64 / total as f64) * 15.0).round() as i64
+            } else {
+                45
+            }
+            .clamp(45, 60);
+            let message = format!("Translating bilingual subtitles: {done}/{total}");
+            update_video_task_after_background(
+                &db_path,
+                &epub_path,
+                "generating",
+                percent,
+                None,
+                None,
+                None,
+                None,
+                &message,
+            );
+        }
+    }
+    collected
+}
+
+fn parse_translated_subtitle_progress(line: &str) -> Option<(i64, i64)> {
+    let regex = Regex::new(r"Translated subtitle cues\s+(\d+)/(\d+)").ok()?;
+    let captures = regex.captures(line)?;
+    let done = captures.get(1)?.as_str().parse::<i64>().ok()?;
+    let total = captures.get(2)?.as_str().parse::<i64>().ok()?;
+    Some((done, total))
 }
 
 fn probe_video_duration_ms(path: &str) -> Option<i64> {
@@ -2660,7 +3119,20 @@ fn format_duration_ms(value: Option<i64>) -> String {
     format!("{minutes}m{seconds:02}s")
 }
 
-fn find_background_music_file() -> Option<PathBuf> {
+fn find_background_music_file(settings: &AppSettings) -> Option<PathBuf> {
+    let configured = settings.tool_profile.background_music_path.trim();
+    if !configured.is_empty() {
+        let path = PathBuf::from(configured);
+        if path.is_file() {
+            return Some(path);
+        }
+    }
+    let default_project_music = PathBuf::from(
+        "D:\\04_GitHub\\world-cup-issue\\a-book-in-30-minutes\\music\\01-蝴蝶飞呀.mp3",
+    );
+    if default_project_music.is_file() {
+        return Some(default_project_music);
+    }
     if let Ok(exe) = std::env::current_exe() {
         if let Some(parent) = exe.parent() {
             for dir_name in ["bg", "music"] {
@@ -3001,6 +3473,27 @@ pub fn get_operation_logs(
         query_operation_logs_since(&connection, limit, &data.app_started_at)?
     };
     Ok(GetOperationLogsResult { entries })
+}
+
+#[tauri::command]
+pub fn get_material_task_steps(
+    data: State<'_, AppData>,
+    request: GetMaterialTaskStepsRequest,
+) -> Result<GetMaterialTaskStepsResult, CommandError> {
+    let connection = Connection::open(&data.db_path).map_err(|error| {
+        command_error(format!("Open operation database failed: {error}"))
+    })?;
+    ensure_material_task_steps_table(&connection)?;
+    let trace_id = request.trace_id.unwrap_or_default();
+    let path = request.path.unwrap_or_default();
+    let steps = if !trace_id.trim().is_empty() {
+        query_material_task_steps_by_trace(&connection, trace_id.trim())?
+    } else if !path.trim().is_empty() {
+        query_material_task_steps_by_path(&connection, path.trim())?
+    } else {
+        Vec::new()
+    };
+    Ok(GetMaterialTaskStepsResult { steps })
 }
 
 fn query_operation_logs_since(
@@ -3831,9 +4324,10 @@ fn parse_ffmpeg_duration_ms(output: &str) -> Option<u64> {
 
 fn resolve_audio_base_dir(data: &AppData, output_dir: &str) -> Result<PathBuf, CommandError> {
     if output_dir.is_empty() {
-        let parent = data.settings_path.parent().ok_or_else(|| {
-            command_error("閺冪姵纭剁€规矮缍呮妯款吇闂婃娊顣舵潏鎾冲毉閻╊喖缍嶉妴?")
-        })?;
+        let parent = data
+            .db_path
+            .parent()
+            .ok_or_else(|| command_error("\u{65e0}\u{6cd5}\u{786e}\u{5b9a}\u{5e94}\u{7528}\u{6570}\u{636e}\u{76ee}\u{5f55}\u{3002}"))?;
         return Ok(parent.join("audio_exports"));
     }
     Ok(PathBuf::from(output_dir))
@@ -3887,11 +4381,27 @@ fn build_audio_data_url(path: &Path) -> Result<String, CommandError> {
 fn init_app_tables(db_path: &Path, logger: &OperationLogger) {
     match Connection::open(db_path) {
         Ok(connection) => {
+            if let Err(error) = ensure_settings_table(&connection) {
+                logger.error(
+                    "settings",
+                    "settings.init",
+                    "Initialize settings table failed",
+                    error.message,
+                );
+            }
             if let Err(error) = ensure_material_tasks_table(&connection) {
                 logger.error(
                     "materials",
                     "tasks.init",
                     "Initialize material tasks table failed",
+                    error.message,
+                );
+            }
+            if let Err(error) = ensure_material_task_steps_table(&connection) {
+                logger.error(
+                    "materials",
+                    "task_steps.init",
+                    "Initialize material task steps table failed",
                     error.message,
                 );
             }
@@ -3923,6 +4433,65 @@ fn init_app_tables(db_path: &Path, logger: &OperationLogger) {
     }
 }
 
+fn ensure_settings_table(connection: &Connection) -> Result<(), CommandError> {
+    connection
+        .execute_batch(
+            r#"
+            CREATE TABLE IF NOT EXISTS app_settings (
+              key TEXT PRIMARY KEY,
+              value TEXT NOT NULL,
+              updated_at TEXT NOT NULL
+            );
+            "#,
+        )
+        .map_err(|error| command_error(format!("\u{521d}\u{59cb}\u{5316}\u{914d}\u{7f6e}\u{8868}\u{5931}\u{8d25}\u{ff1a}{error}")))?;
+    Ok(())
+}
+
+fn load_settings_from_database_or_migrate_legacy_json(
+    db_path: &Path,
+    settings_path: &Path,
+) -> Result<AppSettings, String> {
+    if let Ok(connection) = Connection::open(db_path) {
+        if ensure_settings_table(&connection).is_ok() {
+            if let Ok(content) = connection.query_row(
+                "SELECT value FROM app_settings WHERE key = 'settings'",
+                [],
+                |row| row.get::<_, String>(0),
+            ) {
+                return serde_json::from_str::<AppSettings>(content.trim_start_matches('\u{feff}'))
+                    .map_err(|error| format!("\u{89e3}\u{6790}\u{6570}\u{636e}\u{5e93}\u{914d}\u{7f6e}\u{5931}\u{8d25}\u{ff1a}{error}"));
+            }
+        }
+    }
+
+    let content = fs::read_to_string(settings_path)
+        .map_err(|error| format!("\u{8bfb}\u{53d6}\u{65e7}\u{914d}\u{7f6e}\u{6587}\u{4ef6}\u{5931}\u{8d25}\u{ff1a}{error}"))?;
+    let settings = serde_json::from_str::<AppSettings>(content.trim_start_matches('\u{feff}'))
+        .map_err(|error| format!("\u{89e3}\u{6790}\u{65e7}\u{914d}\u{7f6e}\u{6587}\u{4ef6}\u{5931}\u{8d25}\u{ff1a}{error}"))?;
+    if save_settings_to_database(db_path, &settings).is_ok() {
+        let _ = fs::remove_file(settings_path);
+    }
+    Ok(settings)
+}
+
+fn save_settings_to_database(db_path: &Path, settings: &AppSettings) -> Result<(), CommandError> {
+    let connection = Connection::open(db_path)
+        .map_err(|error| command_error(format!("\u{6253}\u{5f00}\u{914d}\u{7f6e}\u{6570}\u{636e}\u{5e93}\u{5931}\u{8d25}\u{ff1a}{error}")))?;
+    ensure_settings_table(&connection)?;
+    let content = serde_json::to_string_pretty(settings)
+        .map_err(|error| command_error(format!("\u{5e8f}\u{5217}\u{5316}\u{914d}\u{7f6e}\u{5931}\u{8d25}\u{ff1a}{error}")))?;
+    let now = chrono::Local::now().to_rfc3339();
+    connection
+        .execute(
+            "INSERT INTO app_settings (key, value, updated_at) VALUES ('settings', ?1, ?2)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+            params![content, now],
+        )
+        .map_err(|error| command_error(format!("\u{4fdd}\u{5b58}\u{914d}\u{7f6e}\u{5230}\u{6570}\u{636e}\u{5e93}\u{5931}\u{8d25}\u{ff1a}{error}")))?;
+    Ok(())
+}
+
 fn ensure_material_tasks_table(connection: &Connection) -> Result<(), CommandError> {
     connection
         .execute_batch(
@@ -3932,7 +4501,7 @@ fn ensure_material_tasks_table(connection: &Connection) -> Result<(), CommandErr
               name TEXT NOT NULL,
               extension TEXT NOT NULL,
               size INTEGER NOT NULL,
-              category TEXT NOT NULL DEFAULT '閸楀﹤鐨弮璺烘儔鐎瑰奔绔撮張顑垮姛',
+              category TEXT NOT NULL DEFAULT '半小时听完一本书',
               status TEXT NOT NULL DEFAULT 'pending',
               progress INTEGER NOT NULL DEFAULT 0,
               narration_chars INTEGER,
@@ -3945,6 +4514,14 @@ fn ensure_material_tasks_table(connection: &Connection) -> Result<(), CommandErr
               audio_duration_ms INTEGER,
               audio_chunks INTEGER,
               audio_message TEXT NOT NULL DEFAULT '',
+              image_status TEXT NOT NULL DEFAULT 'pending',
+              image_progress INTEGER NOT NULL DEFAULT 0,
+              image_output_dir TEXT,
+              image_message TEXT NOT NULL DEFAULT '',
+              subtitle_status TEXT NOT NULL DEFAULT 'pending',
+              subtitle_progress INTEGER NOT NULL DEFAULT 0,
+              subtitle_file TEXT,
+              subtitle_message TEXT NOT NULL DEFAULT '',
               video_status TEXT NOT NULL DEFAULT 'pending',
               video_progress INTEGER NOT NULL DEFAULT 0,
               video_file TEXT,
@@ -3960,7 +4537,7 @@ fn ensure_material_tasks_table(connection: &Connection) -> Result<(), CommandErr
         )
         .map_err(|error| command_error(format!("Ensure material tasks table failed: {error}")))?;
     let _ = connection.execute(
-        "ALTER TABLE material_tasks ADD COLUMN category TEXT NOT NULL DEFAULT '閸楀﹤鐨弮璺烘儔鐎瑰奔绔撮張顑垮姛'",
+        "ALTER TABLE material_tasks ADD COLUMN category TEXT NOT NULL DEFAULT '半小时听完一本书'",
         [],
     );
     let _ = connection.execute(
@@ -4009,6 +4586,32 @@ fn ensure_material_tasks_table(connection: &Connection) -> Result<(), CommandErr
         [],
     );
     let _ = connection.execute(
+        "ALTER TABLE material_tasks ADD COLUMN image_status TEXT NOT NULL DEFAULT 'pending'",
+        [],
+    );
+    let _ = connection.execute(
+        "ALTER TABLE material_tasks ADD COLUMN image_progress INTEGER NOT NULL DEFAULT 0",
+        [],
+    );
+    let _ = connection.execute("ALTER TABLE material_tasks ADD COLUMN image_output_dir TEXT", []);
+    let _ = connection.execute(
+        "ALTER TABLE material_tasks ADD COLUMN image_message TEXT NOT NULL DEFAULT ''",
+        [],
+    );
+    let _ = connection.execute(
+        "ALTER TABLE material_tasks ADD COLUMN subtitle_status TEXT NOT NULL DEFAULT 'pending'",
+        [],
+    );
+    let _ = connection.execute(
+        "ALTER TABLE material_tasks ADD COLUMN subtitle_progress INTEGER NOT NULL DEFAULT 0",
+        [],
+    );
+    let _ = connection.execute("ALTER TABLE material_tasks ADD COLUMN subtitle_file TEXT", []);
+    let _ = connection.execute(
+        "ALTER TABLE material_tasks ADD COLUMN subtitle_message TEXT NOT NULL DEFAULT ''",
+        [],
+    );
+    let _ = connection.execute(
         "ALTER TABLE material_tasks ADD COLUMN video_status TEXT NOT NULL DEFAULT 'pending'",
         [],
     );
@@ -4032,14 +4635,105 @@ fn ensure_material_tasks_table(connection: &Connection) -> Result<(), CommandErr
     Ok(())
 }
 
+fn query_material_task_steps_by_trace(
+    connection: &Connection,
+    trace_id: &str,
+) -> Result<Vec<MaterialTaskStep>, CommandError> {
+    let mut statement = connection
+        .prepare(
+            "SELECT trace_id, path, step_code, step_name, status, progress, detail, started_at, finished_at, elapsed_ms, updated_at
+             FROM material_task_steps
+             WHERE trace_id=?1
+             ORDER BY step_code ASC",
+        )
+        .map_err(|error| command_error(format!("Prepare task steps query failed: {error}")))?;
+    let rows = statement
+        .query_map(params![trace_id], material_task_step_from_row)
+        .map_err(|error| command_error(format!("Query task steps failed: {error}")))?;
+    collect_material_task_steps(rows)
+}
+
+fn query_material_task_steps_by_path(
+    connection: &Connection,
+    path: &str,
+) -> Result<Vec<MaterialTaskStep>, CommandError> {
+    let latest_trace_id: Option<String> = connection
+        .query_row(
+            "SELECT trace_id FROM material_task_steps WHERE path=?1 ORDER BY updated_at DESC LIMIT 1",
+            params![path],
+            |row| row.get(0),
+        )
+        .ok();
+    match latest_trace_id {
+        Some(trace_id) => query_material_task_steps_by_trace(connection, &trace_id),
+        None => Ok(Vec::new()),
+    }
+}
+
+fn collect_material_task_steps<F>(
+    rows: rusqlite::MappedRows<'_, F>,
+) -> Result<Vec<MaterialTaskStep>, CommandError>
+where
+    F: FnMut(&rusqlite::Row<'_>) -> rusqlite::Result<MaterialTaskStep>,
+{
+    let mut steps = Vec::new();
+    for row in rows {
+        steps.push(row.map_err(|error| command_error(format!("Read task step row failed: {error}")))?);
+    }
+    Ok(steps)
+}
+
+fn material_task_step_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<MaterialTaskStep> {
+    Ok(MaterialTaskStep {
+        trace_id: row.get(0)?,
+        path: row.get(1)?,
+        step_code: row.get(2)?,
+        step_name: row.get(3)?,
+        status: row.get(4)?,
+        progress: row.get(5)?,
+        detail: row.get(6)?,
+        started_at: row.get(7)?,
+        finished_at: row.get(8)?,
+        elapsed_ms: row.get(9)?,
+        updated_at: row.get(10)?,
+    })
+}
+
+fn ensure_material_task_steps_table(connection: &Connection) -> Result<(), CommandError> {
+    connection
+        .execute_batch(
+            r#"
+            CREATE TABLE IF NOT EXISTS material_task_steps (
+              trace_id TEXT NOT NULL,
+              path TEXT NOT NULL,
+              step_code TEXT NOT NULL,
+              step_name TEXT NOT NULL,
+              status TEXT NOT NULL DEFAULT 'pending',
+              progress INTEGER NOT NULL DEFAULT 0,
+              detail TEXT NOT NULL DEFAULT '',
+              started_at TEXT,
+              finished_at TEXT,
+              elapsed_ms INTEGER,
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL,
+              PRIMARY KEY (trace_id, step_code)
+            );
+            CREATE INDEX IF NOT EXISTS idx_material_task_steps_path ON material_task_steps(path);
+            CREATE INDEX IF NOT EXISTS idx_material_task_steps_updated_at ON material_task_steps(updated_at);
+            "#,
+        )
+        .map_err(|error| command_error(format!("Ensure material task steps table failed: {error}")))?;
+    Ok(())
+}
+
 fn upsert_material_task(connection: &Connection, file: &MaterialFile) -> Result<(), CommandError> {
     let now = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
     connection
         .execute(
             r#"
             INSERT INTO material_tasks
-              (path, name, extension, size, category, status, progress, narration_chars, material_output_dir, message, audio_status, audio_progress, audio_output_dir, audio_file, audio_duration_ms, audio_chunks, audio_message, video_status, video_progress, video_file, video_duration_ms, video_file_size, video_message, created_at, updated_at)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?24)
+              (path, name, extension, size, category, status, progress, narration_chars, material_output_dir, message, audio_status, audio_progress, audio_output_dir, audio_file, audio_duration_ms, audio_chunks, audio_message, image_status, image_progress, image_output_dir, image_message, subtitle_status, subtitle_progress, subtitle_file, subtitle_message, video_status, video_progress, video_file, video_duration_ms, video_file_size, video_message, created_at, updated_at)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29, ?30, ?31, ?32, ?32)
             ON CONFLICT(path) DO UPDATE SET
               name = excluded.name,
               extension = excluded.extension,
@@ -4069,6 +4763,14 @@ fn upsert_material_task(connection: &Connection, file: &MaterialFile) -> Result<
                 file.audio_duration_ms,
                 file.audio_chunks,
                 file.audio_message,
+                normalize_task_status(&file.image_status),
+                clamp_task_progress(file.image_progress),
+                file.image_output_dir,
+                file.image_message,
+                normalize_task_status(&file.subtitle_status),
+                clamp_task_progress(file.subtitle_progress),
+                file.subtitle_file,
+                file.subtitle_message,
                 normalize_task_status(&file.video_status),
                 clamp_task_progress(file.video_progress),
                 file.video_file,
@@ -4114,6 +4816,14 @@ fn material_file_from_path(path: &str, category: &str) -> Result<MaterialFile, C
         audio_duration_ms: None,
         audio_chunks: None,
         audio_message: String::new(),
+        image_status: "pending".to_string(),
+        image_progress: 0,
+        image_output_dir: None,
+        image_message: String::new(),
+        subtitle_status: "pending".to_string(),
+        subtitle_progress: 0,
+        subtitle_file: None,
+        subtitle_message: String::new(),
         video_status: "pending".to_string(),
         video_progress: 0,
         video_file: None,
@@ -4128,7 +4838,7 @@ fn load_material_task_by_path(
     path: &str,
 ) -> Result<Option<MaterialFile>, CommandError> {
     let result = connection.query_row(
-        "SELECT path, name, extension, size, category, status, progress, narration_chars, material_output_dir, message, audio_status, audio_progress, audio_output_dir, audio_file, audio_duration_ms, audio_chunks, audio_message, video_status, video_progress, video_file, video_duration_ms, video_file_size, video_message FROM material_tasks WHERE path = ?1",
+        &format!("SELECT {MATERIAL_TASK_SELECT_COLUMNS} FROM material_tasks WHERE path = ?1"),
         params![path],
         material_task_from_row,
     );
@@ -4153,7 +4863,7 @@ where
 
 fn material_task_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<MaterialFile> {
     let size: i64 = row.get(3)?;
-    Ok(MaterialFile {
+    let mut file = MaterialFile {
         path: row.get(0)?,
         name: row.get(1)?,
         extension: row.get(2)?,
@@ -4163,22 +4873,128 @@ fn material_task_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<MaterialF
         progress: clamp_task_progress(row.get(6)?),
         narration_chars: row.get(7)?,
         material_output_dir: row.get(8)?,
-        message: row.get(9)?,
+        message: normalize_task_message(row.get(9)?, "material"),
         audio_status: normalize_task_status(&row.get::<_, String>(10)?),
         audio_progress: clamp_task_progress(row.get(11)?),
         audio_output_dir: row.get(12)?,
         audio_file: row.get(13)?,
         audio_duration_ms: row.get(14)?,
         audio_chunks: row.get(15)?,
-        audio_message: row.get(16)?,
-        video_status: normalize_task_status(&row.get::<_, String>(17)?),
-        video_progress: clamp_task_progress(row.get(18)?),
-        video_file: row.get(19)?,
-        video_duration_ms: row.get(20)?,
-        video_file_size: row.get(21)?,
-        video_message: row.get(22)?,
-    })
+        audio_message: normalize_task_message(row.get(16)?, "audio"),
+        image_status: normalize_task_status(&row.get::<_, String>(17)?),
+        image_progress: clamp_task_progress(row.get(18)?),
+        image_output_dir: row.get(19)?,
+        image_message: normalize_task_message(row.get(20)?, "image"),
+        subtitle_status: normalize_task_status(&row.get::<_, String>(21)?),
+        subtitle_progress: clamp_task_progress(row.get(22)?),
+        subtitle_file: row.get(23)?,
+        subtitle_message: normalize_task_message(row.get(24)?, "subtitle"),
+        video_status: normalize_task_status(&row.get::<_, String>(25)?),
+        video_progress: clamp_task_progress(row.get(26)?),
+        video_file: row.get(27)?,
+        video_duration_ms: row.get(28)?,
+        video_file_size: row.get(29)?,
+        video_message: normalize_task_message(row.get(30)?, "video"),
+    };
+    normalize_material_task_outputs(&mut file);
+    Ok(file)
 }
+
+fn normalize_task_message(message: String, stage: &str) -> String {
+    if !looks_like_garbled_text(&message) {
+        return message;
+    }
+    match stage {
+        "audio" => "\u{97f3}\u{9891}\u{4efb}\u{52a1}\u{72b6}\u{6001}\u{5f02}\u{5e38}\u{ff0c}\u{8bf7}\u{6309}\u{9700}\u{91cd}\u{65b0}\u{751f}\u{6210}\u{97f3}\u{9891}\u{3002}".to_string(),
+        "image" => "\u{56fe}\u{7247}\u{4efb}\u{52a1}\u{72b6}\u{6001}\u{5f02}\u{5e38}\u{ff0c}\u{8bf7}\u{6309}\u{9700}\u{91cd}\u{65b0}\u{751f}\u{6210}\u{56fe}\u{7247}\u{3002}".to_string(),
+        "subtitle" => "\u{5b57}\u{5e55}\u{4efb}\u{52a1}\u{72b6}\u{6001}\u{5f02}\u{5e38}\u{ff0c}\u{8bf7}\u{6309}\u{9700}\u{91cd}\u{65b0}\u{751f}\u{6210}\u{5b57}\u{5e55}\u{3002}".to_string(),
+        "video" => "\u{89c6}\u{9891}\u{4efb}\u{52a1}\u{72b6}\u{6001}\u{5f02}\u{5e38}\u{ff0c}\u{8bf7}\u{6309}\u{9700}\u{91cd}\u{65b0}\u{751f}\u{6210}\u{89c6}\u{9891}\u{3002}".to_string(),
+        _ => "\u{4efb}\u{52a1}\u{72b6}\u{6001}\u{5f02}\u{5e38}\u{ff0c}\u{8bf7}\u{6309}\u{9700}\u{91cd}\u{65b0}\u{751f}\u{6210}\u{5f53}\u{524d}\u{9636}\u{6bb5}\u{3002}".to_string(),
+    }
+}
+
+fn normalize_material_task_outputs(file: &mut MaterialFile) {
+    normalize_material_task_outputs_from_disk(file);
+}
+
+fn material_dir_has_text_assets(path: &Path) -> bool {
+    path.is_dir()
+        && path.join("narration.txt").is_file()
+        && path.join("subtitles.txt").is_file()
+        && path.join("materials.json").is_file()
+}
+
+fn normalize_material_task_outputs_from_disk(file: &mut MaterialFile) {
+    let has_text_assets = file
+        .material_output_dir
+        .as_deref()
+        .map(Path::new)
+        .map(material_dir_has_text_assets)
+        .unwrap_or(false);
+    if has_text_assets {
+        file.status = "success".to_string();
+        file.progress = 100;
+        if file.narration_chars.unwrap_or_default() <= 0 {
+            file.narration_chars = file
+                .material_output_dir
+                .as_deref()
+                .and_then(|dir| count_narration_chars_in_dir(Path::new(dir)));
+        }
+        if file.message.trim().is_empty() || looks_like_garbled_text(&file.message) {
+            file.message = "文本素材已存在，已跳过文本生成。".to_string();
+        }
+    } else {
+        file.status = "pending".to_string();
+        file.progress = 0;
+        file.narration_chars = None;
+        file.material_output_dir = None;
+        file.message = "文本素材缺失，请按需重新生成文本。".to_string();
+    }
+
+    if !path_option_exists(&file.audio_file) {
+        file.audio_status = "pending".to_string();
+        file.audio_progress = 0;
+        file.audio_file = None;
+        file.audio_duration_ms = None;
+        file.audio_chunks = None;
+        file.audio_message = "音频文件缺失，请按需重新生成音频。".to_string();
+    }
+    if !path_option_exists(&file.image_output_dir) {
+        file.image_status = "pending".to_string();
+        file.image_progress = 0;
+        file.image_output_dir = None;
+        file.image_message = "图片素材缺失，请按需重新生成图片。".to_string();
+    }
+    if !path_option_exists(&file.subtitle_file) {
+        file.subtitle_status = "pending".to_string();
+        file.subtitle_progress = 0;
+        file.subtitle_file = None;
+        file.subtitle_message = "字幕文件缺失，请按需重新生成字幕。".to_string();
+    }
+    if !path_option_exists(&file.video_file) {
+        file.video_status = "pending".to_string();
+        file.video_progress = 0;
+        file.video_file = None;
+        file.video_duration_ms = None;
+        file.video_file_size = None;
+        file.video_message = "视频文件缺失，请按需重新生成视频。".to_string();
+    }
+}
+
+fn count_narration_chars_in_dir(path: &Path) -> Option<i64> {
+    fs::read_to_string(path.join("narration.txt"))
+        .ok()
+        .map(|content| count_han_chars(&content) as i64)
+        .filter(|count| *count > 0)
+}
+
+fn path_option_exists(path: &Option<String>) -> bool {
+    path.as_deref()
+        .map(Path::new)
+        .map(Path::exists)
+        .unwrap_or(false)
+}
+
 
 fn normalize_loaded_task_for_manual_resume(file: &mut MaterialFile) {
     if file.status == "generating" {
@@ -4624,6 +5440,89 @@ fn update_material_task_progress_db(
     }
 }
 
+fn upsert_material_task_step_db(
+    db_path: &Path,
+    trace_id: &str,
+    path: &str,
+    step_code: &str,
+    step_name: &str,
+    status: &str,
+    progress: i64,
+    detail: &str,
+) {
+    if let Ok(connection) = Connection::open(db_path) {
+        if ensure_material_task_steps_table(&connection).is_err() {
+            return;
+        }
+        let now = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+        let normalized_status = normalize_task_status(status);
+        let normalized_progress = clamp_task_progress(progress);
+        let existing_started_at = connection
+            .query_row(
+                "SELECT started_at FROM material_task_steps WHERE trace_id=?1 AND step_code=?2",
+                params![trace_id, step_code],
+                |row| row.get::<_, Option<String>>(0),
+            )
+            .ok()
+            .flatten();
+        let started_at = existing_started_at
+            .or_else(|| (normalized_status == "generating" || normalized_status == "success" || normalized_status == "failed").then(|| now.clone()));
+        let existing_finished_at = connection
+            .query_row(
+                "SELECT finished_at FROM material_task_steps WHERE trace_id=?1 AND step_code=?2",
+                params![trace_id, step_code],
+                |row| row.get::<_, Option<String>>(0),
+            )
+            .ok()
+            .flatten();
+        let finished_at = if normalized_status == "success" || normalized_status == "failed" {
+            existing_finished_at.or_else(|| Some(now.clone()))
+        } else {
+            existing_finished_at
+        };
+        let elapsed_ms = match (started_at.as_deref(), finished_at.as_deref()) {
+            (Some(start), Some(finish)) => elapsed_between_ms(start, finish),
+            _ => None,
+        };
+        let _ = connection.execute(
+            r#"
+            INSERT INTO material_task_steps
+              (trace_id, path, step_code, step_name, status, progress, detail, started_at, finished_at, elapsed_ms, created_at, updated_at)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?11)
+            ON CONFLICT(trace_id, step_code) DO UPDATE SET
+              path=excluded.path,
+              step_name=excluded.step_name,
+              status=excluded.status,
+              progress=excluded.progress,
+              detail=excluded.detail,
+              started_at=COALESCE(material_task_steps.started_at, excluded.started_at),
+              finished_at=COALESCE(material_task_steps.finished_at, excluded.finished_at),
+              elapsed_ms=COALESCE(excluded.elapsed_ms, material_task_steps.elapsed_ms),
+              updated_at=excluded.updated_at
+            "#,
+            params![
+                trace_id,
+                path,
+                step_code,
+                step_name,
+                normalized_status,
+                normalized_progress,
+                detail,
+                started_at,
+                finished_at,
+                elapsed_ms,
+                now
+            ],
+        );
+    }
+}
+
+fn elapsed_between_ms(start: &str, finish: &str) -> Option<i64> {
+    let start_time = chrono::NaiveDateTime::parse_from_str(start, "%Y-%m-%d %H:%M:%S").ok()?;
+    let finish_time = chrono::NaiveDateTime::parse_from_str(finish, "%Y-%m-%d %H:%M:%S").ok()?;
+    Some((finish_time - start_time).num_milliseconds().max(0))
+}
+
 fn ensure_speech_region_key_table(connection: &Connection) -> Result<(), CommandError> {
     connection
         .execute_batch(
@@ -4830,6 +5729,10 @@ fn json_string(value: &serde_json::Value, key: &str) -> Option<String> {
 
 fn json_i64(value: &serde_json::Value, key: &str) -> Option<i64> {
     value.get(key).and_then(|item| item.as_i64())
+}
+
+fn json_bool(value: &serde_json::Value, key: &str) -> Option<bool> {
+    value.get(key).and_then(|item| item.as_bool())
 }
 
 fn json_string_array(value: &serde_json::Value, key: &str) -> Vec<String> {
@@ -5213,6 +6116,7 @@ fn build_local_book_materials_payload(
         description: format!("用 30 分钟读完《{title}》，梳理故事脉络、人物关系和核心主题。"),
         tags: vec!["听书".to_string(), "读书".to_string(), "30分钟一本书".to_string()],
         narration,
+        subtitles: Vec::new(),
     }
 }
 
@@ -5235,12 +6139,28 @@ fn tail_chars(value: &str, max_chars: usize) -> String {
     chars[start..].iter().collect()
 }
 
+fn trim_narration_to_total_chars(value: &str, max_chars: usize) -> String {
+    let chars: Vec<char> = value.chars().collect();
+    if chars.len() <= max_chars {
+        return value.trim().to_string();
+    }
+    let mut end = max_chars.min(chars.len());
+    let search_start = end.saturating_sub(360);
+    for index in (search_start..end).rev() {
+        if matches!(chars[index], '。' | '？' | '?' | '！' | '!' | '；' | ';') {
+            end = index + 1;
+            break;
+        }
+    }
+    chars[..end].iter().collect::<String>().trim().to_string()
+}
+
 fn build_book_materials_prompt(book: &EpubBook, request: &BookMaterialsRequest) -> String {
     let target_min = request.target_min_chars;
     let target_max = request.target_max_chars;
     let source_packet = build_source_packet(book);
     format!(
-        "You are writing a Chinese audiobook video package. Return only valid JSON with keys: videoTitle, description, tags, narration. The narration must be a continuous Chinese script between {target_min} and {target_max} Chinese characters. Do not output markdown.\n\nBook title: {title}\nAuthor: {author}\nLanguage: {language}\nExtra direction: {direction}\n\nSource excerpts:\n{source_packet}",
+        "You are creating a Chinese audiobook video package. Return only valid JSON with keys: videoTitle, description, tags, narration, subtitles. Do not output markdown.\n\nRole:\n- You are a senior short-video subtitle editor and a healing late-night radio copywriter.\n- Your subtitle cuts should guide reading rhythm, emotional rise and fall, and a gentle sense of breathing.\n\nNarration task:\n- Write narration as a continuous Chinese script between {target_min} and {target_max} Chinese characters.\n- The final narration.txt should normally stay under about 8,200 total characters including punctuation.\n- Prefer concise, warm narration. Do not exceed the target by adding repetitive reassurance or filler.\n\nSubtitle task:\n- After writing the final narration, read and understand it as a human subtitle editor.\n- Create subtitles from the final narration, not from the source excerpts.\n- subtitles must be a JSON array of Chinese subtitle lines in exact reading order.\n- subtitles must cover the whole narration. Do not summarize, omit, add, rewrite, or reorder content.\n\nConstraint:\n1. Line length: each subtitle line should be within 18 Chinese characters including punctuation when possible. A meaningful line may be slightly longer only when splitting would damage a title, phrase, or natural rhythm.\n2. Punctuation: preserve natural punctuation such as ，。？！；：、《》…… Do not strip punctuation.\n3. Format: subtitles is a JSON string array. No timestamps. One subtitle line per array item.\n4. Coverage: every sentence in narration must appear in subtitles in order.\n\nSegmentation logic:\n1. Semantic integrity: prefer line breaks at punctuation. If a sentence is too long, split only at a logical pause. Never split a word or fixed phrase, for example “蒲公英”, “完美”, “希望”, “你有我呢”.\n2. Reading rhythm: use natural human breathing. Mix shorter and longer lines to create a slow, healing pace.\n3. Visual beauty: avoid 1-5 character orphan lines unless the short line is an intentional emotional beat.\n4. Phrase protection: keep book titles, names, idioms, number expressions, and short emotional phrases intact, such as 《天会亮的，你有我呢》 and “三十三个四季小故事”.\n5. Soft punctuation: commas may stay inside a line when they make the rhythm better; split after a comma only when both sides are meaningful.\n6. Tiny tails: if the final fragment is too short, merge it with the previous or next line.\n\nWhat to avoid:\n- Do not mechanically cut every 14, 16, 18, or 20 characters.\n- Do not remove punctuation to make lines shorter.\n- Do not split a title into isolated fragments.\n- Do not create orphan lines such as “的书”, “完”, “美”, “三十三”.\n- Do not join unrelated clauses into one long line just to avoid short lines.\n- Do not change wording for subtitle length.\n\nBad examples:\n- “完” / “美”\n- “的书” as a separate line\n- “天会亮的” / “你有我呢” when it is one title\n- “三十三” / “个四季小故事”\n- One very long sentence with no punctuation and no breathing point\n\nOutput example:\n- “今晚要一起读的是，”\n- “一平著绘的《天会亮的，你有我呢》。”\n- “先把灯光调暗一点，”\n- “把白天没有说完的话，”\n- “轻轻放在枕边。”\n- “你不必马上变好，”\n- “也不必立刻回答生活的问题。”\n\nBook title: {title}\nAuthor: {author}\nLanguage: {language}\nExtra direction: {direction}\n\nSource excerpts:\n{source_packet}",
         title = book.overview.title,
         author = book.overview.creator,
         language = request.language,
@@ -5290,7 +6210,7 @@ fn build_narration_rewrite_prompt(
     max_chars: usize,
 ) -> String {
     format!(
-        "Rewrite the JSON so narration is between {min_chars} and {max_chars} Chinese characters. Current narration Chinese chars: {current_chars}. Return only valid JSON with the same keys. Existing JSON:\n{}",
+        "Rewrite the JSON so narration is between {min_chars} and {max_chars} Chinese characters. Current narration Chinese chars: {current_chars}. Return only valid JSON with the same keys: videoTitle, description, tags, narration, subtitles. The final narration.txt should normally stay under about 8,200 total characters including punctuation.\n\nRole:\n- You are a senior short-video subtitle editor and a healing late-night radio copywriter.\n- Rebuild subtitles with rhythm, breathing, and emotional pacing, not mechanical slicing.\n\nSubtitle rebuild task:\n- Rebuild subtitles only after reading and understanding the final rewritten narration.\n- subtitles must cover the whole final narration in exact reading order. Do not summarize, omit, add, rewrite, or reorder content.\n\nConstraint:\n1. Each subtitle line should be within 18 Chinese characters including punctuation when possible.\n2. Preserve punctuation such as ，。？！；：、《》…… Do not strip punctuation.\n3. No timestamps. subtitles must be a JSON string array.\n\nSegmentation logic:\n1. Prefer breaks at punctuation. If a sentence is too long, split only at semantic pauses.\n2. Keep natural human breathing and a slow healing rhythm.\n3. Avoid 1-5 character orphan lines unless they intentionally emphasize emotion.\n4. Keep words, titles, names, idioms, number expressions, and short emotional phrases intact, such as “蒲公英”, “完美”, 《天会亮的，你有我呢》, “三十三个四季小故事”.\n5. If a fragment is too short, merge it with the previous or next line.\n\nDo not:\n- Do not mechanically cut every 14, 16, 18, or 20 characters.\n- Do not remove punctuation.\n- Do not split words or titles into fragments.\n- Do not create orphan lines such as “的书”, “完”, “美”, “三十三”.\n- Do not join unrelated clauses into one long line just to avoid short lines.\n\nOutput example:\n- “今晚要一起读的是，”\n- “一平著绘的《天会亮的，你有我呢》。”\n- “先把灯光调暗一点，”\n- “把白天没有说完的话，”\n- “轻轻放在枕边。”\n\nExisting JSON:\n{}",
         serde_json::to_string(payload).unwrap_or_default()
     )
 }
@@ -5434,48 +6354,143 @@ fn extract_json_object(content: &str) -> Option<String> {
 }
 
 fn split_subtitles(narration: &str) -> Vec<String> {
+    const MAX_SUBTITLE_CHARS: usize = 24;
+    const SOFT_SUBTITLE_CHARS: usize = 14;
+    const MIN_SUBTITLE_TAIL_CHARS: usize = 6;
     let mut lines = Vec::new();
     let mut current = String::new();
     for ch in narration.chars() {
         if ch.is_whitespace() {
             continue;
         }
-        let should_break = matches!(
-            ch,
-            '。' | '？' | '?' | '！' | '!' | '；' | ';' | '，' | ',' | '.' | '\n' | '\r'
-        );
-        if !should_break {
-            current.push(ch);
-        }
-        if should_break || current.chars().count() >= 14 {
-            push_clean_subtitle(&mut lines, &current);
+        current.push(ch);
+        let hard_break = is_hard_subtitle_break(ch);
+        let soft_break = is_soft_subtitle_break(ch);
+        let current_len = current.chars().count();
+        if hard_break || (soft_break && current_len >= SOFT_SUBTITLE_CHARS) {
+            push_clean_subtitle(&mut lines, &current, MAX_SUBTITLE_CHARS);
             current.clear();
         }
     }
-    push_clean_subtitle(&mut lines, &current);
+    push_clean_subtitle(&mut lines, &current, MAX_SUBTITLE_CHARS);
     if lines.is_empty() {
-        push_subtitle_chunks(&mut lines, narration, 14);
+        push_subtitle_chunks(&mut lines, narration, MAX_SUBTITLE_CHARS);
     }
-    lines
+    merge_short_subtitle_tails(lines, MIN_SUBTITLE_TAIL_CHARS, MAX_SUBTITLE_CHARS)
 }
 
-fn push_clean_subtitle(lines: &mut Vec<String>, cleaned: &str) {
+fn normalize_ai_subtitles(subtitles: &[String], narration: &str) -> Option<Vec<String>> {
+    const MAX_SUBTITLE_CHARS: usize = 24;
+    const MIN_SUBTITLE_TAIL_CHARS: usize = 6;
+    if subtitles.is_empty() {
+        return None;
+    }
+    let mut lines = Vec::new();
+    for subtitle in subtitles {
+        let cleaned = clean_subtitle_line(subtitle);
+        if cleaned.is_empty() {
+            continue;
+        }
+        push_subtitle_chunks(&mut lines, &cleaned, MAX_SUBTITLE_CHARS);
+    }
+    let lines = merge_short_subtitle_tails(lines, MIN_SUBTITLE_TAIL_CHARS, MAX_SUBTITLE_CHARS);
+    if lines.len() < 8 || count_han_chars(&lines.join("")) < count_han_chars(narration) / 2 {
+        return None;
+    }
+    let joined = lines.join("");
+    if punctuation_count(&joined) < lines.len().saturating_div(4).max(8) {
+        return None;
+    }
+    Some(lines)
+}
+
+fn push_clean_subtitle(lines: &mut Vec<String>, cleaned: &str, max_chars: usize) {
+    let cleaned = clean_subtitle_line(cleaned);
     if cleaned.is_empty() {
         return;
     }
-    push_subtitle_chunks(lines, cleaned, 14);
+    push_subtitle_chunks(lines, &cleaned, max_chars);
+}
+
+fn clean_subtitle_line(value: &str) -> String {
+    value.trim().to_string()
+}
+
+fn merge_short_subtitle_tails(lines: Vec<String>, min_tail_chars: usize, max_chars: usize) -> Vec<String> {
+    let mut merged: Vec<String> = Vec::new();
+    for line in lines {
+        let line_len = line.chars().count();
+        if line_len < min_tail_chars {
+            if let Some(previous) = merged.last_mut() {
+                let previous_len = previous.chars().count();
+                if previous_len + line_len <= max_chars {
+                    previous.push_str(&line);
+                    continue;
+                }
+            }
+        }
+        merged.push(line);
+    }
+    merged
+}
+
+fn is_hard_subtitle_break(ch: char) -> bool {
+    matches!(ch, '\u{3002}' | '\u{FF01}' | '\u{FF1F}' | '\u{FF1B}' | '!' | '?' | ';' | '\n' | '\r')
+}
+
+fn is_soft_subtitle_break(ch: char) -> bool {
+    matches!(ch, '\u{FF0C}' | '\u{3001}' | '\u{FF1A}' | ':' | ',' | '\u{201C}' | '\u{201D}' | '\u{2018}' | '\u{2019}')
+}
+
+fn is_subtitle_split_punctuation(ch: char) -> bool {
+    is_hard_subtitle_break(ch) || is_soft_subtitle_break(ch)
+}
+
+fn punctuation_count(value: &str) -> usize {
+    value
+        .chars()
+        .filter(|ch| is_subtitle_split_punctuation(*ch) || matches!(*ch, '\u{300A}' | '\u{300B}' | '\u{2026}' | '.'))
+        .count()
+}
+
+fn best_subtitle_split(chars: &[char], start: usize, max_chars: usize) -> usize {
+    let remaining = chars.len() - start;
+    if remaining <= max_chars {
+        return chars.len();
+    }
+    let mut end = start + max_chars;
+    let tail_len = chars.len() - end;
+    if tail_len > 0 && tail_len < 6 {
+        end = chars.len().saturating_sub(6).max(start + 1);
+    }
+    let search_start = (start + 12).min(end);
+    for index in (search_start..end).rev() {
+        if is_subtitle_split_punctuation(chars[index]) {
+            return index + 1;
+        }
+    }
+    end
 }
 
 fn push_subtitle_chunks(lines: &mut Vec<String>, text: &str, max_chars: usize) {
-    let chars: Vec<char> = text.chars().collect();
+    let chars: Vec<char> = text.trim().chars().collect();
     if chars.len() <= max_chars {
-        lines.push(text.to_string());
+        if !chars.is_empty() {
+            lines.push(chars.iter().collect::<String>());
+        }
         return;
     }
     let mut start = 0usize;
     while start < chars.len() {
-        let end = (start + max_chars).min(chars.len());
-        lines.push(chars[start..end].iter().collect::<String>());
+        let end = best_subtitle_split(&chars, start, max_chars);
+        let line = chars[start..end]
+            .iter()
+            .collect::<String>()
+            .trim()
+            .to_string();
+        if !line.is_empty() {
+            lines.push(line);
+        }
         start = end;
     }
 }
@@ -5483,9 +6498,9 @@ fn push_subtitle_chunks(lines: &mut Vec<String>, text: &str, max_chars: usize) {
 fn resolve_export_base_dir(data: &AppData, output_dir: &str) -> Result<PathBuf, CommandError> {
     if output_dir.is_empty() {
         let parent = data
-            .settings_path
+            .db_path
             .parent()
-            .ok_or_else(|| command_error("閺冪姵纭剁€规矮缍呮妯款吇鐎电厧鍤惄顔肩秿閵?"))?;
+            .ok_or_else(|| command_error("\u{65e0}\u{6cd5}\u{786e}\u{5b9a}\u{5e94}\u{7528}\u{6570}\u{636e}\u{76ee}\u{5f55}\u{3002}"))?;
         return Ok(parent.join("exports"));
     }
     Ok(PathBuf::from(output_dir))

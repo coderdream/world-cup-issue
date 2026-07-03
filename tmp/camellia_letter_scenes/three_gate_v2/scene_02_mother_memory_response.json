@@ -1,0 +1,17 @@
+{
+  "created": 1782646061,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782646061.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs/book_image_1782646061.png",
+      "revised_prompt": "cinematic realistic watercolor illustration, intimate book-summary video background, young East Asian woman, visible handwritten letter pages with no readable text, camellia flowers, warm soft light, emotional quiet mood, detailed interior, 16:9, no readable text, no logo, no watermark, emotional memory scene in a Japanese tatami room at dusk, mother and daughter separated by a half open sliding door, mother holding an old letter, daughter looking down quietly, low table with envelope and camellia branch, warm indoor lamp and blue evening window, restrained family tenderness",
+      "metrics": {
+        "colors": 21932,
+        "nonBgRatio": 0.95
+      },
+      "elapsedSeconds": 15.14,
+      "model": "Lykon/dreamshaper-8-lcm",
+      "device": "mps"
+    }
+  ]
+}

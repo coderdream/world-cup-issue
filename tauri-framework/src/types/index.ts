@@ -1,4 +1,4 @@
-export type RouteKey = "home" | "settings" | "about";
+export type RouteKey = "home" | "logs" | "settings" | "about";
 
 export interface AppSettings {
   theme: "dark" | "light";
@@ -65,4 +65,24 @@ export interface FeishuSendRequest {
 export interface FeishuSendResult {
   ok: boolean;
   message: string;
+}
+
+export interface GetOperationLogsRequest {
+  limit: number;
+  traceId?: string;
+}
+
+export interface OperationLogEntry {
+  id: number;
+  createdAt: string;
+  level: "DEBUG" | "INFO" | "WARN" | "ERROR" | string;
+  module: string;
+  action: string;
+  message: string;
+  detail?: string;
+  traceId?: string;
+}
+
+export interface GetOperationLogsResult {
+  entries: OperationLogEntry[];
 }

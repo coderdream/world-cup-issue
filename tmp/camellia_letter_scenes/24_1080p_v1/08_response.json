@@ -1,0 +1,17 @@
+{
+  "created": 1782656848,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782656848.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs/book_image_1782656848.png",
+      "revised_prompt": "professional cinematic realistic watercolor illustration for a Chinese 30-minute book-summary video, consistent young East Asian woman with shoulder-length black hair and soft cream cardigan, quiet Japanese seaside town and warm stationery-room atmosphere, camellia flowers as recurring motif, letters and notebooks with no readable text, emotional healing tone, elegant composition, soft film lighting, detailed background, 16:9, no readable text, no logo, no watermark, scene 08 of 24, library-like corner with shelves of paper, she compares old letters and notebook pages, piecing together family memories, visualize this subtitle meaning without drawing readable text: 鸠子继承了她留下的文具店也在漫长的日子里一点点理解她理解不等于遗忘伤痛而是终于能看见一个人也许笨拙也许不善表达却仍然用自己的方式爱着与上代有关的情书让鸠子再次面对祖母隐藏在岁月背后的另一面原来上代也曾有过炽热而复杂的感情也曾在人生的某个角落",
+      "metrics": {
+        "colors": 24823,
+        "nonBgRatio": 0.885
+      },
+      "elapsedSeconds": 164.26,
+      "model": "Lykon/dreamshaper-8-lcm",
+      "device": "mps"
+    }
+  ]
+}

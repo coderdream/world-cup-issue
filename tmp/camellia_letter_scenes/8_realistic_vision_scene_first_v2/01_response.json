@@ -1,0 +1,17 @@
+{
+  "created": 1782696800,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782696800.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs-rv/book_image_1782696800.png",
+      "revised_prompt": "photorealistic cinematic Japanese drama film still, environmental storytelling, professional book-summary video visual, warm natural light, quiet emotional realism, realistic lived-in details, 35mm lens, 16:9, no readable text. Scene 01/8, Opening the letter shop. Primary instruction: wide exterior morning shot of a narrow Kamakura side street; a tiny stationery shop door is half open; shelves of envelopes visible inside; red camellia pot near the threshold; the woman is small in frame, turning the key, not looking at camera. Visible character rule: one East Asian woman, early 30s, short black bob haircut, cream cardigan, white top, dark skirt; exactly one visible person, never a close-up portrait, never looking directly at camera. Emotional theme: story opens quietly, the letter shop becomes a doorway into memory. Blank paper only, no readable words.",
+      "metrics": {
+        "colors": 18900,
+        "nonBgRatio": 0.96
+      },
+      "elapsedSeconds": 42.0,
+      "model": "SG161222/Realistic_Vision_V5.1_noVAE",
+      "device": "mps"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 [package]
 name = "tauri_framework"
-version = "0.1.10"
+version = "0.1.11"
 description = "Reusable Tauri desktop application framework"
 authors = ["Tauri Framework"]
 license = "MIT"

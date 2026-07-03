@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+  <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+    <rect width="1280" height="720" fill="#08110f"/>
+    <text x="72" y="98" fill="#8ee7bd" font-size="28" font-weight="700" opacity="1.000">Revenue Pulse</text>
+    <text x="72" y="132" fill="#c9d8d1" font-size="18" opacity="1.000">Animated 5-bar Remotion chart</text>
+    <line x1="88" y1="184" x2="1192" y2="184" stroke="#5e756b" stroke-opacity="0.360"/><line x1="88" y1="299.5" x2="1192" y2="299.5" stroke="#5e756b" stroke-opacity="0.360"/><line x1="88" y1="415" x2="1192" y2="415" stroke="#5e756b" stroke-opacity="0.360"/><line x1="88" y1="530.5" x2="1192" y2="530.5" stroke="#5e756b" stroke-opacity="0.360"/>
+    
+        <text x="187.2" y="358.84811943726675" text-anchor="middle" fill="#e9fff5" font-size="34" font-weight="800" opacity="1.000">42</text>
+        <defs>
+          <linearGradient id="bar-0" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#21c55d" />
+            <stop offset="100%" stop-color="#123529" />
+          </linearGradient>
+          <filter id="glow-0" x="-30%" y="-30%" width="160%" height="170%">
+            <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#21c55d" flood-opacity="0.33"/>
+          </filter>
+        </defs>
+        <rect x="88" y="374.84811943726675" width="198.4" height="223.15188056273328" rx="8" fill="url(#bar-0)" stroke="rgba(255,255,255,0.22)" filter="url(#glow-0)" />
+        <text x="187.2" y="640" text-anchor="middle" fill="#b7c9c0" font-size="24" font-weight="700">Q1</text>
+      
+        <text x="413.59999999999997" y="240.07702325581397" text-anchor="middle" fill="#e9fff5" font-size="34" font-weight="800" opacity="0.998">64</text>
+        <defs>
+          <linearGradient id="bar-1" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#38bdf8" />
+            <stop offset="100%" stop-color="#123529" />
+          </linearGradient>
+          <filter id="glow-1" x="-30%" y="-30%" width="160%" height="170%">
+            <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#38bdf8" flood-opacity="0.33"/>
+          </filter>
+        </defs>
+        <rect x="314.4" y="256.07702325581397" width="198.4" height="341.92297674418603" rx="8" fill="url(#bar-1)" stroke="rgba(255,255,255,0.22)" filter="url(#glow-1)" />
+        <text x="413.59999999999997" y="640" text-anchor="middle" fill="#b7c9c0" font-size="24" font-weight="700">Q2</text>
+      
+        <text x="640" y="347.85951421188634" text-anchor="middle" fill="#e9fff5" font-size="34" font-weight="800" opacity="0.957">44</text>
+        <defs>
+          <linearGradient id="bar-2" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#f59e0b" />
+            <stop offset="100%" stop-color="#123529" />
+          </linearGradient>
+          <filter id="glow-2" x="-30%" y="-30%" width="160%" height="170%">
+            <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#f59e0b" flood-opacity="0.33"/>
+          </filter>
+        </defs>
+        <rect x="540.8" y="363.85951421188634" width="198.4" height="234.14048578811366" rx="8" fill="url(#bar-2)" stroke="rgba(255,255,255,0.22)" filter="url(#glow-2)" />
+        <text x="640" y="640" text-anchor="middle" fill="#b7c9c0" font-size="24" font-weight="700">Q3</text>
+      
+        <text x="866.4000000000001" y="319.2696625514403" text-anchor="middle" fill="#e9fff5" font-size="34" font-weight="800" opacity="0.518">49</text>
+        <defs>
+          <linearGradient id="bar-3" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#f43f5e" />
+            <stop offset="100%" stop-color="#123529" />
+          </linearGradient>
+          <filter id="glow-3" x="-30%" y="-30%" width="160%" height="170%">
+            <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#f43f5e" flood-opacity="0.33"/>
+          </filter>
+        </defs>
+        <rect x="767.2" y="335.2696625514403" width="198.4" height="262.7303374485597" rx="8" fill="url(#bar-3)" stroke="rgba(255,255,255,0.22)" filter="url(#glow-3)" />
+        <text x="866.4000000000001" y="640" text-anchor="middle" fill="#b7c9c0" font-size="24" font-weight="700">Q4</text>
+      
+        <text x="1092.8" y="508.68008268733854" text-anchor="middle" fill="#e9fff5" font-size="34" font-weight="800" opacity="0.000">14</text>
+        <defs>
+          <linearGradient id="bar-4" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#a78bfa" />
+            <stop offset="100%" stop-color="#123529" />
+          </linearGradient>
+          <filter id="glow-4" x="-30%" y="-30%" width="160%" height="170%">
+            <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#a78bfa" flood-opacity="0.33"/>
+          </filter>
+        </defs>
+        <rect x="993.6" y="524.6800826873385" width="198.4" height="73.31991731266146" rx="8" fill="url(#bar-4)" stroke="rgba(255,255,255,0.22)" filter="url(#glow-4)" />
+        <text x="1092.8" y="640" text-anchor="middle" fill="#b7c9c0" font-size="24" font-weight="700">Q5</text>
+      
+  </svg>

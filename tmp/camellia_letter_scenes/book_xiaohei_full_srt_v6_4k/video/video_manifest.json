@@ -1,0 +1,24 @@
+{
+  "sourceImageDir": "D:/04_GitHub/world-cup-issue/tmp/camellia_letter_scenes/book_xiaohei_full_srt_v6_4k",
+  "timeline": "D:/04_GitHub/world-cup-issue/tmp/camellia_letter_scenes/book_xiaohei_full_srt_v6_4k/image_timeline.json",
+  "sceneCount": 30,
+  "timelineDurationMs": 1802920,
+  "stillVideo": "D:/04_GitHub/world-cup-issue/tmp/camellia_letter_scenes/book_xiaohei_full_srt_v6_4k/video/camellia_v6_timeline_still.mp4",
+  "audio": "D:/books/0625新书四本/2025-01《山茶的情书》/output/山茶的情书_video_mix.mp3",
+  "audioDurationSeconds": 1802.976,
+  "finalVideo": "D:/04_GitHub/world-cup-issue/tmp/camellia_letter_scenes/book_xiaohei_full_srt_v6_4k/video/camellia_v6_timeline_with_audio.mp4",
+  "finalDurationSeconds": 1802.95,
+  "video": {
+    "codec": "h264",
+    "width": 3840,
+    "height": 2160,
+    "frameRate": "30/1"
+  },
+  "audioStream": {
+    "codec": "aac",
+    "sampleRate": 48000,
+    "channels": 2
+  },
+  "mode": "still-image timeline video",
+  "note": "This is the first full corresponding video from the v6 images. It preserves the image_timeline durations and includes the prepared video_mix narration audio. Full whiteboard hand-drawing animation is not yet generated."
+}

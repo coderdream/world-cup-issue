@@ -136,11 +136,13 @@ CREATE TABLE IF NOT EXISTS operate_log (
   module TEXT NOT NULL,
   action TEXT NOT NULL,
   message TEXT NOT NULL,
-  detail TEXT
+  detail TEXT,
+  trace_id TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_operate_log_created_at ON operate_log(created_at);
 CREATE INDEX IF NOT EXISTS idx_operate_log_module_action ON operate_log(module, action);
+CREATE INDEX IF NOT EXISTS idx_operate_log_trace_id ON operate_log(trace_id);
 ```
 
 当前记录的事件包括：
@@ -154,6 +156,29 @@ CREATE INDEX IF NOT EXISTS idx_operate_log_module_action ON operate_log(module, 
 - AI 文本生成成功或失败。
 - 飞书配置测试成功或失败。
 - 飞书消息发送成功或失败。
+
+### 结构化任务日志
+
+框架日志器 `OperationLogger` 提供以下通用写入方法：
+
+- `info(module, action, message)`：普通信息日志。
+- `error(module, action, message, detail)`：普通错误日志。
+- `debug(module, action, message, detail, trace_id)`：带任务 ID 的调试日志。
+- `trace_info(module, action, message, detail, trace_id)`：带任务 ID 的信息日志。
+- `warn(module, action, message, detail, trace_id)`：带任务 ID 的警告日志。
+- `trace_error(module, action, message, detail, trace_id)`：带任务 ID 的错误日志。
+- `log(level, module, action, message, detail, trace_id)`：底层通用入口。
+
+`trace_id` 用于把一次后台任务串起来，例如素材生成、批量扫描、文件移动或 AI 分析。框架在初始化时会自动给旧数据库补 `trace_id` 列，并创建索引。
+
+前端新增“操作日志”菜单，读取 `get_operation_logs` IPC：
+
+- 默认显示最近 `1000` 条框架日志。
+- 支持按 `traceId` 查询，派生应用可以传入当前任务 ID。
+- 支持 `DEBUG / INFO / WARN / ERROR` 样式。
+- 支持单行或多行选择、复制、右键菜单、软换行、滚动到底部和清空当前显示。
+- 清空当前显示只影响前端状态，不删除 SQLite 或文本 log 文件。
+- 支持搜索、大小写、全词、正则、上一处/下一处、只显示匹配项和搜索历史。
 
 ## 界面组件规则
 

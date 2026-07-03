@@ -1,0 +1,17 @@
+{
+  "created": 1782661489,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782661489.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs/book_image_1782661489.png",
+      "revised_prompt": "cinematic realistic watercolor book illustration, professional visual for a Chinese 30-minute book-summary video, quiet Kamakura and Izu Oshima atmosphere, Japanese seaside town, camellia flowers, paper letters, fountain pens, warm natural film lighting, detailed environment, emotional healing tone, soft but rich colors, storybook realism, consistent art direction across a 24-image sequence, 16:9, no readable text, no logo, no watermark. Main protagonist: one East Asian woman in her early 30s, shoulder-length black hair, soft cream cardigan, calm tired eyes. Mother: East Asian woman in her late 50s with short grey hair and muted green cardigan, clearly older than the protagonist. Daughter: teenage East Asian girl with school uniform and ponytail, clearly much younger. When a scene includes multiple people, make them different ages, different clothes, different hairstyles, different faces. Scene 08/24, story beat: Ferry to Izu Oshima. Composition: wide ferry deck crossing grey-blue sea toward Izu Oshima, wind moves the protagonist's hair and cream cardigan, she holds the wooden box close, island silhouette ahead. People rule: single protagonist only. Keep this image narratively connected to the nearby subtitle meaning, but do not draw readable words: 鸠子继承了她留下的文具店也在漫长的日子里一点点理解她理解不等于遗忘伤痛而是终于能看见一个人也许笨拙也许不善表达却仍然用自己的方式爱着与上代有关的情书让鸠子再次面对祖母隐藏在岁月背后的另一面原来上代也曾有过炽热而复杂的感情也曾在人生的某个角落里把不能说出的心意交给纸张那些书信被仔细保存下来像时间深处的",
+      "metrics": {
+        "colors": 24517,
+        "nonBgRatio": 0.941
+      },
+      "elapsedSeconds": 73.05,
+      "model": "Lykon/dreamshaper-8-lcm",
+      "device": "mps"
+    }
+  ]
+}

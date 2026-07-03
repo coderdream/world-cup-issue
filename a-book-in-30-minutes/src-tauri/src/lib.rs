@@ -75,6 +75,7 @@ pub fn run() {
             generate_book_video_pipeline,
             generate_publish_materials,
             get_operation_logs,
+            get_material_task_steps,
             export_book_materials
         ])
         .run(tauri::generate_context!())

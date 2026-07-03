@@ -1,0 +1,47 @@
+{
+  "sourceKind": "smoke",
+  "sourceDir": "a-book-in-30-minutes\\tmp\\visual_plan_smoke",
+  "segments": [
+    {
+      "startMs": 0,
+      "endMs": 3000,
+      "image": "a-book-in-30-minutes\\tmp\\visual_plan_smoke\\scene_1.png",
+      "description": "Generated cinematic cover intro",
+      "kind": "cover",
+      "motionProfile": "cover_slow_breathe"
+    },
+    {
+      "startMs": 3000,
+      "endMs": 5200,
+      "image": "a-book-in-30-minutes\\tmp\\visual_plan_smoke\\scene_1.png",
+      "description": "Cinematic content image 1",
+      "kind": "content",
+      "subtitleStartIndex": 1,
+      "subtitleEndIndex": 1,
+      "sourceTextPreview": "第一段讲述主人公面对记忆和家庭关系的裂缝。",
+      "motionProfile": "slow_push_center"
+    },
+    {
+      "startMs": 5200,
+      "endMs": 8100,
+      "image": "a-book-in-30-minutes\\tmp\\visual_plan_smoke\\scene_2.png",
+      "description": "Cinematic content image 2",
+      "kind": "content",
+      "subtitleStartIndex": 2,
+      "subtitleEndIndex": 2,
+      "sourceTextPreview": "第二段进入冲突，画面需要保留安静但有张力的空间。",
+      "motionProfile": "drift_right"
+    },
+    {
+      "startMs": 8100,
+      "endMs": 12000,
+      "image": "a-book-in-30-minutes\\tmp\\visual_plan_smoke\\scene_3.png",
+      "description": "Cinematic content image 3",
+      "kind": "content",
+      "subtitleStartIndex": 3,
+      "subtitleEndIndex": 3,
+      "sourceTextPreview": "第三段落到情感回声，形成统一的听书视频气质。",
+      "motionProfile": "drift_left"
+    }
+  ]
+}

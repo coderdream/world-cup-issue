@@ -1,0 +1,17 @@
+{
+  "created": 1782646253,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782646253.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs/book_image_1782646253.png",
+      "revised_prompt": "professional cinematic realistic watercolor illustration for a Chinese 30-minute book-summary video, consistent young East Asian woman with shoulder-length black hair and soft cardigan, intimate emotional storytelling, camellia flowers as recurring motif, letters and notebooks with no readable text, Japanese seaside town atmosphere, warm soft film lighting, detailed interior, elegant composition, 16:9, no readable text, no logo, no watermark, morning table by window, woman opening an old envelope with careful hands, camellia petals on the table, cup of tea, soft rain on glass, expression of surprise and worry, close emotional composition",
+      "metrics": {
+        "colors": 24753,
+        "nonBgRatio": 0.904
+      },
+      "elapsedSeconds": 15.26,
+      "model": "Lykon/dreamshaper-8-lcm",
+      "device": "mps"
+    }
+  ]
+}

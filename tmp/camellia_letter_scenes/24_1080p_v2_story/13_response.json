@@ -1,0 +1,17 @@
+{
+  "created": 1782661871,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782661870.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs/book_image_1782661870.png",
+      "revised_prompt": "cinematic realistic watercolor book illustration, professional visual for a Chinese 30-minute book-summary video, quiet Kamakura and Izu Oshima atmosphere, Japanese seaside town, camellia flowers, paper letters, fountain pens, warm natural film lighting, detailed environment, emotional healing tone, soft but rich colors, storybook realism, consistent art direction across a 24-image sequence, 16:9, no readable text, no logo, no watermark. Main protagonist: one East Asian woman in her early 30s, shoulder-length black hair, soft cream cardigan, calm tired eyes. Mother: East Asian woman in her late 50s with short grey hair and muted green cardigan, clearly older than the protagonist. Daughter: teenage East Asian girl with school uniform and ponytail, clearly much younger. When a scene includes multiple people, make them different ages, different clothes, different hairstyles, different faces. Scene 13/24, story beat: Spring daughter leaving. Composition: spring morning front door, teenage daughter in school uniform leaves home with school bag, cherry and camellia branches outside, the protagonist watches from inside with complicated love. People rule: two people only, adult protagonist and teenage daughter, very different ages. Keep this image narratively connected to the nearby subtitle meaning, but do not draw readable words: 而是许多小动作累积出来的关系有人把剩下的红酒带回家有人深夜提前睡去也不必愧疚有人用省略主语的句子说夏天结束了另一个人听懂了这样的懂平凡却难得阳菜的成长线也很动人她从那个被称作QP妹妹的小女孩进入了不愿回应母亲的青春期她穿上新校服衣服还有些大像未来先一步披在身上而身体和心都还在适应父母看孩子长大常常有",
+      "metrics": {
+        "colors": 28363,
+        "nonBgRatio": 0.928
+      },
+      "elapsedSeconds": 73.51,
+      "model": "Lykon/dreamshaper-8-lcm",
+      "device": "mps"
+    }
+  ]
+}

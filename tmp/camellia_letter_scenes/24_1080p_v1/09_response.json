@@ -1,0 +1,17 @@
+{
+  "created": 1782656961,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782656961.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs/book_image_1782656961.png",
+      "revised_prompt": "professional cinematic realistic watercolor illustration for a Chinese 30-minute book-summary video, consistent young East Asian woman with shoulder-length black hair and soft cream cardigan, quiet Japanese seaside town and warm stationery-room atmosphere, camellia flowers as recurring motif, letters and notebooks with no readable text, emotional healing tone, elegant composition, soft film lighting, detailed background, 16:9, no readable text, no logo, no watermark, scene 09 of 24, library-like corner with shelves of paper, she compares old letters and notebook pages, piecing together family memories, visualize this subtitle meaning without drawing readable text: 等多年后由另一个人轻轻打开船靠岸时天空覆着厚厚的云层鸠子对那些书信说你们很快就可以融为一体了这样一句话像为旧日情感举行的安静仪式她不是去揭开隐私也不是去评判长辈的人生而是以代笔人的温柔把曾经被分开的心意送到该去的地方书信在这里不再只是传递消",
+      "metrics": {
+        "colors": 22886,
+        "nonBgRatio": 0.897
+      },
+      "elapsedSeconds": 112.46,
+      "model": "Lykon/dreamshaper-8-lcm",
+      "device": "mps"
+    }
+  ]
+}

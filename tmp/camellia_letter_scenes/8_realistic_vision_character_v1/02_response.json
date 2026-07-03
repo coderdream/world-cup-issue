@@ -1,0 +1,17 @@
+{
+  "created": 1782688064,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782688064.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs-rv/book_image_1782688064.png",
+      "revised_prompt": "photorealistic cinematic Japanese drama film still, professional book-summary video visual, warm natural light, quiet emotional realism, shallow depth of field, detailed lived-in environment, 16:9, no readable text. same main character in every image: East Asian woman in her early 30s, shoulder-length straight black bob haircut with soft bangs, cream knit cardigan over a plain white top, dark skirt, calm tired eyes, natural face, no heavy makeup. Scene 02/8, Quiet shop interior. Specific shot: single woman sitting at a wooden desk inside the stationery shop, writing on a blank sheet with fountain pen, sealed blank envelopes and red camellia in a small vase. Exactly one visible person. Blank paper only, no readable words. Connect to this Chinese subtitle theme without writing text in the image: 束那个夜晚鸠子和蜜朗一起在院子里放烟火线香花火最后一束火花落在地面余烬扑哧扑哧地跳动像一只小动物随后慢慢被夜色吞没鸠子说结束了呢她没有说结束的是夏天可蜜朗懂两个人之间有一种经过岁月沉淀后的默契句子不必完整意思已经抵达可是当他们拎着水桶回到家阳菜正一边看电视一边玩手机对母亲的招呼没有回应青春期的孩子就像一扇半掩的门明明还在同一个家里却让父母突然不知道该怎样靠近",
+      "metrics": {
+        "colors": 8278,
+        "nonBgRatio": 0.927
+      },
+      "elapsedSeconds": 38.71,
+      "model": "SG161222/Realistic_Vision_V5.1_noVAE",
+      "device": "mps"
+    }
+  ]
+}

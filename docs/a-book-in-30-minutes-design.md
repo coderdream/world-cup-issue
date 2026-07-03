@@ -89,13 +89,18 @@ Tauri 后端命令集中在 `src-tauri/src/commands.rs`：
 - `generate_book_materials`：生成听书素材主流程。
 - `generate_audio`：使用微软语音生成旁白 mp3；长文本分段合成，多段时调用外部 `ffmpeg.exe` 拼接。
 - `export_book_materials`：导出素材包。
+- `get_material_task_steps`：按当前 `traceId` 或源文件路径读取 SQLite 中持久化的步骤记录，返回每步状态、进度、开始时间、完成时间和耗时。
 - `get_operation_logs`：读取 SQLite 操作日志；传入主 `traceId` 时同时返回该 trace 和以 `主trace-` 开头的子阶段日志，保证一键视频的补素材、补音频和视频生成日志能在同一个任务视图中显示。
 
 ### 步骤跟踪页
 
-左侧导航中的“生成音频”替换为“步骤跟踪”。步骤跟踪页参考 `video-easy-creator` 的步骤统计与步骤表结构，但数据直接来源于当前素材任务表，不额外引入独立步骤表。页面顶部展示当前任务、总步骤、步骤进度、任务摘要、任务 ID 和整体进度；下方按产物链拆成细步骤行，展示步骤编码、步骤名称、状态、百分比和说明。
+流水线页顶部的 6 个操作按钮必须在任务列表中有对应列：文本、图片、音频、字幕、视频、发布。任务列表允许横向滚动，列内显示每个阶段的状态、百分比和关键产物信息；当用户点击【视频】这类后台任务后，列表中的视频列必须能直接看到当前阶段正在生成和后台消息对应的百分比，不能只提示用户去操作日志查看。顶部也可以保留阶段概览卡，但任务列表列展示是硬性要求。
 
-当前步骤跟踪页拆分为 16 个步骤：生成 A：解析书籍；生成 B：标题简介标签；生成 C：旁白文本；生成 D：字幕文本；保存素材包；读取旁白文本；拆分音频片段；生成语音片段；合成最终音频；准备视频流水线；生成封面；生成图片；生成字幕；生成无字幕视频；生成硬字幕视频；登记视频产物。`MAT` 步骤编码按 A 到 Z 独立显示，禁止把 C/D 合并成一个步骤。页面先基于 `material_tasks` 的素材、音频、视频三组状态与进度字段映射这些子步骤，避免新增表结构；后续如果需要每个子步骤独立开始时间、结束时间、耗时和日志，可引入 `operation_step` 表承接。
+左侧导航中的“生成音频”替换为“步骤跟踪”。步骤跟踪页参考 `video-easy-creator` 的步骤统计与步骤表结构；结构化步骤数据持久化在 SQLite 的 `material_task_steps` 表中，页面通过 `get_material_task_steps` 按当前 `traceId` 或源文件路径读取。页面顶部展示当前任务、总步骤、步骤进度、任务摘要、任务 ID 和整体进度；下方按产物链拆成细步骤行，展示步骤编码、步骤名称、状态、百分比、耗时和说明。若当前任务没有步骤表记录，前端才回退到 `material_tasks` 的阶段状态推导，避免旧任务完全空白。
+
+当前步骤跟踪页拆分为 17 个步骤：A-01 解析书籍、A-02 标题简介标签、A-03 旁白文稿、A-04 保存素材包、B-01 生成封面、B-02 生成分镜图、C-01 读取旁白、C-02 拆分片段、C-03 生成语音、C-04 合成音频、D-01 生成中文字幕、D-02 生成双语字幕、E-01 准备流水线、E-02 生成无字幕母版、E-03 生成硬字幕版、E-04 登记视频产物、F-01 生成发布资料。步骤编码必须稳定显示，禁止把相邻产物阶段合并成一个步骤。
+
+材料生成阶段已接入持久化步骤记录：`generate_book_materials` 在读取 EPUB 时写入 A-01 进行中，`source.read.done` 时把 A-01 标记为成功；构建 prompt 和 `ai.request` 后写入 A-02 进行中，AI JSON 解析成功后把 A-02 标记为成功；旁白长度检查、修复和字幕切分归入 A-03；素材包写入归入 A-04。每条步骤记录包含 `started_at`、`finished_at` 和 `elapsed_ms`，步骤页的【耗时】列优先显示已落库耗时，运行中的步骤按 `started_at` 到当前时间实时刷新。AI 已经进入 `ai.request` 时，A-01 必须已经完成，不能继续显示“待处理”。
 
 素材阶段请求 AI 超时或失败时，失败会落在素材子步骤上，并在说明中显示后端写入的错误消息，例如 `HTTP 524`；这样用户可以从步骤跟踪页直接判断是 AI 素材 JSON 生成失败，而不是前端卡死。音频任务继续按读取旁白、拆分片段、生成语音片段和合成最终音频显示；视频任务按准备流水线、封面、图片、字幕、无字幕视频、硬字幕视频和登记产物显示。流水线任务列表中的音频与视频列同步显示“状态 + 百分比”。
 
@@ -139,6 +144,28 @@ material_tasks(
 ```
 
 任务表参考 `yt-download` 的任务持久化思路，以源文件路径作为主键，保存任务所属分类、处理状态、百分比、成稿字数、生成素材包目录和最近消息。`category` 对应后续 YouTube 播放列表名称；如果没有明确分类，使用默认分类 `半小时听完一本书`。扫描文件夹时只写入 `EPUB`、`PDF`、`TXT`、`DOCX`，其它格式不会显示到任务列表。生成开始写入 `generating / 25%`，生成成功写入 `success / 100% / narration_chars / material_output_dir`，失败写入 `failed / 0% / message`。前端每次读取任务列表时会从 SQLite 恢复状态，同时丢弃源文件已不存在的任务显示。
+
+SQLite 额外保存任务步骤跟踪记录：
+
+```text
+material_task_steps(
+  trace_id TEXT NOT NULL,
+  path TEXT NOT NULL,
+  step_code TEXT NOT NULL,
+  step_name TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  progress INTEGER NOT NULL DEFAULT 0,
+  detail TEXT NOT NULL DEFAULT '',
+  started_at TEXT,
+  finished_at TEXT,
+  elapsed_ms INTEGER,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (trace_id, step_code)
+)
+```
+
+该表用于步骤跟踪页，不替代 `operate_log`。`operate_log` 负责完整调试日志；`material_task_steps` 负责每个稳定步骤的结构化状态、百分比和耗时。前端按当前 `traceId` 优先查询；没有 trace 时按源文件路径取最近一次任务的步骤记录。运行中的步骤在后端写 `started_at`，完成或失败时写 `finished_at` 与 `elapsed_ms`，应用重启后仍能恢复已完成步骤耗时。
 
 SQLite 额外保存微软语音默认配置：
 

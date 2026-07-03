@@ -1,0 +1,17 @@
+{
+  "created": 1782656103,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782656103.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs/book_image_1782656103.png",
+      "revised_prompt": "professional cinematic realistic watercolor illustration for a Chinese 30-minute book-summary video, consistent young East Asian woman with shoulder-length black hair and soft cream cardigan, quiet Japanese seaside town and warm stationery-room atmosphere, camellia flowers as recurring motif, letters and notebooks with no readable text, emotional healing tone, elegant composition, soft film lighting, detailed background, 16:9, no readable text, no logo, no watermark, scene 03 of 24, inside the small letter-writing stationery shop at night, she writes a letter under a brass desk lamp, envelope and camellia vase on the wooden desk, visualize this subtitle meaning without drawing readable text: 邀请大家在需要的时候再次来到山茶文具店这样一封信表面上是营业通知其实更像鸠子写给过去的自己和旧日时光的一封回信她终于从一段漫长的育儿假期里抬起头来看见樱花看见店门看见那个曾经坐在桌前铺开信纸的自己可是重新开始并不等于一切恢复原状人一旦走过某",
+      "metrics": {
+        "colors": 22287,
+        "nonBgRatio": 0.913
+      },
+      "elapsedSeconds": 113.58,
+      "model": "Lykon/dreamshaper-8-lcm",
+      "device": "mps"
+    }
+  ]
+}

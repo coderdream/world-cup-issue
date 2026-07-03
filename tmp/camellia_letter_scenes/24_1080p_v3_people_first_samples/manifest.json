@@ -1,0 +1,37 @@
+{
+  "results": [
+    {
+      "index": 1,
+      "title": "shop opening close action",
+      "prompt": "photorealistic cinematic Japanese drama film still, 16:9. A single East Asian woman in her early 30s, shoulder length black hair, cream cardigan, opens a small letter-writing stationery shop in Kamakura at dawn. Medium shot from behind her shoulder, one hand on the key, paper envelopes visible inside the doorway, red camellia pot beside the door. Emotional, quiet, professional movie lighting. Only one person in frame, no readable text.",
+      "elapsedSeconds": 81.81,
+      "serverElapsedSeconds": 81.4,
+      "finalPath": "D:\\04_GitHub\\world-cup-issue\\tmp\\camellia_letter_scenes\\24_1080p_v3_people_first_samples\\final_1080p\\01_1080p.jpg"
+    },
+    {
+      "index": 2,
+      "title": "mother conflict kitchen",
+      "prompt": "photorealistic cinematic Japanese drama film still, 16:9. Small warm kitchen breakfast scene. A young East Asian woman in cream cardigan stands beside the table holding an unopened letter. Her mother, clearly older late 50s with short grey hair and green cardigan, sits across the table. Rice bowls, tea, morning light, tense but tender family mood. Exactly two people, visibly different ages and faces, no readable text.",
+      "elapsedSeconds": 95.07,
+      "serverElapsedSeconds": 94.86,
+      "finalPath": "D:\\04_GitHub\\world-cup-issue\\tmp\\camellia_letter_scenes\\24_1080p_v3_people_first_samples\\final_1080p\\02_1080p.jpg"
+    },
+    {
+      "index": 3,
+      "title": "daughter doorway distance",
+      "prompt": "photorealistic cinematic Japanese drama film still, 16:9. A teenage East Asian daughter in school uniform and ponytail stands in a half-open sliding doorway, looking away with guarded emotion. The adult protagonist in cream cardigan is seated deeper inside the room, slightly out of focus. The doorway creates emotional distance. Exactly two people, clearly adult and teenager, no readable text.",
+      "elapsedSeconds": 77.89,
+      "serverElapsedSeconds": 77.68,
+      "finalPath": "D:\\04_GitHub\\world-cup-issue\\tmp\\camellia_letter_scenes\\24_1080p_v3_people_first_samples\\final_1080p\\03_1080p.jpg"
+    },
+    {
+      "index": 4,
+      "title": "old letter discovery",
+      "prompt": "photorealistic cinematic Japanese drama film still, 16:9. Close medium shot in a tatami storage room. The single protagonist kneels on the floor, opening an old wooden box full of tied paper letters. Her face shows surprise and sadness. One red camellia-pattern cloth, dust in warm side light. Only one person in frame, no readable text.",
+      "elapsedSeconds": 73.99,
+      "serverElapsedSeconds": 73.78,
+      "finalPath": "D:\\04_GitHub\\world-cup-issue\\tmp\\camellia_letter_scenes\\24_1080p_v3_people_first_samples\\final_1080p\\04_1080p.jpg"
+    }
+  ],
+  "contactSheet": "D:\\04_GitHub\\world-cup-issue\\tmp\\camellia_letter_scenes\\24_1080p_v3_people_first_samples\\contact_sheet.jpg"
+}

@@ -43,7 +43,8 @@ pub fn run() {
             test_ai_profile,
             generate_ai_text,
             test_feishu_profile,
-            send_feishu_message
+            send_feishu_message,
+            get_operation_logs
         ])
         .run(tauri::generate_context!())
         .expect("error while running Tauri Framework");

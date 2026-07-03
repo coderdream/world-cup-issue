@@ -1,0 +1,17 @@
+{
+  "created": 1782664491,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782664490.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs/book_image_1782664490.png",
+      "revised_prompt": "photorealistic cinematic Japanese drama film still, professional 30-minute book-summary video visual, warm natural movie lighting, detailed lived-in interior, emotional quiet realism, Kamakura letter shop mood, red camellia motif, paper letters and fountain pen, 16:9, no readable text. One visible main protagonist only: East Asian woman in her early 30s, shoulder-length black hair, cream cardigan, calm tired eyes. Do not show any second person. Do not show twins. Do not show crowds. Scene 14/24, Afternoon burnout. Specific shot: single protagonist behind shop counter in late afternoon, unanswered letters stacked neatly, long shadows, tired posture. Connect to subtitle theme without drawing readable words: 如果有一天她想回头家里的灯还亮着山茶文具店本身也是这部作品里安静而重要的存在那是一间老店连接着过去与现在纸张、信封、笔墨、印章所有看似过时的东西在这里都保有庄重的生命现代人传递信息太快快到连感情也常常变得仓促可写信需要坐下来需要选择纸需要考虑称呼需要一笔一画写下不能撤回的句子它迫",
+      "metrics": {
+        "colors": 19205,
+        "nonBgRatio": 0.947
+      },
+      "elapsedSeconds": 74.49,
+      "model": "Lykon/dreamshaper-8-lcm",
+      "device": "mps"
+    }
+  ]
+}

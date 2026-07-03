@@ -1,0 +1,17 @@
+{
+  "created": 1782662360,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782662359.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs/book_image_1782662359.png",
+      "revised_prompt": "cinematic realistic watercolor book illustration, professional visual for a Chinese 30-minute book-summary video, quiet Kamakura and Izu Oshima atmosphere, Japanese seaside town, camellia flowers, paper letters, fountain pens, warm natural film lighting, detailed environment, emotional healing tone, soft but rich colors, storybook realism, consistent art direction across a 24-image sequence, 16:9, no readable text, no logo, no watermark. Main protagonist: one East Asian woman in her early 30s, shoulder-length black hair, soft cream cardigan, calm tired eyes. Mother: East Asian woman in her late 50s with short grey hair and muted green cardigan, clearly older than the protagonist. Daughter: teenage East Asian girl with school uniform and ponytail, clearly much younger. When a scene includes multiple people, make them different ages, different clothes, different hairstyles, different faces. Scene 20/24, story beat: Rain window reflection. Composition: rainy evening window, the protagonist's subtle reflection appears in glass while raindrops blur the seaside street outside, an unfinished letter lies on the sill. People rule: single protagonist only, reflection is faint and not a second person. Keep this image narratively connected to the nearby subtitle meaning, but do not draw readable words: 只要想一想如果今晚要给某个人写一句话你会写给谁也许是给远方的朋友告诉对方你其实一直记得也许是给亲人说有些感谢从来没好好讲过也许是给曾经的爱人说祝你平安也许是给小时候的自己说你已经很努力了也许是给现在的自己很多人最不会写的就是给自己的信我们对别人可以温柔对自己却常常苛刻鸠子的故事提醒我们也要把自己当成",
+      "metrics": {
+        "colors": 26135,
+        "nonBgRatio": 0.95
+      },
+      "elapsedSeconds": 70.39,
+      "model": "Lykon/dreamshaper-8-lcm",
+      "device": "mps"
+    }
+  ]
+}

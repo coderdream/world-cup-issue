@@ -1,0 +1,17 @@
+{
+  "created": 1782656382,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782656382.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs/book_image_1782656382.png",
+      "revised_prompt": "professional cinematic realistic watercolor illustration for a Chinese 30-minute book-summary video, consistent young East Asian woman with shoulder-length black hair and soft cream cardigan, quiet Japanese seaside town and warm stationery-room atmosphere, camellia flowers as recurring motif, letters and notebooks with no readable text, emotional healing tone, elegant composition, soft film lighting, detailed background, 16:9, no readable text, no logo, no watermark, scene 05 of 24, library-like corner with shelves of paper, she compares old letters and notebook pages, piecing together family memories, visualize this subtitle meaning without drawing readable text: 阳菜回答不吃至少她还愿意回答这个细节很轻却很痛它不是激烈的冲突而是亲子关系里最常见也最难承受的变化孩子并没有离家也没有说讨厌你可她正在把自己的世界一点点关起来母亲站在门外既想敲门又怕敲得太响于是鸠子在心里反复默念时间是最好的良药她知道有些阶",
+      "metrics": {
+        "colors": 25873,
+        "nonBgRatio": 0.951
+      },
+      "elapsedSeconds": 147.82,
+      "model": "Lykon/dreamshaper-8-lcm",
+      "device": "mps"
+    }
+  ]
+}

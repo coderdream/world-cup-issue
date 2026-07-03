@@ -1,0 +1,17 @@
+{
+  "created": 1782664416,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782664416.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs/book_image_1782664416.png",
+      "revised_prompt": "photorealistic cinematic Japanese drama film still, professional 30-minute book-summary video visual, warm natural movie lighting, detailed lived-in interior, emotional quiet realism, Kamakura letter shop mood, red camellia motif, paper letters and fountain pen, 16:9, no readable text. One visible main protagonist only: East Asian woman in her early 30s, shoulder-length black hair, cream cardigan, calm tired eyes. Do not show any second person. Do not show twins. Do not show crowds. Scene 13/24, Spring leaving. Specific shot: single protagonist stands inside front door, school shoes and a school bag just outside imply daughter leaving, spring light, camellia branch. Connect to subtitle theme without drawing readable words: 而是许多小动作累积出来的关系有人把剩下的红酒带回家有人深夜提前睡去也不必愧疚有人用省略主语的句子说夏天结束了另一个人听懂了这样的懂平凡却难得阳菜的成长线也很动人她从那个被称作QP妹妹的小女孩进入了不愿回应母亲的青春期她穿上新校服衣服还有些大像未来先一步披在身上而身体和心都还在适应",
+      "metrics": {
+        "colors": 18497,
+        "nonBgRatio": 0.958
+      },
+      "elapsedSeconds": 72.05,
+      "model": "Lykon/dreamshaper-8-lcm",
+      "device": "mps"
+    }
+  ]
+}

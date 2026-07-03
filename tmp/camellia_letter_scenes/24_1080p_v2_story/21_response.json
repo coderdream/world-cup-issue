@@ -1,0 +1,17 @@
+{
+  "created": 1782662432,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782662431.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs/book_image_1782662431.png",
+      "revised_prompt": "cinematic realistic watercolor book illustration, professional visual for a Chinese 30-minute book-summary video, quiet Kamakura and Izu Oshima atmosphere, Japanese seaside town, camellia flowers, paper letters, fountain pens, warm natural film lighting, detailed environment, emotional healing tone, soft but rich colors, storybook realism, consistent art direction across a 24-image sequence, 16:9, no readable text, no logo, no watermark. Main protagonist: one East Asian woman in her early 30s, shoulder-length black hair, soft cream cardigan, calm tired eyes. Mother: East Asian woman in her late 50s with short grey hair and muted green cardigan, clearly older than the protagonist. Daughter: teenage East Asian girl with school uniform and ponytail, clearly much younger. When a scene includes multiple people, make them different ages, different clothes, different hairstyles, different faces. Scene 21/24, story beat: Night self-letter. Composition: quiet midnight desk, the protagonist writes a letter to herself, one candle, one cup of tea, camellia petals, the room feels intimate and brave. People rule: single protagonist only. Keep this image narratively connected to the nearby subtitle meaning, but do not draw readable words: 你可以有低潮可以写不出来可以不想说话可以在完成一件大事之后突然空下来这些都不是失败而是身心在提醒你需要重新分配力气请允许自己慢一点真正的恢复不是回到过去那个完美运转的自己而是在新的生活里找到新的呼吸方式《山茶的情书》最动人的地方也许就在它不追求彻底的解决阳菜还会继续长大鸠子还会继续摸索代笔屋还会迎来",
+      "metrics": {
+        "colors": 27626,
+        "nonBgRatio": 0.927
+      },
+      "elapsedSeconds": 71.3,
+      "model": "Lykon/dreamshaper-8-lcm",
+      "device": "mps"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "created": 1782656682,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782656682.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs/book_image_1782656682.png",
+      "revised_prompt": "professional cinematic realistic watercolor illustration for a Chinese 30-minute book-summary video, consistent young East Asian woman with shoulder-length black hair and soft cream cardigan, quiet Japanese seaside town and warm stationery-room atmosphere, camellia flowers as recurring motif, letters and notebooks with no readable text, emotional healing tone, elegant composition, soft film lighting, detailed background, 16:9, no readable text, no logo, no watermark, scene 07 of 24, library-like corner with shelves of paper, she compares old letters and notebook pages, piecing together family memories, visualize this subtitle meaning without drawing readable text: 这样的片刻极其珍贵鸠子怀念独自生活时的轻盈并不是不爱现在的家而是人在承担许多身份之后依然需要一个不被任何角色占用的角落妻子、母亲、店主、代笔人这些身份都是真实的可在这些名字之外她也只是鸠子她需要听见自己的声音哪怕那声音很小像热红酒蒸汽里一点",
+      "metrics": {
+        "colors": 23442,
+        "nonBgRatio": 0.894
+      },
+      "elapsedSeconds": 151.33,
+      "model": "Lykon/dreamshaper-8-lcm",
+      "device": "mps"
+    }
+  ]
+}

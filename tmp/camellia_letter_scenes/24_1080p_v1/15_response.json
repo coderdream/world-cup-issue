@@ -1,0 +1,17 @@
+{
+  "created": 1782657947,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782657947.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs/book_image_1782657947.png",
+      "revised_prompt": "professional cinematic realistic watercolor illustration for a Chinese 30-minute book-summary video, consistent young East Asian woman with shoulder-length black hair and soft cream cardigan, quiet Japanese seaside town and warm stationery-room atmosphere, camellia flowers as recurring motif, letters and notebooks with no readable text, emotional healing tone, elegant composition, soft film lighting, detailed background, 16:9, no readable text, no logo, no watermark, scene 15 of 24, library-like corner with shelves of paper, she compares old letters and notebook pages, piecing together family memories, visualize this subtitle meaning without drawing readable text: 想起曾经应该道歉却没有道歉的人想起爱过却错过的人想起已经离开的亲人想起孩子小时候的样子想起某个再也回不去的季节我们可能不会真的拿起笔但故事提醒我们那些心意并没有完全消失它们只是沉到更深的地方等待某个安静的时刻被温柔地看见小川糸的文字里食物和",
+      "metrics": {
+        "colors": 23777,
+        "nonBgRatio": 0.913
+      },
+      "elapsedSeconds": 149.09,
+      "model": "Lykon/dreamshaper-8-lcm",
+      "device": "mps"
+    }
+  ]
+}

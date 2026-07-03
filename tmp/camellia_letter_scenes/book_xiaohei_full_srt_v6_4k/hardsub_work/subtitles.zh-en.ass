@@ -1,0 +1,1688 @@
+[Script Info]
+ScriptType: v4.00+
+ScaledBorderAndShadow: yes
+PlayResX: 1920
+PlayResY: 1080
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Chinese,Microsoft YaHei UI,82,&H00C8F6FF,&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,5,2,2,120,120,158,1
+Style: English,Microsoft YaHei UI,54,&H001AA5F2,&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,5,2,2,120,120,90,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+
+Dialogue: 0,0:00:03.00,0:00:03.82,Chinese,,0,0,0,,今晚
+Dialogue: 0,0:00:03.00,0:00:03.82,English,,0,0,0,,Tonight
+Dialogue: 0,0:00:03.82,0:00:06.60,Chinese,,0,0,0,,我们一起走进小川糸的《山茶的
+Dialogue: 0,0:00:03.82,0:00:06.60,English,,0,0,0,,let's step together into Ito Ogawa's The Camellia
+Dialogue: 0,0:00:06.60,0:00:07.44,Chinese,,0,0,0,,情书》
+Dialogue: 0,0:00:06.60,0:00:07.44,English,,0,0,0,,Love Letter.
+Dialogue: 0,0:00:07.44,0:00:09.58,Chinese,,0,0,0,,请把灯光调暗一点
+Dialogue: 0,0:00:07.44,0:00:09.58,English,,0,0,0,,Please dim the lights a little.
+Dialogue: 0,0:00:09.58,0:00:11.22,Chinese,,0,0,0,,把手机放远一点
+Dialogue: 0,0:00:09.58,0:00:11.22,English,,0,0,0,,Set your phone a little farther away.
+Dialogue: 0,0:00:11.22,0:00:13.02,Chinese,,0,0,0,,也许窗外有车声
+Dialogue: 0,0:00:11.22,0:00:13.02,English,,0,0,0,,Maybe there are cars passing outside the window.
+Dialogue: 0,0:00:13.02,0:00:15.74,Chinese,,0,0,0,,也许房间里只有你自己的呼吸
+Dialogue: 0,0:00:13.02,0:00:15.74,English,,0,0,0,,Maybe the only sound in the room is your own breathing.
+Dialogue: 0,0:00:15.74,0:00:17.12,Chinese,,0,0,0,,没有关系
+Dialogue: 0,0:00:15.74,0:00:17.12,English,,0,0,0,,That's all right.
+Dialogue: 0,0:00:17.12,0:00:19.90,Chinese,,0,0,0,,这本书适合在这样的时刻打开
+Dialogue: 0,0:00:17.12,0:00:19.90,English,,0,0,0,,This is a book meant to be opened at moments like this.
+Dialogue: 0,0:00:19.90,0:00:22.48,Chinese,,0,0,0,,它不是一部急着把人推向高潮的
+Dialogue: 0,0:00:19.90,0:00:22.48,English,,0,0,0,,It is not the kind of story that rushes you toward a climax.
+Dialogue: 0,0:00:22.48,0:00:23.26,Chinese,,0,0,0,,故事
+Dialogue: 0,0:00:22.48,0:00:23.26,English,,0,0,0,,story
+Dialogue: 0,0:00:23.26,0:00:25.42,Chinese,,0,0,0,,而像一封慢慢写成的信
+Dialogue: 0,0:00:23.26,0:00:25.42,English,,0,0,0,,but more like a letter slowly written over time.
+Dialogue: 0,0:00:25.42,0:00:26.66,Chinese,,0,0,0,,纸张柔软
+Dialogue: 0,0:00:25.42,0:00:26.66,English,,0,0,0,,The paper is soft.
+Dialogue: 0,0:00:26.66,0:00:27.98,Chinese,,0,0,0,,墨迹微湿
+Dialogue: 0,0:00:26.66,0:00:27.98,English,,0,0,0,,The ink is still slightly wet.
+Dialogue: 0,0:00:27.98,0:00:29.96,Chinese,,0,0,0,,信里有镰仓的风
+Dialogue: 0,0:00:27.98,0:00:29.96,English,,0,0,0,,In the letter, there is the wind of Kamakura.
+Dialogue: 0,0:00:29.96,0:00:31.44,Chinese,,0,0,0,,有旧屋的寒意
+Dialogue: 0,0:00:29.96,0:00:31.44,English,,0,0,0,,There is the chill of an old house.
+Dialogue: 0,0:00:31.44,0:00:33.16,Chinese,,0,0,0,,有孩子长大的背影
+Dialogue: 0,0:00:31.44,0:00:33.16,English,,0,0,0,,There is the retreating figure of a child growing up.
+Dialogue: 0,0:00:33.16,0:00:35.76,Chinese,,0,0,0,,也有一个人重新学习与自己相处
+Dialogue: 0,0:00:33.16,0:00:35.76,English,,0,0,0,,And there is the long process of someone learning again how to live with themselves.
+Dialogue: 0,0:00:35.76,0:00:37.70,Chinese,,0,0,0,,的漫长过程
+Dialogue: 0,0:00:35.76,0:00:37.70,English,,0,0,0,,the long process
+Dialogue: 0,0:00:37.70,0:00:40.80,Chinese,,0,0,0,,《山茶的情书》延续了山茶文具
+Dialogue: 0,0:00:37.70,0:00:40.80,English,,0,0,0,,The Camellia Love Letter continues the world of the Camellia Stationery Shop.
+Dialogue: 0,0:00:40.80,0:00:41.52,Chinese,,0,0,0,,店的世界
+Dialogue: 0,0:00:40.80,0:00:41.52,English,,0,0,0,,The world of the shop
+Dialogue: 0,0:00:41.52,0:00:44.16,Chinese,,0,0,0,,主人公雨宫鸠子
+Dialogue: 0,0:00:41.52,0:00:44.16,English,,0,0,0,,The protagonist, Hatoko Amemiya,
+Dialogue: 0,0:00:44.16,0:00:46.64,Chinese,,0,0,0,,继承了祖母留下的文具店
+Dialogue: 0,0:00:44.16,0:00:46.64,English,,0,0,0,,inherited the stationery store her grandmother left behind
+Dialogue: 0,0:00:46.64,0:00:49.00,Chinese,,0,0,0,,也继承了代笔屋的工作
+Dialogue: 0,0:00:46.64,0:00:49.00,English,,0,0,0,,and also inherited the work of being a letter writer.
+Dialogue: 0,0:00:49.00,0:00:50.64,Chinese,,0,0,0,,她替别人写信
+Dialogue: 0,0:00:49.00,0:00:50.64,English,,0,0,0,,She writes letters for other people,
+Dialogue: 0,0:00:50.64,0:00:51.66,Chinese,,0,0,0,,写道歉
+Dialogue: 0,0:00:50.64,0:00:51.66,English,,0,0,0,,letters of apology,
+Dialogue: 0,0:00:51.66,0:00:52.78,Chinese,,0,0,0,,写祝福
+Dialogue: 0,0:00:51.66,0:00:52.78,English,,0,0,0,,letters of blessing,
+Dialogue: 0,0:00:52.78,0:00:53.82,Chinese,,0,0,0,,写诀别
+Dialogue: 0,0:00:52.78,0:00:53.82,English,,0,0,0,,letters of farewell,
+Dialogue: 0,0:00:53.82,0:00:56.54,Chinese,,0,0,0,,写那些当事人明明放在心里
+Dialogue: 0,0:00:53.82,0:00:56.54,English,,0,0,0,,writing the words the people involved clearly keep in their hearts
+Dialogue: 0,0:00:56.54,0:00:58.64,Chinese,,0,0,0,,却怎么也说不出口的话
+Dialogue: 0,0:00:56.54,0:00:58.64,English,,0,0,0,,but somehow can never say out loud.
+Dialogue: 0,0:00:58.64,0:01:00.24,Chinese,,0,0,0,,写信这件事
+Dialogue: 0,0:00:58.64,0:01:00.24,English,,0,0,0,,Writing letters
+Dialogue: 0,0:01:00.24,0:01:03.60,Chinese,,0,0,0,,在她手里并不只是把词句排列整
+Dialogue: 0,0:01:00.24,0:01:03.60,English,,0,0,0,,in her hands, is not just arranging words and sentences
+Dialogue: 0,0:01:03.60,0:01:04.00,Chinese,,0,0,0,,齐
+Dialogue: 0,0:01:03.60,0:01:04.00,English,,0,0,0,,neatly.
+Dialogue: 0,0:01:04.00,0:01:06.64,Chinese,,0,0,0,,而是替一个人的心找到最恰当的
+Dialogue: 0,0:01:04.00,0:01:06.64,English,,0,0,0,,It is finding the most fitting
+Dialogue: 0,0:01:06.64,0:01:07.42,Chinese,,0,0,0,,姿势
+Dialogue: 0,0:01:06.64,0:01:07.42,English,,0,0,0,,posture for a person's heart.
+Dialogue: 0,0:01:07.42,0:01:08.42,Chinese,,0,0,0,,可是
+Dialogue: 0,0:01:07.42,0:01:08.42,English,,0,0,0,,But
+Dialogue: 0,0:01:08.42,0:01:09.90,Chinese,,0,0,0,,到了这一部里
+Dialogue: 0,0:01:08.42,0:01:09.90,English,,0,0,0,,in this installment,
+Dialogue: 0,0:01:09.90,0:01:13.04,Chinese,,0,0,0,,鸠子的生活已经不再只是文具店
+Dialogue: 0,0:01:09.90,0:01:13.04,English,,0,0,0,,Hatoko's life is no longer just the stationery store,
+Dialogue: 0,0:01:13.04,0:01:14.80,Chinese,,0,0,0,,、信纸和墨水
+Dialogue: 0,0:01:13.04,0:01:14.80,English,,0,0,0,,letter paper, and ink.
+Dialogue: 0,0:01:14.80,0:01:16.64,Chinese,,0,0,0,,她有了丈夫蜜朗
+Dialogue: 0,0:01:14.80,0:01:16.64,English,,0,0,0,,She now has a husband, Mitsuro.
+Dialogue: 0,0:01:16.64,0:01:18.20,Chinese,,0,0,0,,有了长女阳菜
+Dialogue: 0,0:01:16.64,0:01:18.20,English,,0,0,0,,She now had her eldest daughter, Hina,
+Dialogue: 0,0:01:18.20,0:01:20.36,Chinese,,0,0,0,,也就是大家熟悉的QP妹妹
+Dialogue: 0,0:01:18.20,0:01:20.36,English,,0,0,0,,better known to everyone as little QP,
+Dialogue: 0,0:01:20.36,0:01:24.32,Chinese,,0,0,0,,还有两个年幼的孩子小梅和莲太
+Dialogue: 0,0:01:20.36,0:01:24.32,English,,0,0,0,,as well as two younger children, Koume and Renta,
+Dialogue: 0,0:01:24.32,0:01:24.32,Chinese,,0,0,0,,朗
+Dialogue: 0,0:01:24.32,0:01:24.32,English,,0,0,0,,and Akira.
+Dialogue: 0,0:01:24.32,0:01:27.56,Chinese,,0,0,0,,她从一个独自守店的年轻女人
+Dialogue: 0,0:01:24.32,0:01:27.56,English,,0,0,0,,From a young woman minding the shop on her own,
+Dialogue: 0,0:01:27.56,0:01:29.84,Chinese,,0,0,0,,变成了五口之家的母亲
+Dialogue: 0,0:01:27.56,0:01:29.84,English,,0,0,0,,she had become the mother of a family of five.
+Dialogue: 0,0:01:29.84,0:01:31.54,Chinese,,0,0,0,,她仍然爱文字
+Dialogue: 0,0:01:29.84,0:01:31.54,English,,0,0,0,,She still loved words,
+Dialogue: 0,0:01:31.54,0:01:32.54,Chinese,,0,0,0,,爱代笔
+Dialogue: 0,0:01:31.54,0:01:32.54,English,,0,0,0,,loved writing letters for others,
+Dialogue: 0,0:01:32.54,0:01:35.56,Chinese,,0,0,0,,爱那些纸上微小而郑重的仪式
+Dialogue: 0,0:01:32.54,0:01:35.56,English,,0,0,0,,and loved those small, solemn rituals on paper.
+Dialogue: 0,0:01:35.56,0:01:38.84,Chinese,,0,0,0,,可现实生活已经把她卷进了更细
+Dialogue: 0,0:01:35.56,0:01:38.84,English,,0,0,0,,But real life had swept her into an even finer,
+Dialogue: 0,0:01:38.84,0:01:40.64,Chinese,,0,0,0,,碎也更真实的漩涡里
+Dialogue: 0,0:01:38.84,0:01:40.64,English,,0,0,0,,more fragmented, and more authentic whirlpool.
+Dialogue: 0,0:01:40.64,0:01:42.30,Chinese,,0,0,0,,故事开始时
+Dialogue: 0,0:01:40.64,0:01:42.30,English,,0,0,0,,At the start of the story,
+Dialogue: 0,0:01:42.30,0:01:44.16,Chinese,,0,0,0,,鸠子写了一封通知信
+Dialogue: 0,0:01:42.30,0:01:44.16,English,,0,0,0,,Hatoko writes a notice,
+Dialogue: 0,0:01:44.16,0:01:47.52,Chinese,,0,0,0,,告诉曾经关照山茶文具店的人们
+Dialogue: 0,0:01:44.16,0:01:47.52,English,,0,0,0,,telling the people who had once looked after the Camellia Stationery Shop
+Dialogue: 0,0:01:47.52,0:01:49.52,Chinese,,0,0,0,,代笔屋即将重新营业
+Dialogue: 0,0:01:47.52,0:01:49.52,English,,0,0,0,,that the letter-writing service is about to reopen.
+Dialogue: 0,0:01:49.52,0:01:50.86,Chinese,,0,0,0,,信里说
+Dialogue: 0,0:01:49.52,0:01:50.86,English,,0,0,0,,In the letter, she says
+Dialogue: 0,0:01:50.86,0:01:53.12,Chinese,,0,0,0,,樱花又到了盛放的季节
+Dialogue: 0,0:01:50.86,0:01:53.12,English,,0,0,0,,that the cherry blossoms are once again in full bloom,
+Dialogue: 0,0:01:53.12,0:01:55.48,Chinese,,0,0,0,,段葛的维修工程已经告一段落
+Dialogue: 0,0:01:53.12,0:01:55.48,English,,0,0,0,,that the repair work on Dankazura has come to an end,
+Dialogue: 0,0:01:55.48,0:01:59.20,Chinese,,0,0,0,,镰仓的春天正在一点点亮起来
+Dialogue: 0,0:01:55.48,0:01:59.20,English,,0,0,0,,and that spring in Kamakura is brightening little by little.
+Dialogue: 0,0:01:59.20,0:02:02.42,Chinese,,0,0,0,,她也向大家报告家中的新成员
+Dialogue: 0,0:01:59.20,0:02:02.42,English,,0,0,0,,She also tells everyone about the new members of her family.
+Dialogue: 0,0:02:02.42,0:02:06.08,Chinese,,0,0,0,,小梅和莲太朗都已经开始上小学
+Dialogue: 0,0:02:02.42,0:02:06.08,English,,0,0,0,,Koume and Rentaro have both started elementary school
+Dialogue: 0,0:02:06.08,0:02:08.60,Chinese,,0,0,0,,长女阳菜也升入初三
+Dialogue: 0,0:02:06.08,0:02:08.60,English,,0,0,0,,and her eldest daughter, Hina, has moved up to her third year of junior high.
+Dialogue: 0,0:02:08.60,0:02:11.90,Chinese,,0,0,0,,她说这几年因为怀孕、生产、育
+Dialogue: 0,0:02:08.60,0:02:11.90,English,,0,0,0,,She says that over the past few years, with pregnancy, childbirth, and child-
+Dialogue: 0,0:02:11.90,0:02:12.62,Chinese,,0,0,0,,儿
+Dialogue: 0,0:02:11.90,0:02:12.62,English,,0,0,0,,rearing,
+Dialogue: 0,0:02:12.62,0:02:15.20,Chinese,,0,0,0,,生活每天都像太空旅行
+Dialogue: 0,0:02:12.62,0:02:15.20,English,,0,0,0,,each day has felt like space travel:
+Dialogue: 0,0:02:15.20,0:02:17.84,Chinese,,0,0,0,,忙乱、失重、难以掌控
+Dialogue: 0,0:02:15.20,0:02:17.84,English,,0,0,0,,hectic, weightless, and hard to control.
+Dialogue: 0,0:02:17.84,0:02:19.04,Chinese,,0,0,0,,也因此疏于代笔业务
+Dialogue: 0,0:02:17.84,0:02:19.04,English,,0,0,0,,As a result, she has neglected her letter-writing business
+Dialogue: 0,0:02:19.04,0:02:21.40,Chinese,,0,0,0,,给大家添了不便
+Dialogue: 0,0:02:19.04,0:02:21.40,English,,0,0,0,,and caused inconvenience to everyone.
+Dialogue: 0,0:02:21.40,0:02:23.58,Chinese,,0,0,0,,她认真地表达歉意
+Dialogue: 0,0:02:21.40,0:02:23.58,English,,0,0,0,,She offers a sincere apology,
+Dialogue: 0,0:02:23.58,0:02:26.16,Chinese,,0,0,0,,也带着一点重新出发的期待
+Dialogue: 0,0:02:23.58,0:02:26.16,English,,0,0,0,,while also expressing a little hope for a fresh start.
+Dialogue: 0,0:02:26.16,0:02:28.36,Chinese,,0,0,0,,邀请大家在需要的时候
+Dialogue: 0,0:02:26.16,0:02:28.36,English,,0,0,0,,She invites everyone, whenever they need to,
+Dialogue: 0,0:02:28.36,0:02:30.68,Chinese,,0,0,0,,再次来到山茶文具店
+Dialogue: 0,0:02:28.36,0:02:30.68,English,,0,0,0,,to visit Tsubaki Stationery Store once again.
+Dialogue: 0,0:02:30.68,0:02:32.18,Chinese,,0,0,0,,这样一封信
+Dialogue: 0,0:02:30.68,0:02:32.18,English,,0,0,0,,This letter
+Dialogue: 0,0:02:32.18,0:02:34.14,Chinese,,0,0,0,,表面上是营业通知
+Dialogue: 0,0:02:32.18,0:02:34.14,English,,0,0,0,,appears on the surface to be a business notice,
+Dialogue: 0,0:02:34.14,0:02:37.30,Chinese,,0,0,0,,其实更像鸠子写给过去的自己和
+Dialogue: 0,0:02:34.14,0:02:37.30,English,,0,0,0,,but in truth feels more like Hatoko writing back to her past self
+Dialogue: 0,0:02:37.30,0:02:39.52,Chinese,,0,0,0,,旧日时光的一封回信
+Dialogue: 0,0:02:37.30,0:02:39.52,English,,0,0,0,,and to the days gone by.
+Dialogue: 0,0:02:39.52,0:02:42.28,Chinese,,0,0,0,,她终于从一段漫长的育儿假期里
+Dialogue: 0,0:02:39.52,0:02:42.28,English,,0,0,0,,At last, after a long childcare leave,
+Dialogue: 0,0:02:42.28,0:02:43.36,Chinese,,0,0,0,,抬起头来
+Dialogue: 0,0:02:42.28,0:02:43.36,English,,0,0,0,,she lifts her head
+Dialogue: 0,0:02:43.36,0:02:44.50,Chinese,,0,0,0,,看见樱花
+Dialogue: 0,0:02:43.36,0:02:44.50,English,,0,0,0,,and sees the cherry blossoms
+Dialogue: 0,0:02:44.50,0:02:45.64,Chinese,,0,0,0,,看见店门
+Dialogue: 0,0:02:44.50,0:02:45.64,English,,0,0,0,,and sees the shop door
+Dialogue: 0,0:02:45.64,0:02:48.56,Chinese,,0,0,0,,看见那个曾经坐在桌前铺开信纸
+Dialogue: 0,0:02:45.64,0:02:48.56,English,,0,0,0,,She saw the person she used to be, sitting at the desk and spreading out stationery
+Dialogue: 0,0:02:48.56,0:02:49.28,Chinese,,0,0,0,,的自己
+Dialogue: 0,0:02:48.56,0:02:49.28,English,,0,0,0,,before her
+Dialogue: 0,0:02:49.28,0:02:50.28,Chinese,,0,0,0,,可是
+Dialogue: 0,0:02:49.28,0:02:50.28,English,,0,0,0,,But
+Dialogue: 0,0:02:50.28,0:02:53.96,Chinese,,0,0,0,,重新开始并不等于一切恢复原状
+Dialogue: 0,0:02:50.28,0:02:53.96,English,,0,0,0,,starting over doesn't mean everything goes back to the way it was
+Dialogue: 0,0:02:53.96,0:02:56.36,Chinese,,0,0,0,,人一旦走过某些岁月
+Dialogue: 0,0:02:53.96,0:02:56.36,English,,0,0,0,,Once you have lived through certain years
+Dialogue: 0,0:02:56.36,0:02:58.76,Chinese,,0,0,0,,就不可能真的回到从前
+Dialogue: 0,0:02:56.36,0:02:58.76,English,,0,0,0,,you can never truly return to the past
+Dialogue: 0,0:02:58.76,0:03:00.24,Chinese,,0,0,0,,鸠子也明白
+Dialogue: 0,0:02:58.76,0:03:00.24,English,,0,0,0,,Hatoko understood that too
+Dialogue: 0,0:03:00.24,0:03:02.56,Chinese,,0,0,0,,过去那个独自生活、和芭芭拉夫
+Dialogue: 0,0:03:00.24,0:03:02.56,English,,0,0,0,,The person she had been, living alone, keeping company with Mrs. Barbara
+Dialogue: 0,0:03:02.56,0:03:05.68,Chinese,,0,0,0,,人来往、把一天安排得井井有条
+Dialogue: 0,0:03:02.56,0:03:05.68,English,,0,0,0,,and arranging each day in perfect order
+Dialogue: 0,0:03:05.68,0:03:06.62,Chinese,,0,0,0,,的自己
+Dialogue: 0,0:03:05.68,0:03:06.62,English,,0,0,0,,that version of herself
+Dialogue: 0,0:03:06.62,0:03:08.10,Chinese,,0,0,0,,已经远去了
+Dialogue: 0,0:03:06.62,0:03:08.10,English,,0,0,0,,had already receded into the distance
+Dialogue: 0,0:03:08.10,0:03:10.42,Chinese,,0,0,0,,现在的她身边有孩子
+Dialogue: 0,0:03:08.10,0:03:10.42,English,,0,0,0,,Now she had children around her
+Dialogue: 0,0:03:10.42,0:03:11.50,Chinese,,0,0,0,,有家务
+Dialogue: 0,0:03:10.42,0:03:11.50,English,,0,0,0,,housework
+Dialogue: 0,0:03:11.50,0:03:12.58,Chinese,,0,0,0,,有升学
+Dialogue: 0,0:03:11.50,0:03:12.58,English,,0,0,0,,school entrance exams
+Dialogue: 0,0:03:12.58,0:03:14.22,Chinese,,0,0,0,,有青春期的女儿
+Dialogue: 0,0:03:12.58,0:03:14.22,English,,0,0,0,,a teenage daughter
+Dialogue: 0,0:03:14.22,0:03:17.44,Chinese,,0,0,0,,有夫妻之间不必说破却时时存在
+Dialogue: 0,0:03:14.22,0:03:17.44,English,,0,0,0,,and the ever-present, unspoken distance
+Dialogue: 0,0:03:17.44,0:03:18.56,Chinese,,0,0,0,,的距离
+Dialogue: 0,0:03:17.44,0:03:18.56,English,,0,0,0,,between husband and wife
+Dialogue: 0,0:03:18.56,0:03:20.54,Chinese,,0,0,0,,她想回到代笔屋
+Dialogue: 0,0:03:18.56,0:03:20.54,English,,0,0,0,,She wanted to return to the Letter Writing Shop
+Dialogue: 0,0:03:20.54,0:03:23.20,Chinese,,0,0,0,,想找回文字带给她的秩序感
+Dialogue: 0,0:03:20.54,0:03:23.20,English,,0,0,0,,wanted to recover the sense of order that words had given her
+Dialogue: 0,0:03:23.20,0:03:27.00,Chinese,,0,0,0,,可她必须带着现在的全部生活一
+Dialogue: 0,0:03:23.20,0:03:27.00,English,,0,0,0,,but she had to bring the whole of her present life along with her
+Dialogue: 0,0:03:27.00,0:03:28.08,Chinese,,0,0,0,,起回去
+Dialogue: 0,0:03:27.00,0:03:28.08,English,,0,0,0,,Go back
+Dialogue: 0,0:03:28.08,0:03:31.24,Chinese,,0,0,0,,书里的时间顺着四季往前走
+Dialogue: 0,0:03:28.08,0:03:31.24,English,,0,0,0,,In the book, time moves forward with the seasons.
+Dialogue: 0,0:03:31.24,0:03:31.86,Chinese,,0,0,0,,春天过去
+Dialogue: 0,0:03:31.24,0:03:31.86,English,,0,0,0,,Spring passes.
+Dialogue: 0,0:03:31.86,0:03:33.10,Chinese,,0,0,0,,夏天到来
+Dialogue: 0,0:03:31.86,0:03:33.10,English,,0,0,0,,Summer arrives.
+Dialogue: 0,0:03:33.10,0:03:35.78,Chinese,,0,0,0,,又在一支线香花火落地时轻轻结
+Dialogue: 0,0:03:33.10,0:03:35.78,English,,0,0,0,,And then, as a sparkler’s flame drops to the ground, it gently comes to an end.
+Dialogue: 0,0:03:35.78,0:03:36.04,Chinese,,0,0,0,,束
+Dialogue: 0,0:03:35.78,0:03:36.04,English,,0,0,0,,End.
+Dialogue: 0,0:03:36.04,0:03:37.08,Chinese,,0,0,0,,那个夜晚
+Dialogue: 0,0:03:36.04,0:03:37.08,English,,0,0,0,,That night,
+Dialogue: 0,0:03:37.08,0:03:41.92,Chinese,,0,0,0,,鸠子和蜜朗一起在院子里放烟火
+Dialogue: 0,0:03:37.08,0:03:41.92,English,,0,0,0,,Hatoko and Mitsuro set off fireworks together in the yard.
+Dialogue: 0,0:03:41.92,0:03:44.72,Chinese,,0,0,0,,线香花火最后一束火花落在地面
+Dialogue: 0,0:03:41.92,0:03:44.72,English,,0,0,0,,The last shower of sparks from the sparkler falls to the ground.
+Dialogue: 0,0:03:44.72,0:03:47.50,Chinese,,0,0,0,,余烬扑哧扑哧地跳动
+Dialogue: 0,0:03:44.72,0:03:47.50,English,,0,0,0,,The embers sputter and dance,
+Dialogue: 0,0:03:47.50,0:03:48.84,Chinese,,0,0,0,,像一只小动物
+Dialogue: 0,0:03:47.50,0:03:48.84,English,,0,0,0,,like a tiny animal,
+Dialogue: 0,0:03:48.84,0:03:51.26,Chinese,,0,0,0,,随后慢慢被夜色吞没
+Dialogue: 0,0:03:48.84,0:03:51.26,English,,0,0,0,,then are slowly swallowed by the night.
+Dialogue: 0,0:03:51.26,0:03:52.60,Chinese,,0,0,0,,鸠子说
+Dialogue: 0,0:03:51.26,0:03:52.60,English,,0,0,0,,Hatoko says,
+Dialogue: 0,0:03:52.60,0:03:53.92,Chinese,,0,0,0,,结束了呢
+Dialogue: 0,0:03:52.60,0:03:53.92,English,,0,0,0,,It’s over, isn’t it?
+Dialogue: 0,0:03:53.92,0:03:56.54,Chinese,,0,0,0,,她没有说结束的是夏天
+Dialogue: 0,0:03:53.92,0:03:56.54,English,,0,0,0,,She doesn’t say that what is over is summer.
+Dialogue: 0,0:03:56.54,0:03:57.86,Chinese,,0,0,0,,可蜜朗懂
+Dialogue: 0,0:03:56.54,0:03:57.86,English,,0,0,0,,But Mitsuro understands.
+Dialogue: 0,0:03:57.86,0:04:01.16,Chinese,,0,0,0,,两个人之间有一种经过岁月沉淀
+Dialogue: 0,0:03:57.86,0:04:01.16,English,,0,0,0,,Between the two of them is a kind of understanding, settled over many years,
+Dialogue: 0,0:04:01.16,0:04:02.56,Chinese,,0,0,0,,后的默契
+Dialogue: 0,0:04:01.16,0:04:02.56,English,,0,0,0,,a quiet rapport.
+Dialogue: 0,0:04:02.56,0:04:03.60,Chinese,,0,0,0,,句子不必完整
+Dialogue: 0,0:04:02.56,0:04:03.60,English,,0,0,0,,The sentence need not be complete.
+Dialogue: 0,0:04:03.60,0:04:05.18,Chinese,,0,0,0,,意思已经抵达
+Dialogue: 0,0:04:03.60,0:04:05.18,English,,0,0,0,,The meaning has already arrived.
+Dialogue: 0,0:04:05.18,0:04:06.20,Chinese,,0,0,0,,可是
+Dialogue: 0,0:04:05.18,0:04:06.20,English,,0,0,0,,But
+Dialogue: 0,0:04:06.20,0:04:08.42,Chinese,,0,0,0,,当他们拎着水桶回到家
+Dialogue: 0,0:04:06.20,0:04:08.42,English,,0,0,0,,when they got home carrying the buckets
+Dialogue: 0,0:04:08.42,0:04:11.48,Chinese,,0,0,0,,阳菜正一边看电视一边玩手机
+Dialogue: 0,0:04:08.42,0:04:11.48,English,,0,0,0,,Hina was watching TV while playing on her phone
+Dialogue: 0,0:04:11.48,0:04:13.58,Chinese,,0,0,0,,对母亲的招呼没有回应
+Dialogue: 0,0:04:11.48,0:04:13.58,English,,0,0,0,,and didn’t respond when her mother greeted her
+Dialogue: 0,0:04:13.58,0:04:16.94,Chinese,,0,0,0,,青春期的孩子就像一扇半掩的门
+Dialogue: 0,0:04:13.58,0:04:16.94,English,,0,0,0,,A child in adolescence is like a door left half-closed
+Dialogue: 0,0:04:16.94,0:04:18.74,Chinese,,0,0,0,,明明还在同一个家里
+Dialogue: 0,0:04:16.94,0:04:18.74,English,,0,0,0,,Though they are still living under the same roof
+Dialogue: 0,0:04:18.74,0:04:22.16,Chinese,,0,0,0,,却让父母突然不知道该怎样靠近
+Dialogue: 0,0:04:18.74,0:04:22.16,English,,0,0,0,,parents suddenly find themselves unsure how to approach them
+Dialogue: 0,0:04:22.16,0:04:24.72,Chinese,,0,0,0,,鸠子想趁两个小的外宿
+Dialogue: 0,0:04:22.16,0:04:24.72,English,,0,0,0,,Hatoko wanted to take advantage of the two younger ones being away overnight
+Dialogue: 0,0:04:24.72,0:04:27.30,Chinese,,0,0,0,,和阳菜好好单独聊一聊
+Dialogue: 0,0:04:24.72,0:04:27.30,English,,0,0,0,,to have a proper one-on-one talk with Hina
+Dialogue: 0,0:04:27.30,0:04:30.52,Chinese,,0,0,0,,甚至连烟火原本也是为她准备的
+Dialogue: 0,0:04:27.30,0:04:30.52,English,,0,0,0,,Even the fireworks had originally been prepared for her
+Dialogue: 0,0:04:30.52,0:04:32.16,Chinese,,0,0,0,,可阳菜不来
+Dialogue: 0,0:04:30.52,0:04:32.16,English,,0,0,0,,But Hina wouldn’t come
+Dialogue: 0,0:04:32.16,0:04:33.08,Chinese,,0,0,0,,或者说
+Dialogue: 0,0:04:32.16,0:04:33.08,English,,0,0,0,,or rather
+Dialogue: 0,0:04:33.08,0:04:35.36,Chinese,,0,0,0,,她已经不愿意像小时候那样
+Dialogue: 0,0:04:33.08,0:04:35.36,English,,0,0,0,,she was no longer willing, the way she had been as a child
+Dialogue: 0,0:04:35.36,0:04:38.84,Chinese,,0,0,0,,把兴奋、依赖和柔软全都摊开在
+Dialogue: 0,0:04:35.36,0:04:38.84,English,,0,0,0,,to lay all her excitement, dependence, and tenderness out
+Dialogue: 0,0:04:38.84,0:04:40.00,Chinese,,0,0,0,,母亲面前
+Dialogue: 0,0:04:38.84,0:04:40.00,English,,0,0,0,,in front of her mother
+Dialogue: 0,0:04:40.00,0:04:44.28,Chinese,,0,0,0,,去年夏天还几乎每天都想放烟花
+Dialogue: 0,0:04:40.00,0:04:44.28,English,,0,0,0,,Just last summer, she was a child who wanted to set off fireworks almost every day
+Dialogue: 0,0:04:44.28,0:04:44.74,Chinese,,0,0,0,,的孩子
+Dialogue: 0,0:04:44.28,0:04:44.74,English,,0,0,0,,that child
+Dialogue: 0,0:04:44.74,0:04:47.22,Chinese,,0,0,0,,如今沉默地坐在电视前
+Dialogue: 0,0:04:44.74,0:04:47.22,English,,0,0,0,,now sat silently in front of the TV
+Dialogue: 0,0:04:47.22,0:04:49.58,Chinese,,0,0,0,,鸠子只能若无其事地问
+Dialogue: 0,0:04:47.22,0:04:49.58,English,,0,0,0,,Hatoko could only ask, as if nothing were wrong
+Dialogue: 0,0:04:49.58,0:04:51.16,Chinese,,0,0,0,,要吃西瓜吗
+Dialogue: 0,0:04:49.58,0:04:51.16,English,,0,0,0,,Want some watermelon?
+Dialogue: 0,0:04:51.16,0:04:52.62,Chinese,,0,0,0,,阳菜回答
+Dialogue: 0,0:04:51.16,0:04:52.62,English,,0,0,0,,Hina answers,
+Dialogue: 0,0:04:52.62,0:04:53.56,Chinese,,0,0,0,,不吃
+Dialogue: 0,0:04:52.62,0:04:53.56,English,,0,0,0,,I'm not eating.
+Dialogue: 0,0:04:53.56,0:04:55.76,Chinese,,0,0,0,,至少她还愿意回答
+Dialogue: 0,0:04:53.56,0:04:55.76,English,,0,0,0,,At least she's still willing to answer.
+Dialogue: 0,0:04:55.76,0:04:57.60,Chinese,,0,0,0,,这个细节很轻
+Dialogue: 0,0:04:55.76,0:04:57.60,English,,0,0,0,,This detail is subtle,
+Dialogue: 0,0:04:57.60,0:04:58.76,Chinese,,0,0,0,,却很痛
+Dialogue: 0,0:04:57.60,0:04:58.76,English,,0,0,0,,but it hurts.
+Dialogue: 0,0:04:58.76,0:05:00.90,Chinese,,0,0,0,,它不是激烈的冲突
+Dialogue: 0,0:04:58.76,0:05:00.90,English,,0,0,0,,It's not a fierce conflict,
+Dialogue: 0,0:05:00.90,0:05:04.68,Chinese,,0,0,0,,而是亲子关系里最常见也最难承
+Dialogue: 0,0:05:00.90,0:05:04.68,English,,0,0,0,,but the most common and hardest-to-bear change
+Dialogue: 0,0:05:04.68,0:05:05.54,Chinese,,0,0,0,,受的变化
+Dialogue: 0,0:05:04.68,0:05:05.54,English,,0,0,0,,in a parent-child relationship.
+Dialogue: 0,0:05:05.54,0:05:07.42,Chinese,,0,0,0,,孩子并没有离家
+Dialogue: 0,0:05:05.54,0:05:07.42,English,,0,0,0,,The child hasn't left home,
+Dialogue: 0,0:05:07.42,0:05:09.06,Chinese,,0,0,0,,也没有说讨厌你
+Dialogue: 0,0:05:07.42,0:05:09.06,English,,0,0,0,,nor has she said she hates you.
+Dialogue: 0,0:05:09.06,0:05:11.80,Chinese,,0,0,0,,可她正在把自己的世界一点点关
+Dialogue: 0,0:05:09.06,0:05:11.80,English,,0,0,0,,But she is closing off her own world, bit by bit,
+Dialogue: 0,0:05:11.80,0:05:12.50,Chinese,,0,0,0,,起来
+Dialogue: 0,0:05:11.80,0:05:12.50,English,,0,0,0,,shutting it away.
+Dialogue: 0,0:05:12.50,0:05:14.38,Chinese,,0,0,0,,母亲站在门外
+Dialogue: 0,0:05:12.50,0:05:14.38,English,,0,0,0,,Her mother stands outside the door,
+Dialogue: 0,0:05:14.38,0:05:15.76,Chinese,,0,0,0,,既想敲门
+Dialogue: 0,0:05:14.38,0:05:15.76,English,,0,0,0,,wanting to knock,
+Dialogue: 0,0:05:15.76,0:05:17.50,Chinese,,0,0,0,,又怕敲得太响
+Dialogue: 0,0:05:15.76,0:05:17.50,English,,0,0,0,,yet afraid of knocking too loudly.
+Dialogue: 0,0:05:17.50,0:05:20.58,Chinese,,0,0,0,,于是鸠子在心里反复默念
+Dialogue: 0,0:05:17.50,0:05:20.58,English,,0,0,0,,So Hatoko repeats to herself, over and over,
+Dialogue: 0,0:05:20.58,0:05:22.68,Chinese,,0,0,0,,时间是最好的良药
+Dialogue: 0,0:05:20.58,0:05:22.68,English,,0,0,0,,Time is the best medicine.
+Dialogue: 0,0:05:22.68,0:05:23.88,Chinese,,0,0,0,,她知道
+Dialogue: 0,0:05:22.68,0:05:23.88,English,,0,0,0,,She knows
+Dialogue: 0,0:05:23.88,0:05:25.90,Chinese,,0,0,0,,有些阶段不能硬闯
+Dialogue: 0,0:05:23.88,0:05:25.90,English,,0,0,0,,some phases can't be forced through.
+Dialogue: 0,0:05:25.90,0:05:27.24,Chinese,,0,0,0,,只能等待
+Dialogue: 0,0:05:25.90,0:05:27.24,English,,0,0,0,,All you can do is wait.
+Dialogue: 0,0:05:27.24,0:05:29.02,Chinese,,0,0,0,,等待孩子长大
+Dialogue: 0,0:05:27.24,0:05:29.02,English,,0,0,0,,waiting for the child to grow up
+Dialogue: 0,0:05:29.02,0:05:31.02,Chinese,,0,0,0,,等待自己学会放手
+Dialogue: 0,0:05:29.02,0:05:31.02,English,,0,0,0,,waiting for herself to learn to let go
+Dialogue: 0,0:05:31.02,0:05:33.72,Chinese,,0,0,0,,也等待彼此重新找到可以说话的
+Dialogue: 0,0:05:31.02,0:05:33.72,English,,0,0,0,,and waiting for them both to find again
+Dialogue: 0,0:05:33.72,0:05:34.50,Chinese,,0,0,0,,位置
+Dialogue: 0,0:05:33.72,0:05:34.50,English,,0,0,0,,a place where they can talk
+Dialogue: 0,0:05:34.50,0:05:37.20,Chinese,,0,0,0,,小川糸写家庭生活时
+Dialogue: 0,0:05:34.50,0:05:37.20,English,,0,0,0,,When Ito Ogawa writes about family life,
+Dialogue: 0,0:05:37.20,0:05:39.02,Chinese,,0,0,0,,总是有这样的克制
+Dialogue: 0,0:05:37.20,0:05:39.02,English,,0,0,0,,there is always this kind of restraint.
+Dialogue: 0,0:05:39.02,0:05:41.60,Chinese,,0,0,0,,她不把痛苦放大成戏剧
+Dialogue: 0,0:05:39.02,0:05:41.60,English,,0,0,0,,She doesn't magnify pain into drama,
+Dialogue: 0,0:05:41.60,0:05:44.72,Chinese,,0,0,0,,也不急着给关系一个圆满答案
+Dialogue: 0,0:05:41.60,0:05:44.72,English,,0,0,0,,nor does she rush to give a relationship a perfect answer.
+Dialogue: 0,0:05:44.72,0:05:46.64,Chinese,,0,0,0,,她只是让我们看见
+Dialogue: 0,0:05:44.72,0:05:46.64,English,,0,0,0,,She simply lets us see
+Dialogue: 0,0:05:46.64,0:05:50.12,Chinese,,0,0,0,,一个母亲怎样在厨房、客厅、夜
+Dialogue: 0,0:05:46.64,0:05:50.12,English,,0,0,0,,how a mother, amid the smells of the kitchen, the living room, and the night
+Dialogue: 0,0:05:50.12,0:05:51.34,Chinese,,0,0,0,,晚的烟火味里
+Dialogue: 0,0:05:50.12,0:05:51.34,English,,0,0,0,,air tinged with smoke and cooking,
+Dialogue: 0,0:05:51.34,0:05:53.52,Chinese,,0,0,0,,慢慢接受孩子的远离
+Dialogue: 0,0:05:51.34,0:05:53.52,English,,0,0,0,,slowly accepts her child's moving away.
+Dialogue: 0,0:05:53.52,0:05:54.90,Chinese,,0,0,0,,到了冬天
+Dialogue: 0,0:05:53.52,0:05:54.90,English,,0,0,0,,When winter arrives,
+Dialogue: 0,0:05:54.90,0:05:57.12,Chinese,,0,0,0,,故事里出现了热红酒
+Dialogue: 0,0:05:54.90,0:05:57.12,English,,0,0,0,,mulled wine appears in the story.
+Dialogue: 0,0:05:57.12,0:06:00.32,Chinese,,0,0,0,,鸠子在美容院的旅游杂志上读到
+Dialogue: 0,0:05:57.12,0:06:00.32,English,,0,0,0,,Hatoko reads in a travel magazine at the beauty salon
+Dialogue: 0,0:06:00.32,0:06:03.44,Chinese,,0,0,0,,德国人在圣诞前后饮热红酒
+Dialogue: 0,0:06:00.32,0:06:03.44,English,,0,0,0,,that Germans drink mulled wine around Christmas.
+Dialogue: 0,0:06:03.44,0:06:05.24,Chinese,,0,0,0,,于是回家试着做
+Dialogue: 0,0:06:03.44,0:06:05.24,English,,0,0,0,,So she goes home and tries making it.
+Dialogue: 0,0:06:05.24,0:06:07.48,Chinese,,0,0,0,,她把红酒倒进小锅
+Dialogue: 0,0:06:05.24,0:06:07.48,English,,0,0,0,,She pours red wine into a small pot,
+Dialogue: 0,0:06:07.48,0:06:10.92,Chinese,,0,0,0,,加入肉桂、丁香、八角和蜂蜜
+Dialogue: 0,0:06:07.48,0:06:10.92,English,,0,0,0,,adds cinnamon, cloves, star anise, and honey,
+Dialogue: 0,0:06:10.92,0:06:13.92,Chinese,,0,0,0,,有时还放进切成圆片的橘子和苹
+Dialogue: 0,0:06:10.92,0:06:13.92,English,,0,0,0,,and sometimes slices in rounds of orange and apple.
+Dialogue: 0,0:06:13.92,0:06:13.92,Chinese,,0,0,0,,果
+Dialogue: 0,0:06:13.92,0:06:13.92,English,,0,0,0,,As it turned out,
+Dialogue: 0,0:06:13.92,0:06:18.78,Chinese,,0,0,0,,山茶文具店所在的老房子从上一
+Dialogue: 0,0:06:13.92,0:06:18.78,English,,0,0,0,,the old house that housed the Camellia Stationery Shop had been
+Dialogue: 0,0:06:18.78,0:06:20.66,Chinese,,0,0,0,,代传下来
+Dialogue: 0,0:06:18.78,0:06:20.66,English,,0,0,0,,passed down from the previous generation.
+Dialogue: 0,0:06:20.66,0:06:22.72,Chinese,,0,0,0,,修修补补还能住
+Dialogue: 0,0:06:20.66,0:06:22.72,English,,0,0,0,,With patching and repairs, it was still livable,
+Dialogue: 0,0:06:22.72,0:06:24.72,Chinese,,0,0,0,,可一到冬天就特别冷
+Dialogue: 0,0:06:22.72,0:06:24.72,English,,0,0,0,,but once winter came, it grew terribly cold.
+Dialogue: 0,0:06:24.72,0:06:26.80,Chinese,,0,0,0,,热红酒给她的身体带来温暖
+Dialogue: 0,0:06:24.72,0:06:26.80,English,,0,0,0,,The mulled wine warmed her body
+Dialogue: 0,0:06:26.80,0:06:28.66,Chinese,,0,0,0,,也给她一点独属于自己的松弛
+Dialogue: 0,0:06:26.80,0:06:28.66,English,,0,0,0,,and gave her a little ease that belonged only to her.
+Dialogue: 0,0:06:28.66,0:06:30.76,Chinese,,0,0,0,,分娩和育儿之后
+Dialogue: 0,0:06:28.66,0:06:30.76,English,,0,0,0,,Since giving birth and raising the children,
+Dialogue: 0,0:06:30.76,0:06:33.12,Chinese,,0,0,0,,她已经很久没有好好喝酒
+Dialogue: 0,0:06:30.76,0:06:33.12,English,,0,0,0,,it had been a long time since she had really enjoyed a drink.
+Dialogue: 0,0:06:33.12,0:06:36.48,Chinese,,0,0,0,,如今两个小的渐渐能照顾自己
+Dialogue: 0,0:06:33.12,0:06:36.48,English,,0,0,0,,Now that the two younger ones could gradually look after themselves,
+Dialogue: 0,0:06:36.48,0:06:39.32,Chinese,,0,0,0,,她终于重新拥有睡前的一小段时
+Dialogue: 0,0:06:36.48,0:06:39.32,English,,0,0,0,,she finally had a small stretch of time before bed
+Dialogue: 0,0:06:39.32,0:06:39.92,Chinese,,0,0,0,,间
+Dialogue: 0,0:06:39.32,0:06:39.92,English,,0,0,0,,to herself.
+Dialogue: 0,0:06:39.92,0:06:42.10,Chinese,,0,0,0,,酒意让脚步轻飘
+Dialogue: 0,0:06:39.92,0:06:42.10,English,,0,0,0,,The wine made her steps feel light
+Dialogue: 0,0:06:42.10,0:06:43.80,Chinese,,0,0,0,,也让心情舒展
+Dialogue: 0,0:06:42.10,0:06:43.80,English,,0,0,0,,and her mood open up.
+Dialogue: 0,0:06:43.80,0:06:45.98,Chinese,,0,0,0,,她可以暂时忘掉烦恼
+Dialogue: 0,0:06:43.80,0:06:45.98,English,,0,0,0,,For a while, she could forget her worries
+Dialogue: 0,0:06:45.98,0:06:47.64,Chinese,,0,0,0,,沉进自己的世界
+Dialogue: 0,0:06:45.98,0:06:47.64,English,,0,0,0,,and sink into her own world.
+Dialogue: 0,0:06:47.64,0:06:49.06,Chinese,,0,0,0,,如果困意袭来
+Dialogue: 0,0:06:47.64,0:06:49.06,English,,0,0,0,,If sleepiness came over her,
+Dialogue: 0,0:06:49.06,0:06:50.66,Chinese,,0,0,0,,就不等蜜朗回家
+Dialogue: 0,0:06:49.06,0:06:50.66,English,,0,0,0,,she would not wait for Mitsuro to come home;
+Dialogue: 0,0:06:50.66,0:06:52.42,Chinese,,0,0,0,,直接钻进被窝
+Dialogue: 0,0:06:50.66,0:06:52.42,English,,0,0,0,,she would slip straight under the covers.
+Dialogue: 0,0:06:52.42,0:06:54.84,Chinese,,0,0,0,,这里的酒并不是放纵
+Dialogue: 0,0:06:52.42,0:06:54.84,English,,0,0,0,,The drinking here was not indulgence.
+Dialogue: 0,0:06:54.84,0:06:57.96,Chinese,,0,0,0,,而像一个疲惫的人给自己的小小
+Dialogue: 0,0:06:54.84,0:06:57.96,English,,0,0,0,,but like a small bit of permission a weary person gives herself
+Dialogue: 0,0:06:57.96,0:06:58.60,Chinese,,0,0,0,,许可
+Dialogue: 0,0:06:57.96,0:06:58.60,English,,0,0,0,,permission
+Dialogue: 0,0:06:58.60,0:06:59.70,Chinese,,0,0,0,,它说
+Dialogue: 0,0:06:58.60,0:06:59.70,English,,0,0,0,,It says,
+Dialogue: 0,0:06:59.70,0:07:01.78,Chinese,,0,0,0,,你今天已经做得够多了
+Dialogue: 0,0:06:59.70,0:07:01.78,English,,0,0,0,,You've done enough today.
+Dialogue: 0,0:07:01.78,0:07:03.32,Chinese,,0,0,0,,你可以暖一暖
+Dialogue: 0,0:07:01.78,0:07:03.32,English,,0,0,0,,You can warm yourself up a little,
+Dialogue: 0,0:07:03.32,0:07:04.50,Chinese,,0,0,0,,可以停一停
+Dialogue: 0,0:07:03.32,0:07:04.50,English,,0,0,0,,you can pause for a while,
+Dialogue: 0,0:07:04.50,0:07:07.50,Chinese,,0,0,0,,可以不再立刻回应所有人的需求
+Dialogue: 0,0:07:04.50,0:07:07.50,English,,0,0,0,,and you don't have to respond at once to everyone else's needs anymore.
+Dialogue: 0,0:07:07.50,0:07:10.60,Chinese,,0,0,0,,对于长期被家庭事务包围的人来
+Dialogue: 0,0:07:07.50,0:07:10.60,English,,0,0,0,,For someone long surrounded by family affairs,
+Dialogue: 0,0:07:10.60,0:07:11.26,Chinese,,0,0,0,,说
+Dialogue: 0,0:07:10.60,0:07:11.26,English,,0,0,0,,such moments
+Dialogue: 0,0:07:11.26,0:07:13.60,Chinese,,0,0,0,,这样的片刻极其珍贵
+Dialogue: 0,0:07:11.26,0:07:13.60,English,,0,0,0,,are incredibly precious.
+Dialogue: 0,0:07:13.60,0:07:16.42,Chinese,,0,0,0,,鸠子怀念独自生活时的轻盈
+Dialogue: 0,0:07:13.60,0:07:16.42,English,,0,0,0,,Hatoko misses the lightness of living alone.
+Dialogue: 0,0:07:16.42,0:07:18.26,Chinese,,0,0,0,,并不是不爱现在的家
+Dialogue: 0,0:07:16.42,0:07:18.26,English,,0,0,0,,It's not that she doesn't love the family she has now,
+Dialogue: 0,0:07:18.26,0:07:21.26,Chinese,,0,0,0,,而是人在承担许多身份之后
+Dialogue: 0,0:07:18.26,0:07:21.26,English,,0,0,0,,but after taking on so many roles,
+Dialogue: 0,0:07:21.26,0:07:23.88,Chinese,,0,0,0,,依然需要一个不被任何角色占用
+Dialogue: 0,0:07:21.26,0:07:23.88,English,,0,0,0,,a person still needs a corner
+Dialogue: 0,0:07:23.88,0:07:25.14,Chinese,,0,0,0,,的角落
+Dialogue: 0,0:07:23.88,0:07:25.14,English,,0,0,0,,that isn't claimed by any role.
+Dialogue: 0,0:07:25.14,0:07:29.52,Chinese,,0,0,0,,妻子、母亲、店主、代笔人
+Dialogue: 0,0:07:25.14,0:07:29.52,English,,0,0,0,,Wife, mother, shop owner, ghostwriter—
+Dialogue: 0,0:07:29.52,0:07:31.66,Chinese,,0,0,0,,这些身份都是真实的
+Dialogue: 0,0:07:29.52,0:07:31.66,English,,0,0,0,,all of these identities are real.
+Dialogue: 0,0:07:31.66,0:07:33.36,Chinese,,0,0,0,,可在这些名字之外
+Dialogue: 0,0:07:31.66,0:07:33.36,English,,0,0,0,,But beyond those names,
+Dialogue: 0,0:07:33.36,0:07:34.94,Chinese,,0,0,0,,她也只是鸠子
+Dialogue: 0,0:07:33.36,0:07:34.94,English,,0,0,0,,she is also simply Hatoko.
+Dialogue: 0,0:07:34.94,0:07:37.14,Chinese,,0,0,0,,她需要听见自己的声音
+Dialogue: 0,0:07:34.94,0:07:37.14,English,,0,0,0,,She needs to hear her own voice.
+Dialogue: 0,0:07:37.14,0:07:38.62,Chinese,,0,0,0,,哪怕那声音很小
+Dialogue: 0,0:07:37.14,0:07:38.62,English,,0,0,0,,No matter how small that voice may be
+Dialogue: 0,0:07:38.62,0:07:41.68,Chinese,,0,0,0,,像热红酒蒸汽里一点甜而辛香的
+Dialogue: 0,0:07:38.62,0:07:41.68,English,,0,0,0,,like something sweet and spicy in the steam of hot mulled wine
+Dialogue: 0,0:07:41.68,0:07:42.48,Chinese,,0,0,0,,气味
+Dialogue: 0,0:07:41.68,0:07:42.48,English,,0,0,0,,a scent
+Dialogue: 0,0:07:42.48,0:07:44.98,Chinese,,0,0,0,,书名叫《山茶的情书》
+Dialogue: 0,0:07:42.48,0:07:44.98,English,,0,0,0,,The book is titled Camellia’s Love Letter
+Dialogue: 0,0:07:44.98,0:07:47.12,Chinese,,0,0,0,,情书当然是重要的
+Dialogue: 0,0:07:44.98,0:07:47.12,English,,0,0,0,,Of course, love letters matter
+Dialogue: 0,0:07:47.12,0:07:49.02,Chinese,,0,0,0,,可是这里的情书
+Dialogue: 0,0:07:47.12,0:07:49.02,English,,0,0,0,,but the love letters here
+Dialogue: 0,0:07:49.02,0:07:51.38,Chinese,,0,0,0,,并不只属于年轻恋人
+Dialogue: 0,0:07:49.02,0:07:51.38,English,,0,0,0,,do not belong only to young lovers
+Dialogue: 0,0:07:51.38,0:07:53.20,Chinese,,0,0,0,,它也属于逝去的人
+Dialogue: 0,0:07:51.38,0:07:53.20,English,,0,0,0,,they also belong to those who have passed away
+Dialogue: 0,0:07:53.20,0:07:54.62,Chinese,,0,0,0,,属于错过的人
+Dialogue: 0,0:07:53.20,0:07:54.62,English,,0,0,0,,to those who missed their chance
+Dialogue: 0,0:07:54.62,0:07:57.20,Chinese,,0,0,0,,属于无法再当面解释的关系
+Dialogue: 0,0:07:54.62,0:07:57.20,English,,0,0,0,,to relationships that can no longer be explained face to face
+Dialogue: 0,0:07:57.20,0:07:59.42,Chinese,,0,0,0,,属于那些已经沉默多年
+Dialogue: 0,0:07:57.20,0:07:59.42,English,,0,0,0,,to feelings that have been silent for years
+Dialogue: 0,0:07:59.42,0:08:01.96,Chinese,,0,0,0,,却仍然在心里发光的感情
+Dialogue: 0,0:07:59.42,0:08:01.96,English,,0,0,0,,yet still glow in the heart
+Dialogue: 0,0:08:01.96,0:08:04.74,Chinese,,0,0,0,,鸠子接到一项特殊的委托
+Dialogue: 0,0:08:01.96,0:08:04.74,English,,0,0,0,,Hatoko receives a special commission
+Dialogue: 0,0:08:04.74,0:08:05.88,Chinese,,0,0,0,,与上代
+Dialogue: 0,0:08:04.74,0:08:05.88,English,,0,0,0,,connected to Jodai
+Dialogue: 0,0:08:05.88,0:08:07.98,Chinese,,0,0,0,,也就是她的祖母有关
+Dialogue: 0,0:08:05.88,0:08:07.98,English,,0,0,0,,that is, her grandmother
+Dialogue: 0,0:08:07.98,0:08:10.20,Chinese,,0,0,0,,上代在鸠子的生命里
+Dialogue: 0,0:08:07.98,0:08:10.20,English,,0,0,0,,In Hatoko’s life, Jodai
+Dialogue: 0,0:08:10.20,0:08:12.42,Chinese,,0,0,0,,是严厉的、深刻的
+Dialogue: 0,0:08:10.20,0:08:12.42,English,,0,0,0,,was a stern and deeply formative presence
+Dialogue: 0,0:08:12.42,0:08:15.40,Chinese,,0,0,0,,也是难以轻易和解的存在
+Dialogue: 0,0:08:12.42,0:08:15.40,English,,0,0,0,,and someone with whom reconciliation did not come easily
+Dialogue: 0,0:08:15.40,0:08:18.42,Chinese,,0,0,0,,她曾经教鸠子写字、写信
+Dialogue: 0,0:08:15.40,0:08:18.42,English,,0,0,0,,She once taught Hatoko how to write characters and letters
+Dialogue: 0,0:08:18.42,0:08:20.88,Chinese,,0,0,0,,教她作为代笔人应有的规矩与分
+Dialogue: 0,0:08:18.42,0:08:20.88,English,,0,0,0,,and taught her the rules and propriety expected of a scribe
+Dialogue: 0,0:08:20.88,0:08:21.84,Chinese,,0,0,0,,寸
+Dialogue: 0,0:08:20.88,0:08:21.84,English,,0,0,0,,An inch
+Dialogue: 0,0:08:21.84,0:08:25.48,Chinese,,0,0,0,,可祖母的爱常常包裹在严厉之中
+Dialogue: 0,0:08:21.84,0:08:25.48,English,,0,0,0,,But her grandmother's love was often wrapped in sternness
+Dialogue: 0,0:08:25.48,0:08:29.40,Chinese,,0,0,0,,让年少的鸠子感到压抑甚至受伤
+Dialogue: 0,0:08:25.48,0:08:29.40,English,,0,0,0,,making young Hatoko feel stifled, even hurt
+Dialogue: 0,0:08:29.40,0:08:31.28,Chinese,,0,0,0,,祖母去世之后
+Dialogue: 0,0:08:29.40,0:08:31.28,English,,0,0,0,,After her grandmother passed away
+Dialogue: 0,0:08:31.28,0:08:34.10,Chinese,,0,0,0,,鸠子继承了她留下的文具店
+Dialogue: 0,0:08:31.28,0:08:34.10,English,,0,0,0,,Hatoko inherited the stationery shop she left behind
+Dialogue: 0,0:08:34.10,0:08:37.30,Chinese,,0,0,0,,也在漫长的日子里一点点理解她
+Dialogue: 0,0:08:34.10,0:08:37.30,English,,0,0,0,,and over the long days, came to understand her little by little
+Dialogue: 0,0:08:37.30,0:08:39.84,Chinese,,0,0,0,,理解不等于遗忘伤痛
+Dialogue: 0,0:08:37.30,0:08:39.84,English,,0,0,0,,Understanding doesn't mean forgetting the pain
+Dialogue: 0,0:08:39.84,0:08:41.48,Chinese,,0,0,0,,而是终于能看见
+Dialogue: 0,0:08:39.84,0:08:41.48,English,,0,0,0,,but finally being able to see
+Dialogue: 0,0:08:41.48,0:08:43.18,Chinese,,0,0,0,,一个人也许笨拙
+Dialogue: 0,0:08:41.48,0:08:43.18,English,,0,0,0,,that a person may be clumsy
+Dialogue: 0,0:08:43.18,0:08:44.78,Chinese,,0,0,0,,也许不善表达
+Dialogue: 0,0:08:43.18,0:08:44.78,English,,0,0,0,,may be poor at expressing themselves
+Dialogue: 0,0:08:44.78,0:08:47.46,Chinese,,0,0,0,,却仍然用自己的方式爱着
+Dialogue: 0,0:08:44.78,0:08:47.46,English,,0,0,0,,yet still love in their own way
+Dialogue: 0,0:08:47.46,0:08:49.64,Chinese,,0,0,0,,与上代有关的情书
+Dialogue: 0,0:08:47.46,0:08:49.64,English,,0,0,0,,The love letters connected to the previous generation
+Dialogue: 0,0:08:49.64,0:08:53.24,Chinese,,0,0,0,,让鸠子再次面对祖母隐藏在岁月
+Dialogue: 0,0:08:49.64,0:08:53.24,English,,0,0,0,,make Hatoko face once more another side of her grandmother
+Dialogue: 0,0:08:53.24,0:08:54.58,Chinese,,0,0,0,,背后的另一面
+Dialogue: 0,0:08:53.24,0:08:54.58,English,,0,0,0,,hidden behind the years
+Dialogue: 0,0:08:54.58,0:08:57.96,Chinese,,0,0,0,,原来上代也曾有过炽热而复杂的
+Dialogue: 0,0:08:54.58,0:08:57.96,English,,0,0,0,,It turns out the previous generation, too, once had passionate and complicated
+Dialogue: 0,0:08:57.96,0:08:58.48,Chinese,,0,0,0,,感情
+Dialogue: 0,0:08:57.96,0:08:58.48,English,,0,0,0,,feelings
+Dialogue: 0,0:08:58.48,0:09:00.74,Chinese,,0,0,0,,也曾在人生的某个角落里
+Dialogue: 0,0:08:58.48,0:09:00.74,English,,0,0,0,,and once, in some corner of life
+Dialogue: 0,0:09:00.74,0:09:03.72,Chinese,,0,0,0,,把不能说出的心意交给纸张
+Dialogue: 0,0:09:00.74,0:09:03.72,English,,0,0,0,,entrusted unspoken feelings to paper
+Dialogue: 0,0:09:03.72,0:09:06.38,Chinese,,0,0,0,,那些书信被仔细保存下来
+Dialogue: 0,0:09:03.72,0:09:06.38,English,,0,0,0,,Those letters were carefully preserved
+Dialogue: 0,0:09:06.38,0:09:08.42,Chinese,,0,0,0,,像时间深处的火种
+Dialogue: 0,0:09:06.38,0:09:08.42,English,,0,0,0,,like embers deep within time
+Dialogue: 0,0:09:08.42,0:09:10.32,Chinese,,0,0,0,,鸠子带着这些信
+Dialogue: 0,0:09:08.42,0:09:10.32,English,,0,0,0,,Hatoko carried these letters with her.
+Dialogue: 0,0:09:10.32,0:09:12.16,Chinese,,0,0,0,,前往伊豆大岛
+Dialogue: 0,0:09:10.32,0:09:12.16,English,,0,0,0,,She was headed for Izu Oshima.
+Dialogue: 0,0:09:12.16,0:09:14.36,Chinese,,0,0,0,,汽船在海面行驶
+Dialogue: 0,0:09:12.16,0:09:14.36,English,,0,0,0,,The steamship sailed across the sea.
+Dialogue: 0,0:09:14.36,0:09:16.04,Chinese,,0,0,0,,她在晃动中打盹
+Dialogue: 0,0:09:14.36,0:09:16.04,English,,0,0,0,,Rocked by the motion, she dozed off.
+Dialogue: 0,0:09:16.04,0:09:18.40,Chinese,,0,0,0,,广播通知船将停靠冈田港
+Dialogue: 0,0:09:16.04,0:09:18.40,English,,0,0,0,,An announcement said the ship would soon dock at Okata Port.
+Dialogue: 0,0:09:18.40,0:09:22.10,Chinese,,0,0,0,,她把装着书信的木盒放在腿上
+Dialogue: 0,0:09:18.40,0:09:22.10,English,,0,0,0,,She placed the wooden box holding the letters on her lap.
+Dialogue: 0,0:09:22.10,0:09:23.62,Chinese,,0,0,0,,轻声对它们说
+Dialogue: 0,0:09:22.10,0:09:23.62,English,,0,0,0,,Softly, she spoke to them.
+Dialogue: 0,0:09:23.62,0:09:26.00,Chinese,,0,0,0,,我们就快抵达伊豆大岛了
+Dialogue: 0,0:09:23.62,0:09:26.00,English,,0,0,0,,We’ll be arriving at Izu Oshima soon.
+Dialogue: 0,0:09:26.00,0:09:28.56,Chinese,,0,0,0,,她相信那些信里的两个人
+Dialogue: 0,0:09:26.00,0:09:28.56,English,,0,0,0,,She believed the two people in those letters
+Dialogue: 0,0:09:28.56,0:09:29.94,Chinese,,0,0,0,,是相爱的
+Dialogue: 0,0:09:28.56,0:09:29.94,English,,0,0,0,,had loved each other.
+Dialogue: 0,0:09:29.94,0:09:31.88,Chinese,,0,0,0,,也许他们的爱安静
+Dialogue: 0,0:09:29.94,0:09:31.88,English,,0,0,0,,Perhaps their love was quiet.
+Dialogue: 0,0:09:31.88,0:09:33.10,Chinese,,0,0,0,,也许激烈
+Dialogue: 0,0:09:31.88,0:09:33.10,English,,0,0,0,,Perhaps it was fierce.
+Dialogue: 0,0:09:33.10,0:09:34.96,Chinese,,0,0,0,,也许被现实阻隔
+Dialogue: 0,0:09:33.10,0:09:34.96,English,,0,0,0,,Perhaps it was kept apart by reality.
+Dialogue: 0,0:09:34.96,0:09:38.76,Chinese,,0,0,0,,也许从未得到普通意义上的圆满
+Dialogue: 0,0:09:34.96,0:09:38.76,English,,0,0,0,,Perhaps it had never found fulfillment in the ordinary sense.
+Dialogue: 0,0:09:38.76,0:09:40.70,Chinese,,0,0,0,,但爱情本来就有各种形式
+Dialogue: 0,0:09:38.76,0:09:40.70,English,,0,0,0,,But love comes in many forms.
+Dialogue: 0,0:09:40.70,0:09:42.84,Chinese,,0,0,0,,有些爱是一生相守
+Dialogue: 0,0:09:40.70,0:09:42.84,English,,0,0,0,,Some loves mean spending a lifetime together.
+Dialogue: 0,0:09:42.84,0:09:46.08,Chinese,,0,0,0,,有些爱是相隔遥远仍然惦念
+Dialogue: 0,0:09:42.84,0:09:46.08,English,,0,0,0,,Some mean caring from far away, even across great distances.
+Dialogue: 0,0:09:46.08,0:09:48.86,Chinese,,0,0,0,,有些爱适合在日光下被祝福
+Dialogue: 0,0:09:46.08,0:09:48.86,English,,0,0,0,,Some loves belong in the sunlight, blessed by others.
+Dialogue: 0,0:09:48.86,0:09:51.14,Chinese,,0,0,0,,有些爱只能藏进抽屉
+Dialogue: 0,0:09:48.86,0:09:51.14,English,,0,0,0,,Some can only be hidden away in a drawer.
+Dialogue: 0,0:09:51.14,0:09:54.32,Chinese,,0,0,0,,等多年后由另一个人轻轻打开
+Dialogue: 0,0:09:51.14,0:09:54.32,English,,0,0,0,,Years later, waiting for another person to gently open it.
+Dialogue: 0,0:09:54.32,0:09:55.94,Chinese,,0,0,0,,船靠岸时
+Dialogue: 0,0:09:54.32,0:09:55.94,English,,0,0,0,,As the boat approached the shore
+Dialogue: 0,0:09:55.94,0:09:58.20,Chinese,,0,0,0,,天空覆着厚厚的云层
+Dialogue: 0,0:09:55.94,0:09:58.20,English,,0,0,0,,the sky was blanketed in thick clouds
+Dialogue: 0,0:09:58.20,0:10:00.40,Chinese,,0,0,0,,鸠子对那些书信说
+Dialogue: 0,0:09:58.20,0:10:00.40,English,,0,0,0,,Hatoko said to the letters,
+Dialogue: 0,0:10:00.40,0:10:02.72,Chinese,,0,0,0,,你们很快就可以融为一体了
+Dialogue: 0,0:10:00.40,0:10:02.72,English,,0,0,0,,You will soon become one.
+Dialogue: 0,0:10:02.72,0:10:04.18,Chinese,,0,0,0,,这样一句话
+Dialogue: 0,0:10:02.72,0:10:04.18,English,,0,0,0,,That single sentence
+Dialogue: 0,0:10:04.18,0:10:07.36,Chinese,,0,0,0,,像为旧日情感举行的安静仪式
+Dialogue: 0,0:10:04.18,0:10:07.36,English,,0,0,0,,felt like a quiet ceremony for emotions from long ago.
+Dialogue: 0,0:10:07.36,0:10:09.50,Chinese,,0,0,0,,她不是去揭开隐私
+Dialogue: 0,0:10:07.36,0:10:09.50,English,,0,0,0,,She was not there to expose anyone's secrets,
+Dialogue: 0,0:10:09.50,0:10:11.86,Chinese,,0,0,0,,也不是去评判长辈的人生
+Dialogue: 0,0:10:09.50,0:10:11.86,English,,0,0,0,,nor to judge the lives of her elders,
+Dialogue: 0,0:10:11.86,0:10:13.74,Chinese,,0,0,0,,而是以代笔人的温柔
+Dialogue: 0,0:10:11.86,0:10:13.74,English,,0,0,0,,but, with the tenderness of a ghostwriter,
+Dialogue: 0,0:10:13.74,0:10:17.36,Chinese,,0,0,0,,把曾经被分开的心意送到该去的
+Dialogue: 0,0:10:13.74,0:10:17.36,English,,0,0,0,,to carry feelings that had once been separated to where they belonged,
+Dialogue: 0,0:10:17.36,0:10:18.32,Chinese,,0,0,0,,地方
+Dialogue: 0,0:10:17.36,0:10:18.32,English,,0,0,0,,to their proper place.
+Dialogue: 0,0:10:18.32,0:10:20.40,Chinese,,0,0,0,,书信在这里不再只是传递消息的
+Dialogue: 0,0:10:18.32,0:10:20.40,English,,0,0,0,,Here, letters were no longer merely a means
+Dialogue: 0,0:10:20.40,0:10:21.22,Chinese,,0,0,0,,工具
+Dialogue: 0,0:10:20.40,0:10:21.22,English,,0,0,0,,of conveying messages.
+Dialogue: 0,0:10:21.22,0:10:22.48,Chinese,,0,0,0,,它们有重量
+Dialogue: 0,0:10:21.22,0:10:22.48,English,,0,0,0,,They had weight,
+Dialogue: 0,0:10:22.48,0:10:23.60,Chinese,,0,0,0,,有灵魂
+Dialogue: 0,0:10:22.48,0:10:23.60,English,,0,0,0,,they had souls,
+Dialogue: 0,0:10:23.60,0:10:25.68,Chinese,,0,0,0,,甚至像沉睡的生命
+Dialogue: 0,0:10:23.60,0:10:25.68,English,,0,0,0,,and even seemed like sleeping lives.
+Dialogue: 0,0:10:25.68,0:10:27.90,Chinese,,0,0,0,,鸠子一路护着木盒
+Dialogue: 0,0:10:25.68,0:10:27.90,English,,0,0,0,,Hatoko protected the wooden box all the way,
+Dialogue: 0,0:10:27.90,0:10:30.72,Chinese,,0,0,0,,仿佛护着两颗迟到的心
+Dialogue: 0,0:10:27.90,0:10:30.72,English,,0,0,0,,as if guarding two hearts that had arrived too late.
+Dialogue: 0,0:10:30.72,0:10:32.92,Chinese,,0,0,0,,抵达伊豆大岛后
+Dialogue: 0,0:10:30.72,0:10:32.92,English,,0,0,0,,After reaching Izu Oshima,
+Dialogue: 0,0:10:32.92,0:10:34.90,Chinese,,0,0,0,,冬马先生来接她
+Dialogue: 0,0:10:32.92,0:10:34.90,English,,0,0,0,,Mr. Toma came to pick her up.
+Dialogue: 0,0:10:34.90,0:10:37.72,Chinese,,0,0,0,,镰仓红茶店里的冬马先生和岛上
+Dialogue: 0,0:10:34.90,0:10:37.72,English,,0,0,0,,Mr. Toma in the Kamakura tea shop and
+Dialogue: 0,0:10:37.72,0:10:40.66,Chinese,,0,0,0,,的冬马先生很不一样
+Dialogue: 0,0:10:37.72,0:10:40.66,English,,0,0,0,,Mr. Toma on the island seemed like two very different people.
+Dialogue: 0,0:10:40.66,0:10:42.76,Chinese,,0,0,0,,此时他头发蓬乱
+Dialogue: 0,0:10:40.66,0:10:42.76,English,,0,0,0,,Now his hair was tousled,
+Dialogue: 0,0:10:42.76,0:10:44.38,Chinese,,0,0,0,,带着野性的气息
+Dialogue: 0,0:10:42.76,0:10:44.38,English,,0,0,0,,and he carried a wild, untamed air,
+Dialogue: 0,0:10:44.38,0:10:47.92,Chinese,,0,0,0,,像是被岛上的风和海重新塑造过
+Dialogue: 0,0:10:44.38,0:10:47.92,English,,0,0,0,,as if the island wind and sea had reshaped him.
+Dialogue: 0,0:10:47.92,0:10:49.54,Chinese,,0,0,0,,两个人寒暄
+Dialogue: 0,0:10:47.92,0:10:49.54,English,,0,0,0,,The two of them exchanged pleasantries,
+Dialogue: 0,0:10:49.54,0:10:50.58,Chinese,,0,0,0,,谈船
+Dialogue: 0,0:10:49.54,0:10:50.58,English,,0,0,0,,talked about boats,
+Dialogue: 0,0:10:50.58,0:10:51.54,Chinese,,0,0,0,,谈海
+Dialogue: 0,0:10:50.58,0:10:51.54,English,,0,0,0,,talked about the sea,
+Dialogue: 0,0:10:51.54,0:10:53.76,Chinese,,0,0,0,,也谈那项艰难的委托
+Dialogue: 0,0:10:51.54,0:10:53.76,English,,0,0,0,,and also about that difficult commission.
+Dialogue: 0,0:10:53.76,0:10:57.26,Chinese,,0,0,0,,冬马先生希望鸠子替他写一封信
+Dialogue: 0,0:10:53.76,0:10:57.26,English,,0,0,0,,Mr. Toma hoped Hatoko would write a letter for him,
+Dialogue: 0,0:10:57.26,0:10:59.38,Chinese,,0,0,0,,而这封信并不好写
+Dialogue: 0,0:10:57.26,0:10:59.38,English,,0,0,0,,but it was not an easy letter to write.
+Dialogue: 0,0:10:59.38,0:11:01.18,Chinese,,0,0,0,,它不仅需要技巧
+Dialogue: 0,0:10:59.38,0:11:01.18,English,,0,0,0,,It required more than skill;
+Dialogue: 0,0:11:01.18,0:11:04.32,Chinese,,0,0,0,,更需要代笔人真正触碰到一个人
+Dialogue: 0,0:11:01.18,0:11:04.32,English,,0,0,0,,it required the ghostwriter to truly touch
+Dialogue: 0,0:11:04.32,0:11:07.44,Chinese,,0,0,0,,的孤独、纠结、愤怒和希望
+Dialogue: 0,0:11:04.32,0:11:07.44,English,,0,0,0,,a person's loneliness, conflict, anger, and hope.
+Dialogue: 0,0:11:07.44,0:11:10.86,Chinese,,0,0,0,,鸠子一开始以为自己能够完成
+Dialogue: 0,0:11:07.44,0:11:10.86,English,,0,0,0,,At first, Hatoko thought she could do it.
+Dialogue: 0,0:11:10.86,0:11:12.46,Chinese,,0,0,0,,可后来她发现
+Dialogue: 0,0:11:10.86,0:11:12.46,English,,0,0,0,,But later she realized
+Dialogue: 0,0:11:12.46,0:11:14.32,Chinese,,0,0,0,,事情没有那么简单
+Dialogue: 0,0:11:12.46,0:11:14.32,English,,0,0,0,,it was not that simple.
+Dialogue: 0,0:11:14.32,0:11:16.96,Chinese,,0,0,0,,优秀的代笔人不是把句子写得漂
+Dialogue: 0,0:11:14.32,0:11:16.96,English,,0,0,0,,A good ghostwriter is not someone who makes the sentences pret
+Dialogue: 0,0:11:16.96,0:11:17.76,Chinese,,0,0,0,,亮
+Dialogue: 0,0:11:16.96,0:11:17.76,English,,0,0,0,,ty,
+Dialogue: 0,0:11:17.76,0:11:20.80,Chinese,,0,0,0,,而是要让委托人的心准确地出现
+Dialogue: 0,0:11:17.76,0:11:20.80,English,,0,0,0,,but someone who lets the client's heart appear exactly as it is.
+Dialogue: 0,0:11:20.80,0:11:21.70,Chinese,,0,0,0,,在纸上
+Dialogue: 0,0:11:20.80,0:11:21.70,English,,0,0,0,,On paper
+Dialogue: 0,0:11:21.70,0:11:23.82,Chinese,,0,0,0,,若不能抵达那颗心
+Dialogue: 0,0:11:21.70,0:11:23.82,English,,0,0,0,,if they cannot reach that heart,
+Dialogue: 0,0:11:23.82,0:11:26.60,Chinese,,0,0,0,,再华丽的文字也只是空壳
+Dialogue: 0,0:11:23.82,0:11:26.60,English,,0,0,0,,even the most ornate words are only an empty shell.
+Dialogue: 0,0:11:26.60,0:11:29.84,Chinese,,0,0,0,,这个认知让鸠子陷入停滞
+Dialogue: 0,0:11:26.60,0:11:29.84,English,,0,0,0,,This realization brought Kyuko to a standstill.
+Dialogue: 0,0:11:29.84,0:11:31.24,Chinese,,0,0,0,,四月来了
+Dialogue: 0,0:11:29.84,0:11:31.24,English,,0,0,0,,April arrived.
+Dialogue: 0,0:11:31.24,0:11:34.52,Chinese,,0,0,0,,阳菜穿着略显肥大的新校服升入
+Dialogue: 0,0:11:31.24,0:11:34.52,English,,0,0,0,,Hina, in her slightly oversized new school uniform, moved on to
+Dialogue: 0,0:11:34.52,0:11:35.24,Chinese,,0,0,0,,高中
+Dialogue: 0,0:11:34.52,0:11:35.24,English,,0,0,0,,high school.
+Dialogue: 0,0:11:35.24,0:11:38.32,Chinese,,0,0,0,,小梅和莲太朗也开始读小学二年
+Dialogue: 0,0:11:35.24,0:11:38.32,English,,0,0,0,,Koume and Rentaro also began their second year of elementary
+Dialogue: 0,0:11:38.32,0:11:38.96,Chinese,,0,0,0,,级
+Dialogue: 0,0:11:38.32,0:11:38.96,English,,0,0,0,,school.
+Dialogue: 0,0:11:38.96,0:11:40.76,Chinese,,0,0,0,,海水依旧寒冷
+Dialogue: 0,0:11:38.96,0:11:40.76,English,,0,0,0,,The seawater was still cold,
+Dialogue: 0,0:11:40.76,0:11:43.50,Chinese,,0,0,0,,蜜朗却频繁去海边冲浪
+Dialogue: 0,0:11:40.76,0:11:43.50,English,,0,0,0,,yet Mitsuro went to the beach to surf more and more often.
+Dialogue: 0,0:11:43.50,0:11:45.92,Chinese,,0,0,0,,全家似乎都在向前
+Dialogue: 0,0:11:43.50,0:11:45.92,English,,0,0,0,,The whole family seemed to be moving forward.
+Dialogue: 0,0:11:45.92,0:11:48.06,Chinese,,0,0,0,,只有鸠子停在原地
+Dialogue: 0,0:11:45.92,0:11:48.06,English,,0,0,0,,Only Kyuko remained stuck in place.
+Dialogue: 0,0:11:48.06,0:11:49.96,Chinese,,0,0,0,,世界春光烂漫
+Dialogue: 0,0:11:48.06,0:11:49.96,English,,0,0,0,,The world was radiant with spring,
+Dialogue: 0,0:11:49.96,0:11:51.56,Chinese,,0,0,0,,她却郁郁寡欢
+Dialogue: 0,0:11:49.96,0:11:51.56,English,,0,0,0,,but she was sunk in gloom.
+Dialogue: 0,0:11:51.56,0:11:53.12,Chinese,,0,0,0,,樱花散尽
+Dialogue: 0,0:11:51.56,0:11:53.12,English,,0,0,0,,The cherry blossoms had all fallen,
+Dialogue: 0,0:11:53.12,0:11:54.36,Chinese,,0,0,0,,绿叶满枝
+Dialogue: 0,0:11:53.12,0:11:54.36,English,,0,0,0,,and the branches were full of green leaves.
+Dialogue: 0,0:11:54.36,0:11:57.24,Chinese,,0,0,0,,她才意识到自己可能已经燃烧殆
+Dialogue: 0,0:11:54.36,0:11:57.24,English,,0,0,0,,Only then did she realize she might have burned herself
+Dialogue: 0,0:11:57.24,0:11:57.82,Chinese,,0,0,0,,尽
+Dialogue: 0,0:11:57.24,0:11:57.82,English,,0,0,0,,out.
+Dialogue: 0,0:11:57.82,0:12:00.22,Chinese,,0,0,0,,上代的情书供养完毕
+Dialogue: 0,0:11:57.82,0:12:00.22,English,,0,0,0,,The previous generation's love letters had all been laid to rest.
+Dialogue: 0,0:12:00.22,0:12:02.22,Chinese,,0,0,0,,阳菜也顺利升学
+Dialogue: 0,0:12:00.22,0:12:02.22,English,,0,0,0,,Hina also moved on to the next stage of school without a hitch.
+Dialogue: 0,0:12:02.22,0:12:04.50,Chinese,,0,0,0,,眼前的大任务一个个结束
+Dialogue: 0,0:12:02.22,0:12:04.50,English,,0,0,0,,The big tasks before her were coming to an end, one by one.
+Dialogue: 0,0:12:04.50,0:12:06.42,Chinese,,0,0,0,,空虚却随之到来
+Dialogue: 0,0:12:04.50,0:12:06.42,English,,0,0,0,,But emptiness soon followed.
+Dialogue: 0,0:12:06.42,0:12:08.52,Chinese,,0,0,0,,人有时就是这样
+Dialogue: 0,0:12:06.42,0:12:08.52,English,,0,0,0,,People are like that sometimes.
+Dialogue: 0,0:12:08.52,0:12:10.16,Chinese,,0,0,0,,忙的时候以为
+Dialogue: 0,0:12:08.52,0:12:10.16,English,,0,0,0,,When they're busy, they think
+Dialogue: 0,0:12:10.16,0:12:12.18,Chinese,,0,0,0,,只要把所有事情完成
+Dialogue: 0,0:12:10.16,0:12:12.18,English,,0,0,0,,that once everything is done,
+Dialogue: 0,0:12:12.18,0:12:13.24,Chinese,,0,0,0,,就会轻松
+Dialogue: 0,0:12:12.18,0:12:13.24,English,,0,0,0,,they'll finally feel at ease,
+Dialogue: 0,0:12:13.24,0:12:14.50,Chinese,,0,0,0,,就会快乐
+Dialogue: 0,0:12:13.24,0:12:14.50,English,,0,0,0,,and finally be happy.
+Dialogue: 0,0:12:14.50,0:12:16.46,Chinese,,0,0,0,,可真正停下来
+Dialogue: 0,0:12:14.50,0:12:16.46,English,,0,0,0,,But once they truly stop,
+Dialogue: 0,0:12:16.46,0:12:19.54,Chinese,,0,0,0,,反而不知道自己为什么存在
+Dialogue: 0,0:12:16.46,0:12:19.54,English,,0,0,0,,they no longer know why they even exist.
+Dialogue: 0,0:12:19.54,0:12:22.48,Chinese,,0,0,0,,那些被任务支撑的日子一旦结束
+Dialogue: 0,0:12:19.54,0:12:22.48,English,,0,0,0,,Once the days held up by tasks come to an end,
+Dialogue: 0,0:12:22.48,0:12:25.04,Chinese,,0,0,0,,内心的空洞便显露出来
+Dialogue: 0,0:12:22.48,0:12:25.04,English,,0,0,0,,the emptiness inside begins to show.
+Dialogue: 0,0:12:25.04,0:12:28.32,Chinese,,0,0,0,,鸠子不知道自己为了什么而活
+Dialogue: 0,0:12:25.04,0:12:28.32,English,,0,0,0,,Hatoko didn't know what she was living for.
+Dialogue: 0,0:12:28.32,0:12:30.86,Chinese,,0,0,0,,仿佛沉进一片宽阔的泥沼
+Dialogue: 0,0:12:28.32,0:12:30.86,English,,0,0,0,,It was as if she were sinking into a vast swamp of mud,
+Dialogue: 0,0:12:30.86,0:12:33.20,Chinese,,0,0,0,,连脖子都埋在里面
+Dialogue: 0,0:12:30.86,0:12:33.20,English,,0,0,0,,buried in it up to her neck.
+Dialogue: 0,0:12:33.20,0:12:36.28,Chinese,,0,0,0,,她想靠工作摆脱这种情绪
+Dialogue: 0,0:12:33.20,0:12:36.28,English,,0,0,0,,She tried to escape those feelings through work,
+Dialogue: 0,0:12:36.28,0:12:38.58,Chinese,,0,0,0,,可代笔工作也停滞不前
+Dialogue: 0,0:12:36.28,0:12:38.58,English,,0,0,0,,but her ghostwriting work had also stalled.
+Dialogue: 0,0:12:38.58,0:12:39.94,Chinese,,0,0,0,,脑袋昏沉
+Dialogue: 0,0:12:38.58,0:12:39.94,English,,0,0,0,,Her mind felt foggy.
+Dialogue: 0,0:12:39.94,0:12:41.20,Chinese,,0,0,0,,毫无干劲
+Dialogue: 0,0:12:39.94,0:12:41.20,English,,0,0,0,,She had no motivation at all.
+Dialogue: 0,0:12:41.20,0:12:42.88,Chinese,,0,0,0,,想尝试新事物
+Dialogue: 0,0:12:41.20,0:12:42.88,English,,0,0,0,,She wanted to try something new.
+Dialogue: 0,0:12:42.88,0:12:45.32,Chinese,,0,0,0,,又一动身就畏首畏尾
+Dialogue: 0,0:12:42.88,0:12:45.32,English,,0,0,0,,Yet the moment she sets out, she becomes timid and hesitant.
+Dialogue: 0,0:12:45.32,0:12:48.32,Chinese,,0,0,0,,冬马先生的信迟迟没有动笔
+Dialogue: 0,0:12:45.32,0:12:48.32,English,,0,0,0,,Hatoko still hasn't been able to start Mr. Toma's letter.
+Dialogue: 0,0:12:48.32,0:12:51.00,Chinese,,0,0,0,,她开始怀疑自己当初接下委托是
+Dialogue: 0,0:12:48.32,0:12:51.00,English,,0,0,0,,She begins to wonder whether accepting the commission in the first place
+Dialogue: 0,0:12:51.00,0:12:52.96,Chinese,,0,0,0,,不是太自负
+Dialogue: 0,0:12:51.00,0:12:52.96,English,,0,0,0,,was an act of overconfidence.
+Dialogue: 0,0:12:52.96,0:12:55.04,Chinese,,0,0,0,,那份羞愧很沉重
+Dialogue: 0,0:12:52.96,0:12:55.04,English,,0,0,0,,The shame weighs heavily on her,
+Dialogue: 0,0:12:55.04,0:12:57.28,Chinese,,0,0,0,,因为它触及她最在意的地方
+Dialogue: 0,0:12:55.04,0:12:57.28,English,,0,0,0,,because it touches the thing she cares about most.
+Dialogue: 0,0:12:57.28,0:12:59.84,Chinese,,0,0,0,,对鸠子来说
+Dialogue: 0,0:12:57.28,0:12:59.84,English,,0,0,0,,For Hatoko,
+Dialogue: 0,0:12:59.84,0:13:01.76,Chinese,,0,0,0,,代笔不是普通工作
+Dialogue: 0,0:12:59.84,0:13:01.76,English,,0,0,0,,writing letters for others is not just an ordinary job.
+Dialogue: 0,0:13:01.76,0:13:04.26,Chinese,,0,0,0,,而是她与世界连接的方式
+Dialogue: 0,0:13:01.76,0:13:04.26,English,,0,0,0,,It is her way of staying connected to the world.
+Dialogue: 0,0:13:04.26,0:13:06.24,Chinese,,0,0,0,,如果她无法写信
+Dialogue: 0,0:13:04.26,0:13:06.24,English,,0,0,0,,If she cannot write letters,
+Dialogue: 0,0:13:06.24,0:13:08.92,Chinese,,0,0,0,,仿佛也就无法确认自己是谁
+Dialogue: 0,0:13:06.24,0:13:08.92,English,,0,0,0,,it is as if she can no longer be sure who she is.
+Dialogue: 0,0:13:08.92,0:13:12.66,Chinese,,0,0,0,,小川糸在这里写出了中年生活里
+Dialogue: 0,0:13:08.92,0:13:12.66,English,,0,0,0,,Here, Ito Ogawa captures a kind of exhaustion in middle age
+Dialogue: 0,0:13:12.66,0:13:15.02,Chinese,,0,0,0,,不常被大声谈论的疲惫
+Dialogue: 0,0:13:12.66,0:13:15.02,English,,0,0,0,,that is not often spoken of openly.
+Dialogue: 0,0:13:15.02,0:13:17.22,Chinese,,0,0,0,,不是灾难性的崩溃
+Dialogue: 0,0:13:15.02,0:13:17.22,English,,0,0,0,,It is not a catastrophic collapse,
+Dialogue: 0,0:13:17.22,0:13:18.64,Chinese,,0,0,0,,而是慢慢失去力气
+Dialogue: 0,0:13:17.22,0:13:18.64,English,,0,0,0,,but a slow draining away of strength.
+Dialogue: 0,0:13:18.64,0:13:20.16,Chinese,,0,0,0,,孩子长大了
+Dialogue: 0,0:13:18.64,0:13:20.16,English,,0,0,0,,The children have grown up.
+Dialogue: 0,0:13:20.16,0:13:22.60,Chinese,,0,0,0,,家庭运行起来了
+Dialogue: 0,0:13:20.16,0:13:22.60,English,,0,0,0,,The household is running smoothly.
+Dialogue: 0,0:13:22.60,0:13:24.68,Chinese,,0,0,0,,该完成的事完成了
+Dialogue: 0,0:13:22.60,0:13:24.68,English,,0,0,0,,Everything that needed doing has been done.
+Dialogue: 0,0:13:24.68,0:13:25.96,Chinese,,0,0,0,,可自己却空了
+Dialogue: 0,0:13:24.68,0:13:25.96,English,,0,0,0,,And yet she herself feels hollowed out.
+Dialogue: 0,0:13:25.96,0:13:28.64,Chinese,,0,0,0,,这个空并不代表不幸福
+Dialogue: 0,0:13:25.96,0:13:28.64,English,,0,0,0,,That emptiness does not mean she is unhappy.
+Dialogue: 0,0:13:28.64,0:13:30.36,Chinese,,0,0,0,,也不代表不感恩
+Dialogue: 0,0:13:28.64,0:13:30.36,English,,0,0,0,,Nor does it mean you're ungrateful
+Dialogue: 0,0:13:30.36,0:13:33.48,Chinese,,0,0,0,,恰恰因为生活表面看起来还不错
+Dialogue: 0,0:13:30.36,0:13:33.48,English,,0,0,0,,Precisely because life looks pretty good on the surface
+Dialogue: 0,0:13:33.48,0:13:36.54,Chinese,,0,0,0,,人们才更难承认自己正在痛苦
+Dialogue: 0,0:13:33.48,0:13:36.54,English,,0,0,0,,it becomes even harder for people to admit they are in pain
+Dialogue: 0,0:13:36.54,0:13:39.44,Chinese,,0,0,0,,鸠子的低落并没有被一句励志的
+Dialogue: 0,0:13:36.54,0:13:39.44,English,,0,0,0,,Jiuzi's low mood was not cured by some inspirational
+Dialogue: 0,0:13:39.44,0:13:40.76,Chinese,,0,0,0,,话治好
+Dialogue: 0,0:13:39.44,0:13:40.76,English,,0,0,0,,line
+Dialogue: 0,0:13:40.76,0:13:42.24,Chinese,,0,0,0,,她需要时间
+Dialogue: 0,0:13:40.76,0:13:42.24,English,,0,0,0,,She needs time
+Dialogue: 0,0:13:42.24,0:13:44.38,Chinese,,0,0,0,,需要承认自己的无能为力
+Dialogue: 0,0:13:42.24,0:13:44.38,English,,0,0,0,,needs to acknowledge her own powerlessness
+Dialogue: 0,0:13:44.38,0:13:47.08,Chinese,,0,0,0,,也需要重新学习如何不把价值完
+Dialogue: 0,0:13:44.38,0:13:47.08,English,,0,0,0,,and needs to relearn how not to place her entire sense of worth
+Dialogue: 0,0:13:47.08,0:13:50.56,Chinese,,0,0,0,,全寄托在能否完成某件事上
+Dialogue: 0,0:13:47.08,0:13:50.56,English,,0,0,0,,on whether she can accomplish a certain thing
+Dialogue: 0,0:13:50.56,0:13:53.40,Chinese,,0,0,0,,书里的温柔正在于此
+Dialogue: 0,0:13:50.56,0:13:53.40,English,,0,0,0,,This is where the book's tenderness lies
+Dialogue: 0,0:13:53.40,0:13:55.36,Chinese,,0,0,0,,它不催促你振作
+Dialogue: 0,0:13:53.40,0:13:55.36,English,,0,0,0,,It doesn't rush you to pull yourself together
+Dialogue: 0,0:13:55.36,0:13:57.28,Chinese,,0,0,0,,不要求你立刻变好
+Dialogue: 0,0:13:55.36,0:13:57.28,English,,0,0,0,,doesn't demand that you get better right away
+Dialogue: 0,0:13:57.28,0:13:59.10,Chinese,,0,0,0,,而是陪你坐一会儿
+Dialogue: 0,0:13:57.28,0:13:59.10,English,,0,0,0,,but simply sits with you for a while
+Dialogue: 0,0:13:59.10,0:14:01.28,Chinese,,0,0,0,,就像有人在夜里递给你一杯温热
+Dialogue: 0,0:13:59.10,0:14:01.28,English,,0,0,0,,like someone handing you a warm
+Dialogue: 0,0:14:01.28,0:14:02.60,Chinese,,0,0,0,,的饮品
+Dialogue: 0,0:14:01.28,0:14:02.60,English,,0,0,0,,drink in the night
+Dialogue: 0,0:14:02.60,0:14:03.42,Chinese,,0,0,0,,说
+Dialogue: 0,0:14:02.60,0:14:03.42,English,,0,0,0,,and saying
+Dialogue: 0,0:14:03.42,0:14:05.54,Chinese,,0,0,0,,今天先到这里也可以
+Dialogue: 0,0:14:03.42,0:14:05.54,English,,0,0,0,,It's okay to stop here for today
+Dialogue: 0,0:14:05.54,0:14:08.06,Chinese,,0,0,0,,明天不必一下子变得光明
+Dialogue: 0,0:14:05.54,0:14:08.06,English,,0,0,0,,Tomorrow doesn't have to become bright all at once
+Dialogue: 0,0:14:08.06,0:14:09.46,Chinese,,0,0,0,,只要能醒来
+Dialogue: 0,0:14:08.06,0:14:09.46,English,,0,0,0,,as long as you can wake up
+Dialogue: 0,0:14:09.46,0:14:10.54,Chinese,,0,0,0,,能洗脸
+Dialogue: 0,0:14:09.46,0:14:10.54,English,,0,0,0,,and wash your face
+Dialogue: 0,0:14:10.54,0:14:11.84,Chinese,,0,0,0,,能打开窗
+Dialogue: 0,0:14:10.54,0:14:11.84,English,,0,0,0,,Being able to open the window
+Dialogue: 0,0:14:11.84,0:14:13.56,Chinese,,0,0,0,,就已经是在往前
+Dialogue: 0,0:14:11.84,0:14:13.56,English,,0,0,0,,already means moving forward.
+Dialogue: 0,0:14:13.56,0:14:15.86,Chinese,,0,0,0,,除了鸠子的个人困境
+Dialogue: 0,0:14:13.56,0:14:15.86,English,,0,0,0,,Beyond Hatoko's personal struggles,
+Dialogue: 0,0:14:15.86,0:14:19.02,Chinese,,0,0,0,,书中也一直有家庭的细微流动
+Dialogue: 0,0:14:15.86,0:14:19.02,English,,0,0,0,,the book is also filled with subtle shifts within the family.
+Dialogue: 0,0:14:19.02,0:14:22.12,Chinese,,0,0,0,,蜜朗并不是一个被写成完美伴侣
+Dialogue: 0,0:14:19.02,0:14:22.12,English,,0,0,0,,Mitsuro is not written as a perfect partner
+Dialogue: 0,0:14:22.12,0:14:22.82,Chinese,,0,0,0,,的人
+Dialogue: 0,0:14:22.12,0:14:22.82,English,,0,0,0,,or person.
+Dialogue: 0,0:14:22.82,0:14:24.62,Chinese,,0,0,0,,他有自己的节奏
+Dialogue: 0,0:14:22.82,0:14:24.62,English,,0,0,0,,He has his own rhythm,
+Dialogue: 0,0:14:24.62,0:14:26.22,Chinese,,0,0,0,,有自己的沉默
+Dialogue: 0,0:14:24.62,0:14:26.22,English,,0,0,0,,his own silences.
+Dialogue: 0,0:14:26.22,0:14:28.30,Chinese,,0,0,0,,有时与鸠子靠近
+Dialogue: 0,0:14:26.22,0:14:28.30,English,,0,0,0,,Sometimes he draws close to Hatoko,
+Dialogue: 0,0:14:28.30,0:14:30.92,Chinese,,0,0,0,,有时又像隔着一层日常的雾
+Dialogue: 0,0:14:28.30,0:14:30.92,English,,0,0,0,,and sometimes he seems separated from her by a thin fog of everyday life.
+Dialogue: 0,0:14:30.92,0:14:33.92,Chinese,,0,0,0,,但他们之间有共同生活后形成的
+Dialogue: 0,0:14:30.92,0:14:33.92,English,,0,0,0,,But between them there is something formed through living together:
+Dialogue: 0,0:14:33.92,0:14:34.88,Chinese,,0,0,0,,温度
+Dialogue: 0,0:14:33.92,0:14:34.88,English,,0,0,0,,warmth.
+Dialogue: 0,0:14:34.88,0:14:36.56,Chinese,,0,0,0,,一起放烟火
+Dialogue: 0,0:14:34.88,0:14:36.56,English,,0,0,0,,They set off fireworks together,
+Dialogue: 0,0:14:36.56,0:14:38.50,Chinese,,0,0,0,,处理水桶里的余烬
+Dialogue: 0,0:14:36.56,0:14:38.50,English,,0,0,0,,deal with the embers left in the bucket,
+Dialogue: 0,0:14:38.50,0:14:41.16,Chinese,,0,0,0,,在孩子的问题上试探着沟通
+Dialogue: 0,0:14:38.50,0:14:41.16,English,,0,0,0,,and tentatively communicate about the child.
+Dialogue: 0,0:14:41.16,0:14:44.64,Chinese,,0,0,0,,在各自疲惫时保持某种不张扬的
+Dialogue: 0,0:14:41.16,0:14:44.64,English,,0,0,0,,When each of them is exhausted, they maintain a kind of understated
+Dialogue: 0,0:14:44.64,0:14:45.26,Chinese,,0,0,0,,陪伴
+Dialogue: 0,0:14:44.64,0:14:45.26,English,,0,0,0,,companionship.
+Dialogue: 0,0:14:45.26,0:14:48.28,Chinese,,0,0,0,,婚姻在书里不是浓烈告白
+Dialogue: 0,0:14:45.26,0:14:48.28,English,,0,0,0,,Marriage in the book is not a passionate confession,
+Dialogue: 0,0:14:48.28,0:14:51.34,Chinese,,0,0,0,,而是许多小动作累积出来的关系
+Dialogue: 0,0:14:48.28,0:14:51.34,English,,0,0,0,,but a relationship built up through countless small gestures.
+Dialogue: 0,0:14:51.34,0:14:54.04,Chinese,,0,0,0,,有人把剩下的红酒带回家
+Dialogue: 0,0:14:51.34,0:14:54.04,English,,0,0,0,,Someone brings the leftover red wine home.
+Dialogue: 0,0:14:54.04,0:14:57.20,Chinese,,0,0,0,,有人深夜提前睡去也不必愧疚
+Dialogue: 0,0:14:54.04,0:14:57.20,English,,0,0,0,,No one needs to feel guilty for going to bed early late at night
+Dialogue: 0,0:14:57.20,0:14:59.96,Chinese,,0,0,0,,有人用省略主语的句子说夏天结
+Dialogue: 0,0:14:57.20,0:14:59.96,English,,0,0,0,,Someone says, with the subject left out, that summer
+Dialogue: 0,0:14:59.96,0:15:00.76,Chinese,,0,0,0,,束了
+Dialogue: 0,0:14:59.96,0:15:00.76,English,,0,0,0,,is over
+Dialogue: 0,0:15:00.76,0:15:02.44,Chinese,,0,0,0,,另一个人听懂了
+Dialogue: 0,0:15:00.76,0:15:02.44,English,,0,0,0,,and the other person understands
+Dialogue: 0,0:15:02.44,0:15:03.66,Chinese,,0,0,0,,这样的懂
+Dialogue: 0,0:15:02.44,0:15:03.66,English,,0,0,0,,That kind of understanding
+Dialogue: 0,0:15:03.66,0:15:04.60,Chinese,,0,0,0,,平凡
+Dialogue: 0,0:15:03.66,0:15:04.60,English,,0,0,0,,is ordinary
+Dialogue: 0,0:15:04.60,0:15:05.80,Chinese,,0,0,0,,却难得
+Dialogue: 0,0:15:04.60,0:15:05.80,English,,0,0,0,,yet rare
+Dialogue: 0,0:15:05.80,0:15:08.76,Chinese,,0,0,0,,阳菜的成长线也很动人
+Dialogue: 0,0:15:05.80,0:15:08.76,English,,0,0,0,,Hina's coming-of-age arc is also deeply moving
+Dialogue: 0,0:15:08.76,0:15:12.00,Chinese,,0,0,0,,她从那个被称作QP妹妹的小女
+Dialogue: 0,0:15:08.76,0:15:12.00,English,,0,0,0,,She goes from the little girl once called QP's kid sister
+Dialogue: 0,0:15:12.00,0:15:12.24,Chinese,,0,0,0,,孩
+Dialogue: 0,0:15:12.00,0:15:12.24,English,,0,0,0,,that child
+Dialogue: 0,0:15:12.24,0:15:14.96,Chinese,,0,0,0,,进入了不愿回应母亲的青春期
+Dialogue: 0,0:15:12.24,0:15:14.96,English,,0,0,0,,into adolescence, unwilling to answer her mother
+Dialogue: 0,0:15:14.96,0:15:16.84,Chinese,,0,0,0,,她穿上新校服
+Dialogue: 0,0:15:14.96,0:15:16.84,English,,0,0,0,,She puts on her new school uniform
+Dialogue: 0,0:15:16.84,0:15:18.12,Chinese,,0,0,0,,衣服还有些大
+Dialogue: 0,0:15:16.84,0:15:18.12,English,,0,0,0,,and it is still a little too big
+Dialogue: 0,0:15:18.12,0:15:20.52,Chinese,,0,0,0,,像未来先一步披在身上
+Dialogue: 0,0:15:18.12,0:15:20.52,English,,0,0,0,,as if the future has settled on her shoulders first
+Dialogue: 0,0:15:20.52,0:15:23.18,Chinese,,0,0,0,,而身体和心都还在适应
+Dialogue: 0,0:15:20.52,0:15:23.18,English,,0,0,0,,while her body and heart are still learning to adjust
+Dialogue: 0,0:15:23.18,0:15:25.18,Chinese,,0,0,0,,父母看孩子长大
+Dialogue: 0,0:15:23.18,0:15:25.18,English,,0,0,0,,When parents watch their children grow up
+Dialogue: 0,0:15:25.18,0:15:27.40,Chinese,,0,0,0,,常常有一种迟来的失落
+Dialogue: 0,0:15:25.18,0:15:27.40,English,,0,0,0,,there is often a belated sense of loss
+Dialogue: 0,0:15:27.40,0:15:29.60,Chinese,,0,0,0,,明明一直盼着他们独立
+Dialogue: 0,0:15:27.40,0:15:29.60,English,,0,0,0,,They had clearly been hoping all along for them to become independent
+Dialogue: 0,0:15:29.60,0:15:31.54,Chinese,,0,0,0,,盼着他们能照顾自己
+Dialogue: 0,0:15:29.60,0:15:31.54,English,,0,0,0,,hoping they could take care of themselves
+Dialogue: 0,0:15:31.54,0:15:33.62,Chinese,,0,0,0,,可当那一天真的到来
+Dialogue: 0,0:15:31.54,0:15:33.62,English,,0,0,0,,but when that day truly arrives
+Dialogue: 0,0:15:33.62,0:15:36.48,Chinese,,0,0,0,,又会怀念他们黏在身边的日子
+Dialogue: 0,0:15:33.62,0:15:36.48,English,,0,0,0,,you’ll miss the days when they were always glued to your side
+Dialogue: 0,0:15:36.48,0:15:38.78,Chinese,,0,0,0,,鸠子对阳菜的感受
+Dialogue: 0,0:15:36.48,0:15:38.78,English,,0,0,0,,Kyuko's feelings for Hina
+Dialogue: 0,0:15:38.78,0:15:40.24,Chinese,,0,0,0,,就是这种矛盾
+Dialogue: 0,0:15:38.78,0:15:40.24,English,,0,0,0,,It's exactly this kind of contradiction.
+Dialogue: 0,0:15:40.24,0:15:41.84,Chinese,,0,0,0,,她想靠近
+Dialogue: 0,0:15:40.24,0:15:41.84,English,,0,0,0,,She wants to get closer
+Dialogue: 0,0:15:41.84,0:15:43.36,Chinese,,0,0,0,,又必须后退
+Dialogue: 0,0:15:41.84,0:15:43.36,English,,0,0,0,,had to step back again
+Dialogue: 0,0:15:43.36,0:15:44.78,Chinese,,0,0,0,,她想了解
+Dialogue: 0,0:15:43.36,0:15:44.78,English,,0,0,0,,She wants to know more.
+Dialogue: 0,0:15:44.78,0:15:46.46,Chinese,,0,0,0,,又要尊重秘密
+Dialogue: 0,0:15:44.78,0:15:46.46,English,,0,0,0,,And you have to respect secrets.
+Dialogue: 0,0:15:46.46,0:15:48.06,Chinese,,0,0,0,,她想帮忙
+Dialogue: 0,0:15:46.46,0:15:48.06,English,,0,0,0,,She wants to help.
+Dialogue: 0,0:15:48.06,0:15:51.36,Chinese,,0,0,0,,却知道有些路孩子只能自己走
+Dialogue: 0,0:15:48.06,0:15:51.36,English,,0,0,0,,Yet they know there are some paths children have to walk on their own.
+Dialogue: 0,0:15:51.36,0:15:53.50,Chinese,,0,0,0,,亲子之间最难的爱
+Dialogue: 0,0:15:51.36,0:15:53.50,English,,0,0,0,,The hardest kind of love between parent and child
+Dialogue: 0,0:15:53.50,0:15:55.12,Chinese,,0,0,0,,不是紧紧抱住
+Dialogue: 0,0:15:53.50,0:15:55.12,English,,0,0,0,,It's not about holding on tightly.
+Dialogue: 0,0:15:55.12,0:15:57.42,Chinese,,0,0,0,,而是在合适的时候松手
+Dialogue: 0,0:15:55.12,0:15:57.42,English,,0,0,0,,but letting go at the right time
+Dialogue: 0,0:15:57.42,0:15:59.04,Chinese,,0,0,0,,并且让孩子知道
+Dialogue: 0,0:15:57.42,0:15:59.04,English,,0,0,0,,And let the child know
+Dialogue: 0,0:15:59.04,0:16:01.18,Chinese,,0,0,0,,如果有一天她想回头
+Dialogue: 0,0:15:59.04,0:16:01.18,English,,0,0,0,,If one day she wants to turn back
+Dialogue: 0,0:16:01.18,0:16:03.08,Chinese,,0,0,0,,家里的灯还亮着
+Dialogue: 0,0:16:01.18,0:16:03.08,English,,0,0,0,,The lights at home are still on
+Dialogue: 0,0:16:03.08,0:16:05.44,Chinese,,0,0,0,,山茶文具店本身
+Dialogue: 0,0:16:03.08,0:16:05.44,English,,0,0,0,,The Camellia Stationery Shop itself
+Dialogue: 0,0:16:05.44,0:16:08.48,Chinese,,0,0,0,,也是这部作品里安静而重要的存
+Dialogue: 0,0:16:05.44,0:16:08.48,English,,0,0,0,,It is also a quiet yet important presence in this work.
+Dialogue: 0,0:16:08.48,0:16:09.06,Chinese,,0,0,0,,在
+Dialogue: 0,0:16:08.48,0:16:09.06,English,,0,0,0,,Here.
+Dialogue: 0,0:16:09.06,0:16:10.70,Chinese,,0,0,0,,那是一间老店
+Dialogue: 0,0:16:09.06,0:16:10.70,English,,0,0,0,,That was an old shop.
+Dialogue: 0,0:16:10.70,0:16:12.90,Chinese,,0,0,0,,连接着过去与现在
+Dialogue: 0,0:16:10.70,0:16:12.90,English,,0,0,0,,Connecting the past and the present
+Dialogue: 0,0:16:12.90,0:16:16.74,Chinese,,0,0,0,,纸张、信封、笔墨、印章
+Dialogue: 0,0:16:12.90,0:16:16.74,English,,0,0,0,,Paper, envelopes, ink and brushes, seals
+Dialogue: 0,0:16:16.74,0:16:18.88,Chinese,,0,0,0,,所有看似过时的东西
+Dialogue: 0,0:16:16.74,0:16:18.88,English,,0,0,0,,Everything that seems outdated
+Dialogue: 0,0:16:18.88,0:16:21.30,Chinese,,0,0,0,,在这里都保有庄重的生命
+Dialogue: 0,0:16:18.88,0:16:21.30,English,,0,0,0,,Here, all life retains its solemn dignity.
+Dialogue: 0,0:16:21.30,0:16:23.76,Chinese,,0,0,0,,现代人传递信息太快
+Dialogue: 0,0:16:21.30,0:16:23.76,English,,0,0,0,,People today share information too quickly.
+Dialogue: 0,0:16:23.76,0:16:26.82,Chinese,,0,0,0,,快到连感情也常常变得仓促
+Dialogue: 0,0:16:23.76,0:16:26.82,English,,0,0,0,,So fast that even feelings often become rushed.
+Dialogue: 0,0:16:26.82,0:16:28.74,Chinese,,0,0,0,,可写信需要坐下来
+Dialogue: 0,0:16:26.82,0:16:28.74,English,,0,0,0,,But writing a letter means you have to sit down.
+Dialogue: 0,0:16:28.74,0:16:30.00,Chinese,,0,0,0,,需要选择纸
+Dialogue: 0,0:16:28.74,0:16:30.00,English,,0,0,0,,You need to select the paper.
+Dialogue: 0,0:16:30.00,0:16:31.44,Chinese,,0,0,0,,需要考虑称呼
+Dialogue: 0,0:16:30.00,0:16:31.44,English,,0,0,0,,You need to consider how to address them.
+Dialogue: 0,0:16:31.44,0:16:34.86,Chinese,,0,0,0,,需要一笔一画写下不能撤回的句
+Dialogue: 0,0:16:31.44,0:16:34.86,English,,0,0,0,,You need to write it down stroke by stroke—a sentence that can’t be taken back.
+Dialogue: 0,0:16:34.86,0:16:35.40,Chinese,,0,0,0,,子
+Dialogue: 0,0:16:34.86,0:16:35.40,English,,0,0,0,,Child
+Dialogue: 0,0:16:35.40,0:16:36.70,Chinese,,0,0,0,,它迫使人变慢
+Dialogue: 0,0:16:35.40,0:16:36.70,English,,0,0,0,,It forces people to slow down
+Dialogue: 0,0:16:36.70,0:16:38.44,Chinese,,0,0,0,,也迫使人诚实
+Dialogue: 0,0:16:36.70,0:16:38.44,English,,0,0,0,,It also forces people to be honest.
+Dialogue: 0,0:16:38.44,0:16:40.56,Chinese,,0,0,0,,代笔更是如此
+Dialogue: 0,0:16:38.44,0:16:40.56,English,,0,0,0,,This is even more true for ghostwriting.
+Dialogue: 0,0:16:40.56,0:16:42.46,Chinese,,0,0,0,,鸠子要替别人写
+Dialogue: 0,0:16:40.56,0:16:42.46,English,,0,0,0,,Hatoko is going to write for someone else.
+Dialogue: 0,0:16:42.46,0:16:44.96,Chinese,,0,0,0,,却不能把自己写进去太多
+Dialogue: 0,0:16:42.46,0:16:44.96,English,,0,0,0,,But you can't put too much of yourself into it.
+Dialogue: 0,0:16:44.96,0:16:46.04,Chinese,,0,0,0,,她要理解委托人
+Dialogue: 0,0:16:44.96,0:16:46.04,English,,0,0,0,,She needs to understand her client.
+Dialogue: 0,0:16:46.04,0:16:49.78,Chinese,,0,0,0,,却不能替对方做出情感判断
+Dialogue: 0,0:16:46.04,0:16:49.78,English,,0,0,0,,but they can't make emotional judgments on the other person's behalf
+Dialogue: 0,0:16:49.78,0:16:51.70,Chinese,,0,0,0,,她要让信读起来自然
+Dialogue: 0,0:16:49.78,0:16:51.70,English,,0,0,0,,She wants the letter to read naturally.
+Dialogue: 0,0:16:51.70,0:16:54.04,Chinese,,0,0,0,,像那个人亲手写下的一样
+Dialogue: 0,0:16:51.70,0:16:54.04,English,,0,0,0,,As if that person had written it by hand.
+Dialogue: 0,0:16:54.04,0:16:57.26,Chinese,,0,0,0,,这样的工作要求极高的共情
+Dialogue: 0,0:16:54.04,0:16:57.26,English,,0,0,0,,This kind of work requires an exceptionally high level of empathy.
+Dialogue: 0,0:16:57.26,0:16:59.44,Chinese,,0,0,0,,也要求极强的克制
+Dialogue: 0,0:16:57.26,0:16:59.44,English,,0,0,0,,It also demands extraordinary restraint
+Dialogue: 0,0:16:59.44,0:17:02.12,Chinese,,0,0,0,,也许这正是《山茶的情书》适合
+Dialogue: 0,0:16:59.44,0:17:02.12,English,,0,0,0,,Perhaps this is exactly why Love Letter of Camellia is so well suited
+Dialogue: 0,0:17:02.12,0:17:04.08,Chinese,,0,0,0,,睡前听的原因
+Dialogue: 0,0:17:02.12,0:17:04.08,English,,0,0,0,,to listening before sleep
+Dialogue: 0,0:17:04.08,0:17:06.60,Chinese,,0,0,0,,它的核心并不是事件
+Dialogue: 0,0:17:04.08,0:17:06.60,English,,0,0,0,,At its heart, it is not about events
+Dialogue: 0,0:17:06.60,0:17:09.04,Chinese,,0,0,0,,而是人与人之间那些没有说尽的
+Dialogue: 0,0:17:06.60,0:17:09.04,English,,0,0,0,,but about all the things left unsaid between people
+Dialogue: 0,0:17:09.04,0:17:09.96,Chinese,,0,0,0,,话
+Dialogue: 0,0:17:09.04,0:17:09.96,English,,0,0,0,,the words
+Dialogue: 0,0:17:09.96,0:17:11.56,Chinese,,0,0,0,,夜深的时候
+Dialogue: 0,0:17:09.96,0:17:11.56,English,,0,0,0,,Late at night
+Dialogue: 0,0:17:11.56,0:17:14.68,Chinese,,0,0,0,,我们也会想起一些没有寄出的信
+Dialogue: 0,0:17:11.56,0:17:14.68,English,,0,0,0,,we, too, may think of letters we never sent
+Dialogue: 0,0:17:14.68,0:17:18.32,Chinese,,0,0,0,,想起曾经应该道歉却没有道歉的
+Dialogue: 0,0:17:14.68,0:17:18.32,English,,0,0,0,,think of the people we should have apologized to but never did
+Dialogue: 0,0:17:18.32,0:17:18.36,Chinese,,0,0,0,,人
+Dialogue: 0,0:17:18.32,0:17:18.36,English,,0,0,0,,the people
+Dialogue: 0,0:17:18.36,0:17:20.64,Chinese,,0,0,0,,想起爱过却错过的人
+Dialogue: 0,0:17:18.36,0:17:20.64,English,,0,0,0,,think of those we loved but missed
+Dialogue: 0,0:17:20.64,0:17:22.56,Chinese,,0,0,0,,想起已经离开的亲人
+Dialogue: 0,0:17:20.64,0:17:22.56,English,,0,0,0,,think of loved ones who have already gone
+Dialogue: 0,0:17:22.56,0:17:24.60,Chinese,,0,0,0,,想起孩子小时候的样子
+Dialogue: 0,0:17:22.56,0:17:24.60,English,,0,0,0,,think of what our children looked like when they were small
+Dialogue: 0,0:17:24.60,0:17:27.12,Chinese,,0,0,0,,想起某个再也回不去的季节
+Dialogue: 0,0:17:24.60,0:17:27.12,English,,0,0,0,,think of a season we can never return to
+Dialogue: 0,0:17:27.12,0:17:29.42,Chinese,,0,0,0,,我们可能不会真的拿起笔
+Dialogue: 0,0:17:27.12,0:17:29.42,English,,0,0,0,,We may never actually pick up a pen
+Dialogue: 0,0:17:29.42,0:17:31.06,Chinese,,0,0,0,,但故事提醒我们
+Dialogue: 0,0:17:29.42,0:17:31.06,English,,0,0,0,,but the story reminds us
+Dialogue: 0,0:17:31.06,0:17:33.58,Chinese,,0,0,0,,那些心意并没有完全消失
+Dialogue: 0,0:17:31.06,0:17:33.58,English,,0,0,0,,that those feelings have not completely disappeared
+Dialogue: 0,0:17:33.58,0:17:35.48,Chinese,,0,0,0,,它们只是沉到更深的地方
+Dialogue: 0,0:17:33.58,0:17:35.48,English,,0,0,0,,They have only sunk to a deeper place
+Dialogue: 0,0:17:35.48,0:17:38.16,Chinese,,0,0,0,,等待某个安静的时刻
+Dialogue: 0,0:17:35.48,0:17:38.16,English,,0,0,0,,waiting for some quiet moment
+Dialogue: 0,0:17:38.16,0:17:39.80,Chinese,,0,0,0,,被温柔地看见
+Dialogue: 0,0:17:38.16,0:17:39.80,English,,0,0,0,,to be seen with tenderness
+Dialogue: 0,0:17:39.80,0:17:41.76,Chinese,,0,0,0,,小川糸的文字里
+Dialogue: 0,0:17:39.80,0:17:41.76,English,,0,0,0,,In Ito Ogawa's writing
+Dialogue: 0,0:17:41.76,0:17:44.80,Chinese,,0,0,0,,食物和季节总是承担着疗愈的力
+Dialogue: 0,0:17:41.76,0:17:44.80,English,,0,0,0,,food and the seasons always carry a healing power
+Dialogue: 0,0:17:44.80,0:17:45.54,Chinese,,0,0,0,,量
+Dialogue: 0,0:17:44.80,0:17:45.54,English,,0,0,0,,a measure of it
+Dialogue: 0,0:17:45.54,0:17:49.68,Chinese,,0,0,0,,樱花、紫阳花、金木樨、山茶、
+Dialogue: 0,0:17:45.54,0:17:49.68,English,,0,0,0,,Cherry blossoms, hydrangeas, osmanthus, camellias,
+Dialogue: 0,0:17:49.68,0:17:51.32,Chinese,,0,0,0,,明日叶、莲
+Dialogue: 0,0:17:49.68,0:17:51.32,English,,0,0,0,,ashitaba, lotus
+Dialogue: 0,0:17:51.32,0:17:54.06,Chinese,,0,0,0,,这些章节名像一串植物的名字
+Dialogue: 0,0:17:51.32,0:17:54.06,English,,0,0,0,,these chapter titles read like a string of plant names
+Dialogue: 0,0:17:54.06,0:17:56.88,Chinese,,0,0,0,,也像时间在土地上留下的标记
+Dialogue: 0,0:17:54.06,0:17:56.88,English,,0,0,0,,and also like marks left by time upon the land
+Dialogue: 0,0:17:56.88,0:17:59.82,Chinese,,0,0,0,,春天的樱花告诉人们重新开始
+Dialogue: 0,0:17:56.88,0:17:59.82,English,,0,0,0,,Spring's cherry blossoms tell people to begin again
+Dialogue: 0,0:17:59.82,0:18:02.96,Chinese,,0,0,0,,夏末的线香花火让人承认结束
+Dialogue: 0,0:17:59.82,0:18:02.96,English,,0,0,0,,late-summer sparklers ask us to accept an ending
+Dialogue: 0,0:18:02.96,0:18:06.12,Chinese,,0,0,0,,秋天的金木樨以香气唤醒记忆
+Dialogue: 0,0:18:02.96,0:18:06.12,English,,0,0,0,,autumn's osmanthus awakens memory with its fragrance
+Dialogue: 0,0:18:06.12,0:18:08.80,Chinese,,0,0,0,,冬天的山茶在寒冷中开花
+Dialogue: 0,0:18:06.12,0:18:08.80,English,,0,0,0,,winter's camellias bloom in the cold
+Dialogue: 0,0:18:08.80,0:18:11.76,Chinese,,0,0,0,,明日叶带着明天仍会长出的意味
+Dialogue: 0,0:18:08.80,0:18:11.76,English,,0,0,0,,ashitaba carries the sense that tomorrow it will grow again
+Dialogue: 0,0:18:11.76,0:18:13.56,Chinese,,0,0,0,,莲则从泥中伸展
+Dialogue: 0,0:18:11.76,0:18:13.56,English,,0,0,0,,while the lotus rises from the mud
+Dialogue: 0,0:18:13.56,0:18:15.82,Chinese,,0,0,0,,安静地开出清洁的花
+Dialogue: 0,0:18:13.56,0:18:15.82,English,,0,0,0,,quietly opening into a pure flower
+Dialogue: 0,0:18:15.82,0:18:18.10,Chinese,,0,0,0,,植物不会解释人生
+Dialogue: 0,0:18:15.82,0:18:18.10,English,,0,0,0,,Plants do not explain life
+Dialogue: 0,0:18:18.10,0:18:21.10,Chinese,,0,0,0,,却用生长和凋谢陪伴人类
+Dialogue: 0,0:18:18.10,0:18:21.10,English,,0,0,0,,yet through growth and withering, they keep us company
+Dialogue: 0,0:18:21.10,0:18:22.70,Chinese,,0,0,0,,它们让我们知道
+Dialogue: 0,0:18:21.10,0:18:22.70,English,,0,0,0,,They let us know
+Dialogue: 0,0:18:22.70,0:18:24.32,Chinese,,0,0,0,,低落不是永恒
+Dialogue: 0,0:18:22.70,0:18:24.32,English,,0,0,0,,that sadness is not eternal
+Dialogue: 0,0:18:24.32,0:18:26.80,Chinese,,0,0,0,,盛放也不会永远停留
+Dialogue: 0,0:18:24.32,0:18:26.80,English,,0,0,0,,and even full bloom will not linger forever
+Dialogue: 0,0:18:26.80,0:18:28.28,Chinese,,0,0,0,,所有季节都会过去
+Dialogue: 0,0:18:26.80,0:18:28.28,English,,0,0,0,,Every season will pass
+Dialogue: 0,0:18:28.28,0:18:31.44,Chinese,,0,0,0,,但过去并不等于失去
+Dialogue: 0,0:18:28.28,0:18:31.44,English,,0,0,0,,But the past is not the same as loss
+Dialogue: 0,0:18:31.44,0:18:33.32,Chinese,,0,0,0,,它们会变成气味
+Dialogue: 0,0:18:31.44,0:18:33.32,English,,0,0,0,,They turn into scents
+Dialogue: 0,0:18:33.32,0:18:34.98,Chinese,,0,0,0,,变成信纸上的字
+Dialogue: 0,0:18:33.32,0:18:34.98,English,,0,0,0,,into words on letter paper
+Dialogue: 0,0:18:34.98,0:18:37.92,Chinese,,0,0,0,,变成某一天忽然想起时胸口的温
+Dialogue: 0,0:18:34.98,0:18:37.92,English,,0,0,0,,into the warmth in your chest when, one day, you suddenly remember
+Dialogue: 0,0:18:37.92,0:18:38.76,Chinese,,0,0,0,,热
+Dialogue: 0,0:18:37.92,0:18:38.76,English,,0,0,0,,warmth
+Dialogue: 0,0:18:38.76,0:18:40.38,Chinese,,0,0,0,,读这本书
+Dialogue: 0,0:18:38.76,0:18:40.38,English,,0,0,0,,Reading this book
+Dialogue: 0,0:18:40.38,0:18:43.64,Chinese,,0,0,0,,也是在读鸠子对女性身份的重新
+Dialogue: 0,0:18:40.38,0:18:43.64,English,,0,0,0,,is also reading Hatoko's reworking of her identity as a woman
+Dialogue: 0,0:18:43.64,0:18:44.40,Chinese,,0,0,0,,整理
+Dialogue: 0,0:18:43.64,0:18:44.40,English,,0,0,0,,a reordering
+Dialogue: 0,0:18:44.40,0:18:47.18,Chinese,,0,0,0,,她不是只作为母亲而存在
+Dialogue: 0,0:18:44.40,0:18:47.18,English,,0,0,0,,She does not exist only as a mother
+Dialogue: 0,0:18:47.18,0:18:50.36,Chinese,,0,0,0,,也不是只作为代笔人而存在
+Dialogue: 0,0:18:47.18,0:18:50.36,English,,0,0,0,,nor only as a ghostwriter
+Dialogue: 0,0:18:50.36,0:18:51.98,Chinese,,0,0,0,,她会爱孩子
+Dialogue: 0,0:18:50.36,0:18:51.98,English,,0,0,0,,She loves her child
+Dialogue: 0,0:18:51.98,0:18:53.56,Chinese,,0,0,0,,也会厌倦家务
+Dialogue: 0,0:18:51.98,0:18:53.56,English,,0,0,0,,and also grows tired of housework
+Dialogue: 0,0:18:53.56,0:18:55.16,Chinese,,0,0,0,,她会珍惜家庭
+Dialogue: 0,0:18:53.56,0:18:55.16,English,,0,0,0,,She cherishes her family
+Dialogue: 0,0:18:55.16,0:18:56.68,Chinese,,0,0,0,,也会怀念独处
+Dialogue: 0,0:18:55.16,0:18:56.68,English,,0,0,0,,and also misses being alone
+Dialogue: 0,0:18:56.68,0:18:59.08,Chinese,,0,0,0,,她能替别人写出细腻的信
+Dialogue: 0,0:18:56.68,0:18:59.08,English,,0,0,0,,She can write delicate letters for others
+Dialogue: 0,0:18:59.08,0:19:01.40,Chinese,,0,0,0,,却也会在自己的生活里语塞
+Dialogue: 0,0:18:59.08,0:19:01.40,English,,0,0,0,,yet in her own life, she can be at a loss for words
+Dialogue: 0,0:19:01.40,0:19:02.36,Chinese,,0,0,0,,她温柔
+Dialogue: 0,0:19:01.40,0:19:02.36,English,,0,0,0,,She is gentle
+Dialogue: 0,0:19:02.36,0:19:04.14,Chinese,,0,0,0,,却并不总是从容
+Dialogue: 0,0:19:02.36,0:19:04.14,English,,0,0,0,,but not always composed
+Dialogue: 0,0:19:04.14,0:19:06.82,Chinese,,0,0,0,,这样的不完美让她可信
+Dialogue: 0,0:19:04.14,0:19:06.82,English,,0,0,0,,That imperfection makes her believable
+Dialogue: 0,0:19:06.82,0:19:08.12,Chinese,,0,0,0,,很多时候
+Dialogue: 0,0:19:06.82,0:19:08.12,English,,0,0,0,,Much of the time
+Dialogue: 0,0:19:08.12,0:19:09.72,Chinese,,0,0,0,,我们也像鸠子一样
+Dialogue: 0,0:19:08.12,0:19:09.72,English,,0,0,0,,We are much like Hatoko, too
+Dialogue: 0,0:19:09.72,0:19:12.18,Chinese,,0,0,0,,在别人眼里已经做得很好
+Dialogue: 0,0:19:09.72,0:19:12.18,English,,0,0,0,,seen by others as already doing so well
+Dialogue: 0,0:19:12.18,0:19:15.20,Chinese,,0,0,0,,却在心里暗暗觉得自己不够好
+Dialogue: 0,0:19:12.18,0:19:15.20,English,,0,0,0,,yet quietly feeling inside that we are not good enough
+Dialogue: 0,0:19:15.20,0:19:17.04,Chinese,,0,0,0,,我们承担了许多
+Dialogue: 0,0:19:15.20,0:19:17.04,English,,0,0,0,,We carry so much
+Dialogue: 0,0:19:17.04,0:19:20.32,Chinese,,0,0,0,,却仍然怀疑自己是否有价值
+Dialogue: 0,0:19:17.04,0:19:20.32,English,,0,0,0,,and still wonder whether we have any worth
+Dialogue: 0,0:19:20.32,0:19:22.26,Chinese,,0,0,0,,我们照顾别人太久
+Dialogue: 0,0:19:20.32,0:19:22.26,English,,0,0,0,,We have spent so long caring for others
+Dialogue: 0,0:19:22.26,0:19:24.46,Chinese,,0,0,0,,反而忘了怎样照顾自己
+Dialogue: 0,0:19:22.26,0:19:24.46,English,,0,0,0,,that we have forgotten how to care for ourselves
+Dialogue: 0,0:19:24.46,0:19:28.32,Chinese,,0,0,0,,《山茶的情书》没有把鸠子塑造
+Dialogue: 0,0:19:24.46,0:19:28.32,English,,0,0,0,,The Camellia Letter does not portray Hatoko
+Dialogue: 0,0:19:28.32,0:19:29.30,Chinese,,0,0,0,,成永远给予的人
+Dialogue: 0,0:19:28.32,0:19:29.30,English,,0,0,0,,as someone who gives endlessly
+Dialogue: 0,0:19:29.30,0:19:30.40,Chinese,,0,0,0,,而是让她疲惫
+Dialogue: 0,0:19:29.30,0:19:30.40,English,,0,0,0,,Instead, it lets her be exhausted
+Dialogue: 0,0:19:30.40,0:19:32.06,Chinese,,0,0,0,,让她停下
+Dialogue: 0,0:19:30.40,0:19:32.06,English,,0,0,0,,lets her stop
+Dialogue: 0,0:19:32.06,0:19:34.00,Chinese,,0,0,0,,让她承认写不出来
+Dialogue: 0,0:19:32.06,0:19:34.00,English,,0,0,0,,lets her admit she cannot write
+Dialogue: 0,0:19:34.00,0:19:35.52,Chinese,,0,0,0,,正因为如此
+Dialogue: 0,0:19:34.00,0:19:35.52,English,,0,0,0,,And precisely because of that
+Dialogue: 0,0:19:35.52,0:19:37.48,Chinese,,0,0,0,,当她后来一点点恢复
+Dialogue: 0,0:19:35.52,0:19:37.48,English,,0,0,0,,when she later begins to recover, little by little
+Dialogue: 0,0:19:37.48,0:19:40.00,Chinese,,0,0,0,,我们才会相信那不是奇迹
+Dialogue: 0,0:19:37.48,0:19:40.00,English,,0,0,0,,we believe it is not a miracle
+Dialogue: 0,0:19:40.00,0:19:42.00,Chinese,,0,0,0,,而是人真实的复原
+Dialogue: 0,0:19:40.00,0:19:42.00,English,,0,0,0,,but a real human healing
+Dialogue: 0,0:19:42.00,0:19:44.88,Chinese,,0,0,0,,复原从来不是一条直线
+Dialogue: 0,0:19:42.00,0:19:44.88,English,,0,0,0,,Recovery is never a straight line
+Dialogue: 0,0:19:44.88,0:19:47.40,Chinese,,0,0,0,,它可能是某天愿意出门
+Dialogue: 0,0:19:44.88,0:19:47.40,English,,0,0,0,,It might be being willing to go out one day
+Dialogue: 0,0:19:47.40,0:19:49.18,Chinese,,0,0,0,,某天能认真吃饭
+Dialogue: 0,0:19:47.40,0:19:49.18,English,,0,0,0,,being able to eat a proper meal one day
+Dialogue: 0,0:19:49.18,0:19:51.32,Chinese,,0,0,0,,某天终于回了一封消息
+Dialogue: 0,0:19:49.18,0:19:51.32,English,,0,0,0,,or finally replying to a message one day
+Dialogue: 0,0:19:51.32,0:19:54.36,Chinese,,0,0,0,,某天忽然发现自己又能分辨风里
+Dialogue: 0,0:19:51.32,0:19:54.36,English,,0,0,0,,One day, you suddenly realize you can once again make out, in the wind,
+Dialogue: 0,0:19:54.36,0:19:55.24,Chinese,,0,0,0,,的花香
+Dialogue: 0,0:19:54.36,0:19:55.24,English,,0,0,0,,the scent of flowers.
+Dialogue: 0,0:19:55.24,0:19:57.28,Chinese,,0,0,0,,故事中的旧信供养
+Dialogue: 0,0:19:55.24,0:19:57.28,English,,0,0,0,,The offering of old letters in the story
+Dialogue: 0,0:19:57.28,0:19:59.80,Chinese,,0,0,0,,也有一种很东方的哀悼感
+Dialogue: 0,0:19:57.28,0:19:59.80,English,,0,0,0,,also carries a very Eastern sense of mourning.
+Dialogue: 0,0:19:59.80,0:20:01.68,Chinese,,0,0,0,,供养不是销毁
+Dialogue: 0,0:19:59.80,0:20:01.68,English,,0,0,0,,Offering them up is not destruction,
+Dialogue: 0,0:20:01.68,0:20:05.02,Chinese,,0,0,0,,而是让无法抵达的心意获得安息
+Dialogue: 0,0:20:01.68,0:20:05.02,English,,0,0,0,,but a way to let feelings that could never arrive find peace.
+Dialogue: 0,0:20:05.02,0:20:08.60,Chinese,,0,0,0,,那些信曾经承载爱、思念、秘密
+Dialogue: 0,0:20:05.02,0:20:08.60,English,,0,0,0,,Those letters once held love, longing, secrets,
+Dialogue: 0,0:20:08.60,0:20:09.50,Chinese,,0,0,0,,和岁月
+Dialogue: 0,0:20:08.60,0:20:09.50,English,,0,0,0,,and the passage of years.
+Dialogue: 0,0:20:09.50,0:20:11.38,Chinese,,0,0,0,,如今被送往终点
+Dialogue: 0,0:20:09.50,0:20:11.38,English,,0,0,0,,Now they are being sent to their final destination,
+Dialogue: 0,0:20:11.38,0:20:13.06,Chinese,,0,0,0,,并不是为了抹去
+Dialogue: 0,0:20:11.38,0:20:13.06,English,,0,0,0,,not in order to erase them,
+Dialogue: 0,0:20:13.06,0:20:15.48,Chinese,,0,0,0,,而是为了让它们不再孤单
+Dialogue: 0,0:20:13.06,0:20:15.48,English,,0,0,0,,but so they no longer have to be alone.
+Dialogue: 0,0:20:15.48,0:20:19.38,Chinese,,0,0,0,,鸠子对木盒说话的场景尤其温柔
+Dialogue: 0,0:20:15.48,0:20:19.38,English,,0,0,0,,The scene where Hatoko speaks to the wooden box is especially gentle.
+Dialogue: 0,0:20:19.38,0:20:22.12,Chinese,,0,0,0,,她把信当成有生命的存在
+Dialogue: 0,0:20:19.38,0:20:22.12,English,,0,0,0,,She treats the letters as living beings,
+Dialogue: 0,0:20:22.12,0:20:24.42,Chinese,,0,0,0,,相信它们也期待重逢
+Dialogue: 0,0:20:22.12,0:20:24.42,English,,0,0,0,,believing that they, too, are waiting to be reunited.
+Dialogue: 0,0:20:24.42,0:20:27.00,Chinese,,0,0,0,,这样的想象并不幼稚
+Dialogue: 0,0:20:24.42,0:20:27.00,English,,0,0,0,,This kind of imagining is not childish.
+Dialogue: 0,0:20:27.00,0:20:29.28,Chinese,,0,0,0,,人类之所以需要仪式
+Dialogue: 0,0:20:27.00,0:20:29.28,English,,0,0,0,,The reason humans need rituals
+Dialogue: 0,0:20:29.28,0:20:32.32,Chinese,,0,0,0,,正是因为有些情感无法用道理处
+Dialogue: 0,0:20:29.28,0:20:32.32,English,,0,0,0,,is precisely because some emotions cannot be dealt with by reason
+Dialogue: 0,0:20:32.32,0:20:32.82,Chinese,,0,0,0,,理
+Dialogue: 0,0:20:32.32,0:20:32.82,English,,0,0,0,,alone.
+Dialogue: 0,0:20:32.82,0:20:34.64,Chinese,,0,0,0,,告别需要动作
+Dialogue: 0,0:20:32.82,0:20:34.64,English,,0,0,0,,Farewell needs an action.
+Dialogue: 0,0:20:34.64,0:20:36.32,Chinese,,0,0,0,,思念需要容器
+Dialogue: 0,0:20:34.64,0:20:36.32,English,,0,0,0,,Longing needs a vessel.
+Dialogue: 0,0:20:36.32,0:20:37.86,Chinese,,0,0,0,,爱需要被安放
+Dialogue: 0,0:20:36.32,0:20:37.86,English,,0,0,0,,Love needs a place to rest.
+Dialogue: 0,0:20:37.86,0:20:39.58,Chinese,,0,0,0,,信纸是容器
+Dialogue: 0,0:20:37.86,0:20:39.58,English,,0,0,0,,Letter paper is a vessel
+Dialogue: 0,0:20:39.58,0:20:41.02,Chinese,,0,0,0,,火焰是容器
+Dialogue: 0,0:20:39.58,0:20:41.02,English,,0,0,0,,The flame is a vessel.
+Dialogue: 0,0:20:41.02,0:20:42.74,Chinese,,0,0,0,,旅程也是容器
+Dialogue: 0,0:20:41.02,0:20:42.74,English,,0,0,0,,The journey is also a vessel
+Dialogue: 0,0:20:42.74,0:20:45.64,Chinese,,0,0,0,,鸠子把这些容器一一准备好
+Dialogue: 0,0:20:42.74,0:20:45.64,English,,0,0,0,,Jiuzi prepared each of these containers one by one
+Dialogue: 0,0:20:45.64,0:20:48.60,Chinese,,0,0,0,,替上一代人完成迟来的拥抱
+Dialogue: 0,0:20:45.64,0:20:48.60,English,,0,0,0,,Giving the previous generation the belated embrace they never had
+Dialogue: 0,0:20:48.60,0:20:50.82,Chinese,,0,0,0,,也正是在这个过程中
+Dialogue: 0,0:20:48.60,0:20:50.82,English,,0,0,0,,And it was precisely during this process
+Dialogue: 0,0:20:50.82,0:20:52.88,Chinese,,0,0,0,,她重新理解了上代
+Dialogue: 0,0:20:50.82,0:20:52.88,English,,0,0,0,,She came to understand the previous generation in a new way.
+Dialogue: 0,0:20:52.88,0:20:56.00,Chinese,,0,0,0,,那个曾经严厉得让她受伤的祖母
+Dialogue: 0,0:20:52.88,0:20:56.00,English,,0,0,0,,the grandmother whose strictness had once hurt her
+Dialogue: 0,0:20:56.00,0:21:00.26,Chinese,,0,0,0,,也曾是会爱、会痛、会隐藏秘密
+Dialogue: 0,0:20:56.00,0:21:00.26,English,,0,0,0,,They, too, once knew how to love, how to hurt, and how to hide secrets.
+Dialogue: 0,0:21:00.26,0:21:01.48,Chinese,,0,0,0,,的女人
+Dialogue: 0,0:21:00.26,0:21:01.48,English,,0,0,0,,the woman
+Dialogue: 0,0:21:01.48,0:21:04.52,Chinese,,0,0,0,,当长辈从权威变成一个具体的人
+Dialogue: 0,0:21:01.48,0:21:04.52,English,,0,0,0,,When an elder goes from being an authority figure to a real, specific person
+Dialogue: 0,0:21:04.52,0:21:05.76,Chinese,,0,0,0,,和解才真正开始
+Dialogue: 0,0:21:04.52,0:21:05.76,English,,0,0,0,,Only then does reconciliation truly begin.
+Dialogue: 0,0:21:05.76,0:21:08.28,Chinese,,0,0,0,,我们很多人都要到长大后
+Dialogue: 0,0:21:05.76,0:21:08.28,English,,0,0,0,,Many of us don’t realize it until we grow up
+Dialogue: 0,0:21:08.28,0:21:10.22,Chinese,,0,0,0,,甚至到对方离开后
+Dialogue: 0,0:21:08.28,0:21:10.22,English,,0,0,0,,Even after the other person has left
+Dialogue: 0,0:21:10.22,0:21:13.58,Chinese,,0,0,0,,才慢慢看见父母或祖父母的人生
+Dialogue: 0,0:21:10.22,0:21:13.58,English,,0,0,0,,only gradually come to see the lives of our parents or grandparents
+Dialogue: 0,0:21:13.58,0:21:15.64,Chinese,,0,0,0,,他们不是天生的长辈
+Dialogue: 0,0:21:13.58,0:21:15.64,English,,0,0,0,,They weren’t born as elders.
+Dialogue: 0,0:21:15.64,0:21:17.04,Chinese,,0,0,0,,他们也曾年轻
+Dialogue: 0,0:21:15.64,0:21:17.04,English,,0,0,0,,They were young once, too
+Dialogue: 0,0:21:17.04,0:21:18.30,Chinese,,0,0,0,,也曾笨拙
+Dialogue: 0,0:21:17.04,0:21:18.30,English,,0,0,0,,I was once awkward too
+Dialogue: 0,0:21:18.30,0:21:21.18,Chinese,,0,0,0,,也曾在深夜里不知如何是好
+Dialogue: 0,0:21:18.30,0:21:21.18,English,,0,0,0,,There were times late at night when I didn’t know what to do
+Dialogue: 0,0:21:21.18,0:21:22.58,Chinese,,0,0,0,,看见这一点
+Dialogue: 0,0:21:21.18,0:21:22.58,English,,0,0,0,,Seeing this
+Dialogue: 0,0:21:22.58,0:21:25.34,Chinese,,0,0,0,,并不会让过去的伤自动消失
+Dialogue: 0,0:21:22.58,0:21:25.34,English,,0,0,0,,doesn't make the wounds of the past disappear on their own
+Dialogue: 0,0:21:25.34,0:21:28.08,Chinese,,0,0,0,,却会让心里的硬块稍微松动
+Dialogue: 0,0:21:25.34,0:21:28.08,English,,0,0,0,,but it does loosen the hard knot in the heart a little
+Dialogue: 0,0:21:28.08,0:21:29.68,Chinese,,0,0,0,,鸠子的成长
+Dialogue: 0,0:21:28.08,0:21:29.68,English,,0,0,0,,Hatoko's growth
+Dialogue: 0,0:21:29.68,0:21:31.46,Chinese,,0,0,0,,不是变得更强势
+Dialogue: 0,0:21:29.68,0:21:31.46,English,,0,0,0,,is not about becoming more forceful
+Dialogue: 0,0:21:31.46,0:21:33.82,Chinese,,0,0,0,,而是变得更能容纳复杂
+Dialogue: 0,0:21:31.46,0:21:33.82,English,,0,0,0,,but about becoming more able to hold complexity
+Dialogue: 0,0:21:33.82,0:21:35.32,Chinese,,0,0,0,,她开始明白
+Dialogue: 0,0:21:33.82,0:21:35.32,English,,0,0,0,,She begins to understand
+Dialogue: 0,0:21:35.32,0:21:37.26,Chinese,,0,0,0,,一个人可以既伤害过你
+Dialogue: 0,0:21:35.32,0:21:37.26,English,,0,0,0,,that someone can have hurt you
+Dialogue: 0,0:21:37.26,0:21:38.36,Chinese,,0,0,0,,也爱过你
+Dialogue: 0,0:21:37.26,0:21:38.36,English,,0,0,0,,and also loved you
+Dialogue: 0,0:21:38.36,0:21:40.48,Chinese,,0,0,0,,一段感情可以没有结果
+Dialogue: 0,0:21:38.36,0:21:40.48,English,,0,0,0,,A relationship can lead nowhere
+Dialogue: 0,0:21:40.48,0:21:42.00,Chinese,,0,0,0,,却仍然真实
+Dialogue: 0,0:21:40.48,0:21:42.00,English,,0,0,0,,and still have been real
+Dialogue: 0,0:21:42.00,0:21:44.16,Chinese,,0,0,0,,一封信可以迟到很多年
+Dialogue: 0,0:21:42.00,0:21:44.16,English,,0,0,0,,A letter can arrive many years late
+Dialogue: 0,0:21:44.16,0:21:46.14,Chinese,,0,0,0,,却依然值得被送达
+Dialogue: 0,0:21:44.16,0:21:46.14,English,,0,0,0,,and still be worth delivering
+Dialogue: 0,0:21:46.14,0:21:47.46,Chinese,,0,0,0,,听到这里
+Dialogue: 0,0:21:46.14,0:21:47.46,English,,0,0,0,,Hearing this
+Dialogue: 0,0:21:47.46,0:21:48.88,Chinese,,0,0,0,,也许你会发现
+Dialogue: 0,0:21:47.46,0:21:48.88,English,,0,0,0,,you may find
+Dialogue: 0,0:21:48.88,0:21:51.86,Chinese,,0,0,0,,《山茶的情书》写的是代笔屋
+Dialogue: 0,0:21:48.88,0:21:51.86,English,,0,0,0,,that The Love Letter of Camellia is about a letter-writing shop
+Dialogue: 0,0:21:51.86,0:21:54.16,Chinese,,0,0,0,,其实也是在写语言的边界
+Dialogue: 0,0:21:51.86,0:21:54.16,English,,0,0,0,,but it is also about the limits of language
+Dialogue: 0,0:21:54.16,0:21:55.90,Chinese,,0,0,0,,语言很重要
+Dialogue: 0,0:21:54.16,0:21:55.90,English,,0,0,0,,Language matters deeply
+Dialogue: 0,0:21:55.90,0:21:57.46,Chinese,,0,0,0,,却不是万能
+Dialogue: 0,0:21:55.90,0:21:57.46,English,,0,0,0,,but it is not all-powerful
+Dialogue: 0,0:21:57.46,0:21:59.34,Chinese,,0,0,0,,鸠子擅长写信
+Dialogue: 0,0:21:57.46,0:21:59.34,English,,0,0,0,,Hatoko is good at writing letters
+Dialogue: 0,0:21:59.34,0:22:02.76,Chinese,,0,0,0,,可她无法立刻解决阳菜的青春期
+Dialogue: 0,0:21:59.34,0:22:02.76,English,,0,0,0,,But she couldn't immediately resolve Hina's adolescence.
+Dialogue: 0,0:22:02.76,0:22:05.24,Chinese,,0,0,0,,无法马上驱散自己的空虚
+Dialogue: 0,0:22:02.76,0:22:05.24,English,,0,0,0,,She couldn't instantly dispel her own emptiness.
+Dialogue: 0,0:22:05.24,0:22:08.36,Chinese,,0,0,0,,也无法轻易写出冬马先生的心
+Dialogue: 0,0:22:05.24,0:22:08.36,English,,0,0,0,,Nor could she easily write Mr. Toma's heart onto the page.
+Dialogue: 0,0:22:08.36,0:22:10.46,Chinese,,0,0,0,,真正珍贵的语言
+Dialogue: 0,0:22:08.36,0:22:10.46,English,,0,0,0,,Truly precious words
+Dialogue: 0,0:22:10.46,0:22:11.88,Chinese,,0,0,0,,不是随时都有
+Dialogue: 0,0:22:10.46,0:22:11.88,English,,0,0,0,,are not always at hand.
+Dialogue: 0,0:22:11.88,0:22:14.30,Chinese,,0,0,0,,而是在沉默足够久之后
+Dialogue: 0,0:22:11.88,0:22:14.30,English,,0,0,0,,They are the one sentence that finally appears
+Dialogue: 0,0:22:14.30,0:22:16.16,Chinese,,0,0,0,,终于出现的那一句
+Dialogue: 0,0:22:14.30,0:22:16.16,English,,0,0,0,,after silence has lasted long enough.
+Dialogue: 0,0:22:16.16,0:22:18.30,Chinese,,0,0,0,,我们常常急着表达
+Dialogue: 0,0:22:16.16,0:22:18.30,English,,0,0,0,,We are often in a hurry to express ourselves,
+Dialogue: 0,0:22:18.30,0:22:19.50,Chinese,,0,0,0,,急着解释
+Dialogue: 0,0:22:18.30,0:22:19.50,English,,0,0,0,,in a hurry to explain,
+Dialogue: 0,0:22:19.50,0:22:21.74,Chinese,,0,0,0,,急着证明自己没有错
+Dialogue: 0,0:22:19.50,0:22:21.74,English,,0,0,0,,in a hurry to prove we weren't wrong.
+Dialogue: 0,0:22:21.74,0:22:23.82,Chinese,,0,0,0,,可有些话需要等待
+Dialogue: 0,0:22:21.74,0:22:23.82,English,,0,0,0,,But some words need to wait.
+Dialogue: 0,0:22:23.82,0:22:26.40,Chinese,,0,0,0,,等待情绪沉淀
+Dialogue: 0,0:22:23.82,0:22:26.40,English,,0,0,0,,Wait for emotions to settle,
+Dialogue: 0,0:22:26.40,0:22:27.42,Chinese,,0,0,0,,等待理解加深
+Dialogue: 0,0:22:26.40,0:22:27.42,English,,0,0,0,,wait for understanding to deepen,
+Dialogue: 0,0:22:27.42,0:22:30.56,Chinese,,0,0,0,,等待自己有能力承担说出口之后
+Dialogue: 0,0:22:27.42,0:22:30.56,English,,0,0,0,,wait until we are capable of bearing
+Dialogue: 0,0:22:30.56,0:22:31.44,Chinese,,0,0,0,,的重量
+Dialogue: 0,0:22:30.56,0:22:31.44,English,,0,0,0,,the weight of saying them aloud.
+Dialogue: 0,0:22:31.44,0:22:34.54,Chinese,,0,0,0,,鸠子迟迟没有写冬马先生的信
+Dialogue: 0,0:22:31.44,0:22:34.54,English,,0,0,0,,Hatoko's long delay in writing Mr. Toma's letter
+Dialogue: 0,0:22:34.54,0:22:36.18,Chinese,,0,0,0,,表面看是失败
+Dialogue: 0,0:22:34.54,0:22:36.18,English,,0,0,0,,may look like failure on the surface.
+Dialogue: 0,0:22:36.18,0:22:39.02,Chinese,,0,0,0,,实际上是她对文字的敬畏
+Dialogue: 0,0:22:36.18,0:22:39.02,English,,0,0,0,,But in truth, it is her reverence for words.
+Dialogue: 0,0:22:39.02,0:22:42.74,Chinese,,0,0,0,,她不愿用漂亮话敷衍别人的人生
+Dialogue: 0,0:22:39.02,0:22:42.74,English,,0,0,0,,She refuses to gloss over someone else's life with pretty phrases.
+Dialogue: 0,0:22:42.74,0:22:44.20,Chinese,,0,0,0,,这样的停顿
+Dialogue: 0,0:22:42.74,0:22:44.20,English,,0,0,0,,A pause like this
+Dialogue: 0,0:22:44.20,0:22:45.80,Chinese,,0,0,0,,也是一种诚实
+Dialogue: 0,0:22:44.20,0:22:45.80,English,,0,0,0,,It is also a kind of honesty
+Dialogue: 0,0:22:45.80,0:22:47.90,Chinese,,0,0,0,,睡前听这本书
+Dialogue: 0,0:22:45.80,0:22:47.90,English,,0,0,0,,Listening to this book before bed
+Dialogue: 0,0:22:47.90,0:22:50.32,Chinese,,0,0,0,,最适合把注意力放在那些小小的
+Dialogue: 0,0:22:47.90,0:22:50.32,English,,0,0,0,,is perfect for placing your attention on those tiny
+Dialogue: 0,0:22:50.32,0:22:51.28,Chinese,,0,0,0,,声音上
+Dialogue: 0,0:22:50.32,0:22:51.28,English,,0,0,0,,sounds
+Dialogue: 0,0:22:51.28,0:22:53.84,Chinese,,0,0,0,,线香花火落地时的轻响
+Dialogue: 0,0:22:51.28,0:22:53.84,English,,0,0,0,,the soft tap of a sparkler falling to the ground
+Dialogue: 0,0:22:53.84,0:22:55.96,Chinese,,0,0,0,,水桶里的水晃动的声音
+Dialogue: 0,0:22:53.84,0:22:55.96,English,,0,0,0,,the sound of water sloshing in a bucket
+Dialogue: 0,0:22:55.96,0:22:58.86,Chinese,,0,0,0,,热红酒在锅里微微冒泡的声音
+Dialogue: 0,0:22:55.96,0:22:58.86,English,,0,0,0,,the quiet bubbling of mulled wine in a pot
+Dialogue: 0,0:22:58.86,0:23:02.14,Chinese,,0,0,0,,汽船靠岸前发动机变慢的声音
+Dialogue: 0,0:22:58.86,0:23:02.14,English,,0,0,0,,the sound of a steamboat's engine slowing before it docks
+Dialogue: 0,0:23:02.14,0:23:03.90,Chinese,,0,0,0,,老屋里夜晚的风声
+Dialogue: 0,0:23:02.14,0:23:03.90,English,,0,0,0,,the night wind in an old house
+Dialogue: 0,0:23:03.90,0:23:05.82,Chinese,,0,0,0,,纸张被铺开的声音
+Dialogue: 0,0:23:03.90,0:23:05.82,English,,0,0,0,,the sound of paper being spread out
+Dialogue: 0,0:23:05.82,0:23:07.94,Chinese,,0,0,0,,这些声音并不喧哗
+Dialogue: 0,0:23:05.82,0:23:07.94,English,,0,0,0,,These sounds are not loud
+Dialogue: 0,0:23:07.94,0:23:10.12,Chinese,,0,0,0,,却把生活一层层托住
+Dialogue: 0,0:23:07.94,0:23:10.12,English,,0,0,0,,yet they hold up life, layer by layer
+Dialogue: 0,0:23:10.12,0:23:12.26,Chinese,,0,0,0,,我们的一天也许很乱
+Dialogue: 0,0:23:10.12,0:23:12.26,English,,0,0,0,,Our days may be chaotic
+Dialogue: 0,0:23:12.26,0:23:13.48,Chinese,,0,0,0,,消息很多
+Dialogue: 0,0:23:12.26,0:23:13.48,English,,0,0,0,,with so many messages
+Dialogue: 0,0:23:13.48,0:23:14.68,Chinese,,0,0,0,,任务很多
+Dialogue: 0,0:23:13.48,0:23:14.68,English,,0,0,0,,so many tasks
+Dialogue: 0,0:23:14.68,0:23:16.42,Chinese,,0,0,0,,情绪来不及整理
+Dialogue: 0,0:23:14.68,0:23:16.42,English,,0,0,0,,and emotions we have no time to sort through
+Dialogue: 0,0:23:16.42,0:23:18.30,Chinese,,0,0,0,,但当故事慢下来
+Dialogue: 0,0:23:16.42,0:23:18.30,English,,0,0,0,,But when the story slows down
+Dialogue: 0,0:23:18.30,0:23:20.06,Chinese,,0,0,0,,我们也跟着慢下来
+Dialogue: 0,0:23:18.30,0:23:20.06,English,,0,0,0,,we slow down with it
+Dialogue: 0,0:23:20.06,0:23:23.16,Chinese,,0,0,0,,你可以想象自己坐在山茶文具店
+Dialogue: 0,0:23:20.06,0:23:23.16,English,,0,0,0,,You can imagine yourself sitting in a corner
+Dialogue: 0,0:23:23.16,0:23:24.10,Chinese,,0,0,0,,的一角
+Dialogue: 0,0:23:23.16,0:23:24.10,English,,0,0,0,,of the Camellia Stationery Shop
+Dialogue: 0,0:23:24.10,0:23:25.92,Chinese,,0,0,0,,面前有一张信纸
+Dialogue: 0,0:23:24.10,0:23:25.92,English,,0,0,0,,There is a sheet of stationery in front of you
+Dialogue: 0,0:23:25.92,0:23:27.52,Chinese,,0,0,0,,一支好写的笔
+Dialogue: 0,0:23:25.92,0:23:27.52,English,,0,0,0,,and a pen that writes smoothly.
+Dialogue: 0,0:23:27.52,0:23:30.24,Chinese,,0,0,0,,你不必立刻写出完整的信
+Dialogue: 0,0:23:27.52,0:23:30.24,English,,0,0,0,,You don’t have to write a complete letter right away.
+Dialogue: 0,0:23:30.24,0:23:31.48,Chinese,,0,0,0,,只要想一想
+Dialogue: 0,0:23:30.24,0:23:31.48,English,,0,0,0,,Just think for a moment:
+Dialogue: 0,0:23:31.48,0:23:34.08,Chinese,,0,0,0,,如果今晚要给某个人写一句话
+Dialogue: 0,0:23:31.48,0:23:34.08,English,,0,0,0,,if you were to write one sentence to someone tonight,
+Dialogue: 0,0:23:34.08,0:23:35.40,Chinese,,0,0,0,,你会写给谁
+Dialogue: 0,0:23:34.08,0:23:35.40,English,,0,0,0,,who would you write it to?
+Dialogue: 0,0:23:35.40,0:23:37.70,Chinese,,0,0,0,,也许是给远方的朋友
+Dialogue: 0,0:23:35.40,0:23:37.70,English,,0,0,0,,Maybe to a friend far away,
+Dialogue: 0,0:23:37.70,0:23:40.36,Chinese,,0,0,0,,告诉对方你其实一直记得
+Dialogue: 0,0:23:37.70,0:23:40.36,English,,0,0,0,,telling them you’ve actually remembered them all along.
+Dialogue: 0,0:23:40.36,0:23:42.16,Chinese,,0,0,0,,也许是给亲人
+Dialogue: 0,0:23:40.36,0:23:42.16,English,,0,0,0,,Maybe to a family member,
+Dialogue: 0,0:23:42.16,0:23:45.34,Chinese,,0,0,0,,说有些感谢从来没好好讲过
+Dialogue: 0,0:23:42.16,0:23:45.34,English,,0,0,0,,saying there are some thanks you never properly expressed.
+Dialogue: 0,0:23:45.34,0:23:47.74,Chinese,,0,0,0,,也许是给曾经的爱人
+Dialogue: 0,0:23:45.34,0:23:47.74,English,,0,0,0,,Maybe to someone you once loved,
+Dialogue: 0,0:23:47.74,0:23:49.28,Chinese,,0,0,0,,说祝你平安
+Dialogue: 0,0:23:47.74,0:23:49.28,English,,0,0,0,,saying, I wish you peace.
+Dialogue: 0,0:23:49.28,0:23:51.68,Chinese,,0,0,0,,也许是给小时候的自己
+Dialogue: 0,0:23:49.28,0:23:51.68,English,,0,0,0,,Maybe to your childhood self,
+Dialogue: 0,0:23:51.68,0:23:53.72,Chinese,,0,0,0,,说你已经很努力了
+Dialogue: 0,0:23:51.68,0:23:53.72,English,,0,0,0,,saying, you’ve already worked so hard.
+Dialogue: 0,0:23:53.72,0:23:54.86,Chinese,,0,0,0,,也许
+Dialogue: 0,0:23:53.72,0:23:54.86,English,,0,0,0,,Or maybe
+Dialogue: 0,0:23:54.86,0:23:56.72,Chinese,,0,0,0,,是给现在的自己
+Dialogue: 0,0:23:54.86,0:23:56.72,English,,0,0,0,,it’s to the person you are now.
+Dialogue: 0,0:23:56.72,0:23:59.02,Chinese,,0,0,0,,很多人最不会写的
+Dialogue: 0,0:23:56.72,0:23:59.02,English,,0,0,0,,The letter many people find hardest to write
+Dialogue: 0,0:23:59.02,0:24:00.72,Chinese,,0,0,0,,就是给自己的信
+Dialogue: 0,0:23:59.02,0:24:00.72,English,,0,0,0,,is the one addressed to themselves.
+Dialogue: 0,0:24:00.72,0:24:02.72,Chinese,,0,0,0,,我们对别人可以温柔
+Dialogue: 0,0:24:00.72,0:24:02.72,English,,0,0,0,,We can be gentle with others,
+Dialogue: 0,0:24:02.72,0:24:04.92,Chinese,,0,0,0,,对自己却常常苛刻
+Dialogue: 0,0:24:02.72,0:24:04.92,English,,0,0,0,,yet we are often harsh with ourselves.
+Dialogue: 0,0:24:04.92,0:24:07.02,Chinese,,0,0,0,,鸠子的故事提醒我们
+Dialogue: 0,0:24:04.92,0:24:07.02,English,,0,0,0,,Hatoko's story reminds us
+Dialogue: 0,0:24:07.02,0:24:10.20,Chinese,,0,0,0,,也要把自己当成值得被代笔、被
+Dialogue: 0,0:24:07.02,0:24:10.20,English,,0,0,0,,that we, too, should see ourselves as people worthy of having our words written for us, of being
+Dialogue: 0,0:24:10.20,0:24:12.62,Chinese,,0,0,0,,倾听、被认真安放的人
+Dialogue: 0,0:24:10.20,0:24:12.62,English,,0,0,0,,heard, and of being held with care
+Dialogue: 0,0:24:12.62,0:24:15.00,Chinese,,0,0,0,,如果你最近也像鸠子一样
+Dialogue: 0,0:24:12.62,0:24:15.00,English,,0,0,0,,If lately you, like Hatoko,
+Dialogue: 0,0:24:15.00,0:24:16.84,Chinese,,0,0,0,,觉得自己停在原地
+Dialogue: 0,0:24:15.00,0:24:16.84,English,,0,0,0,,feel as though you're standing still
+Dialogue: 0,0:24:16.84,0:24:19.76,Chinese,,0,0,0,,而周围的人都在往前走
+Dialogue: 0,0:24:16.84,0:24:19.76,English,,0,0,0,,while everyone around you is moving forward,
+Dialogue: 0,0:24:19.76,0:24:21.16,Chinese,,0,0,0,,请不要太责备自己
+Dialogue: 0,0:24:19.76,0:24:21.16,English,,0,0,0,,please don't be too hard on yourself.
+Dialogue: 0,0:24:21.16,0:24:24.74,Chinese,,0,0,0,,生命并不是每个季节都必须开花
+Dialogue: 0,0:24:21.16,0:24:24.74,English,,0,0,0,,Life doesn't have to bloom in every season.
+Dialogue: 0,0:24:24.74,0:24:26.08,Chinese,,0,0,0,,有时候
+Dialogue: 0,0:24:24.74,0:24:26.08,English,,0,0,0,,Sometimes,
+Dialogue: 0,0:24:26.08,0:24:27.62,Chinese,,0,0,0,,根在土里修复
+Dialogue: 0,0:24:26.08,0:24:27.62,English,,0,0,0,,the roots are healing underground,
+Dialogue: 0,0:24:27.62,0:24:29.38,Chinese,,0,0,0,,外面看不见动静
+Dialogue: 0,0:24:27.62,0:24:29.38,English,,0,0,0,,with no visible movement on the surface.
+Dialogue: 0,0:24:29.38,0:24:31.62,Chinese,,0,0,0,,山茶在冷天开放
+Dialogue: 0,0:24:29.38,0:24:31.62,English,,0,0,0,,Camellias bloom in the cold.
+Dialogue: 0,0:24:31.62,0:24:33.18,Chinese,,0,0,0,,莲从泥里长出
+Dialogue: 0,0:24:31.62,0:24:33.18,English,,0,0,0,,Lotuses rise from the mud.
+Dialogue: 0,0:24:33.18,0:24:36.12,Chinese,,0,0,0,,明日叶被摘下后仍会在明天生出
+Dialogue: 0,0:24:33.18,0:24:36.12,English,,0,0,0,,Ashitaba, even after being picked, will sprout again tomorrow
+Dialogue: 0,0:24:36.12,0:24:36.98,Chinese,,0,0,0,,新芽
+Dialogue: 0,0:24:36.12,0:24:36.98,English,,0,0,0,,with new shoots.
+Dialogue: 0,0:24:36.98,0:24:40.28,Chinese,,0,0,0,,植物从不因为暂时沉默就怀疑自
+Dialogue: 0,0:24:36.98,0:24:40.28,English,,0,0,0,,Plants never doubt themselves just because they are silent for a while
+Dialogue: 0,0:24:40.28,0:24:40.84,Chinese,,0,0,0,,己
+Dialogue: 0,0:24:40.28,0:24:40.84,English,,0,0,0,,themselves.
+Dialogue: 0,0:24:40.84,0:24:42.70,Chinese,,0,0,0,,人也可以如此
+Dialogue: 0,0:24:40.84,0:24:42.70,English,,0,0,0,,People can be like that too.
+Dialogue: 0,0:24:42.70,0:24:44.32,Chinese,,0,0,0,,你可以有低潮
+Dialogue: 0,0:24:42.70,0:24:44.32,English,,0,0,0,,You are allowed to have low periods.
+Dialogue: 0,0:24:44.32,0:24:45.54,Chinese,,0,0,0,,可以写不出来
+Dialogue: 0,0:24:44.32,0:24:45.54,English,,0,0,0,,You are allowed to be unable to write.
+Dialogue: 0,0:24:45.54,0:24:46.88,Chinese,,0,0,0,,可以不想说话
+Dialogue: 0,0:24:45.54,0:24:46.88,English,,0,0,0,,It's okay not to feel like talking
+Dialogue: 0,0:24:46.88,0:24:49.52,Chinese,,0,0,0,,可以在完成一件大事之后突然空
+Dialogue: 0,0:24:46.88,0:24:49.52,English,,0,0,0,,It's okay to suddenly feel empty after accomplishing something big
+Dialogue: 0,0:24:49.52,0:24:50.50,Chinese,,0,0,0,,下来
+Dialogue: 0,0:24:49.52,0:24:50.50,English,,0,0,0,,to come down from it
+Dialogue: 0,0:24:50.50,0:24:52.34,Chinese,,0,0,0,,这些都不是失败
+Dialogue: 0,0:24:50.50,0:24:52.34,English,,0,0,0,,None of this is failure
+Dialogue: 0,0:24:52.34,0:24:54.58,Chinese,,0,0,0,,而是身心在提醒你
+Dialogue: 0,0:24:52.34,0:24:54.58,English,,0,0,0,,It's your body and mind reminding you
+Dialogue: 0,0:24:54.58,0:24:56.78,Chinese,,0,0,0,,需要重新分配力气
+Dialogue: 0,0:24:54.58,0:24:56.78,English,,0,0,0,,that you need to redistribute your strength
+Dialogue: 0,0:24:56.78,0:24:59.00,Chinese,,0,0,0,,请允许自己慢一点
+Dialogue: 0,0:24:56.78,0:24:59.00,English,,0,0,0,,Please allow yourself to slow down a little
+Dialogue: 0,0:24:59.00,0:25:00.68,Chinese,,0,0,0,,真正的恢复
+Dialogue: 0,0:24:59.00,0:25:00.68,English,,0,0,0,,True recovery
+Dialogue: 0,0:25:00.68,0:25:03.32,Chinese,,0,0,0,,不是回到过去那个完美运转的自
+Dialogue: 0,0:25:00.68,0:25:03.32,English,,0,0,0,,is not about returning to that perfectly functioning self
+Dialogue: 0,0:25:03.32,0:25:03.84,Chinese,,0,0,0,,己
+Dialogue: 0,0:25:03.32,0:25:03.84,English,,0,0,0,,you once were
+Dialogue: 0,0:25:03.84,0:25:05.62,Chinese,,0,0,0,,而是在新的生活里
+Dialogue: 0,0:25:03.84,0:25:05.62,English,,0,0,0,,but about finding, within a new life,
+Dialogue: 0,0:25:05.62,0:25:07.72,Chinese,,0,0,0,,找到新的呼吸方式
+Dialogue: 0,0:25:05.62,0:25:07.72,English,,0,0,0,,a new way to breathe
+Dialogue: 0,0:25:07.72,0:25:11.08,Chinese,,0,0,0,,《山茶的情书》最动人的地方
+Dialogue: 0,0:25:07.72,0:25:11.08,English,,0,0,0,,Perhaps the most moving thing about Love Letters of Camellia
+Dialogue: 0,0:25:11.08,0:25:14.04,Chinese,,0,0,0,,也许就在它不追求彻底的解决
+Dialogue: 0,0:25:11.08,0:25:14.04,English,,0,0,0,,is that it does not chase a complete resolution
+Dialogue: 0,0:25:14.04,0:25:16.32,Chinese,,0,0,0,,阳菜还会继续长大
+Dialogue: 0,0:25:14.04,0:25:16.32,English,,0,0,0,,Hina will keep growing up
+Dialogue: 0,0:25:16.32,0:25:18.16,Chinese,,0,0,0,,鸠子还会继续摸索
+Dialogue: 0,0:25:16.32,0:25:18.16,English,,0,0,0,,Hatoko will keep feeling her way forward
+Dialogue: 0,0:25:18.16,0:25:20.60,Chinese,,0,0,0,,代笔屋还会迎来新的委托
+Dialogue: 0,0:25:18.16,0:25:20.60,English,,0,0,0,,the letter-writing shop will keep receiving new commissions
+Dialogue: 0,0:25:20.60,0:25:22.66,Chinese,,0,0,0,,旧屋的冬天仍旧寒冷
+Dialogue: 0,0:25:20.60,0:25:22.66,English,,0,0,0,,the old house will still be cold in winter
+Dialogue: 0,0:25:22.66,0:25:25.40,Chinese,,0,0,0,,热红酒也许还会在某个夜晚被煮
+Dialogue: 0,0:25:22.66,0:25:25.40,English,,0,0,0,,and mulled wine may yet be simmered on some night
+Dialogue: 0,0:25:25.40,0:25:26.06,Chinese,,0,0,0,,起
+Dialogue: 0,0:25:25.40,0:25:26.06,English,,0,0,0,,once again
+Dialogue: 0,0:25:26.06,0:25:29.04,Chinese,,0,0,0,,生活不会因为一本书的结束就变
+Dialogue: 0,0:25:26.06,0:25:29.04,English,,0,0,0,,Life doesn't become tidy just because a book comes to an end.
+Dialogue: 0,0:25:29.04,0:25:30.22,Chinese,,0,0,0,,得整齐
+Dialogue: 0,0:25:29.04,0:25:30.22,English,,0,0,0,,and neatly ordered.
+Dialogue: 0,0:25:30.22,0:25:31.78,Chinese,,0,0,0,,可我们听完之后
+Dialogue: 0,0:25:30.22,0:25:31.78,English,,0,0,0,,But after listening,
+Dialogue: 0,0:25:31.78,0:25:34.32,Chinese,,0,0,0,,心里会多一点柔软的耐心
+Dialogue: 0,0:25:31.78,0:25:34.32,English,,0,0,0,,our hearts gain a little more gentle patience.
+Dialogue: 0,0:25:34.32,0:25:35.40,Chinese,,0,0,0,,我们知道
+Dialogue: 0,0:25:34.32,0:25:35.40,English,,0,0,0,,We come to understand
+Dialogue: 0,0:25:35.40,0:25:38.56,Chinese,,0,0,0,,人与人之间的关系可以慢慢修补
+Dialogue: 0,0:25:35.40,0:25:38.56,English,,0,0,0,,that relationships between people can be mended slowly.
+Dialogue: 0,0:25:38.56,0:25:41.60,Chinese,,0,0,0,,迟到的心意仍然有机会被理解
+Dialogue: 0,0:25:38.56,0:25:41.60,English,,0,0,0,,Belated feelings can still find a chance to be understood.
+Dialogue: 0,0:25:41.60,0:25:44.28,Chinese,,0,0,0,,沉默的季节也有它的意义
+Dialogue: 0,0:25:41.60,0:25:44.28,English,,0,0,0,,Even seasons of silence have their meaning.
+Dialogue: 0,0:25:44.28,0:25:46.38,Chinese,,0,0,0,,山茶花开的时候
+Dialogue: 0,0:25:44.28,0:25:46.38,English,,0,0,0,,When the camellias bloom,
+Dialogue: 0,0:25:46.38,0:25:47.64,Chinese,,0,0,0,,并不热闹
+Dialogue: 0,0:25:46.38,0:25:47.64,English,,0,0,0,,there is no fanfare.
+Dialogue: 0,0:25:47.64,0:25:50.56,Chinese,,0,0,0,,它在寒风里保持自己的红
+Dialogue: 0,0:25:47.64,0:25:50.56,English,,0,0,0,,They keep their own red alive in the cold wind,
+Dialogue: 0,0:25:50.56,0:25:53.42,Chinese,,0,0,0,,像一封没有大声朗读的情书
+Dialogue: 0,0:25:50.56,0:25:53.42,English,,0,0,0,,like a love letter never read aloud.
+Dialogue: 0,0:25:53.42,0:25:54.90,Chinese,,0,0,0,,它告诉我们
+Dialogue: 0,0:25:53.42,0:25:54.90,English,,0,0,0,,They tell us
+Dialogue: 0,0:25:54.90,0:25:56.70,Chinese,,0,0,0,,爱不一定总是汹涌
+Dialogue: 0,0:25:54.90,0:25:56.70,English,,0,0,0,,that love doesn't always have to be overwhelming.
+Dialogue: 0,0:25:56.70,0:25:58.54,Chinese,,0,0,0,,也可以是克制的守候
+Dialogue: 0,0:25:56.70,0:25:58.54,English,,0,0,0,,It can also be a restrained kind of waiting.
+Dialogue: 0,0:25:58.54,0:26:00.70,Chinese,,0,0,0,,陪伴不一定总在身边
+Dialogue: 0,0:25:58.54,0:26:00.70,English,,0,0,0,,Companionship doesn't always have to be by your side.
+Dialogue: 0,0:26:00.70,0:26:03.88,Chinese,,0,0,0,,也可以藏在一张纸、一句话、一
+Dialogue: 0,0:26:00.70,0:26:03.88,English,,0,0,0,,It can also be tucked inside a sheet of paper, a single sentence, or a
+Dialogue: 0,0:26:03.88,0:26:05.52,Chinese,,0,0,0,,段被记住的时光里
+Dialogue: 0,0:26:03.88,0:26:05.52,English,,0,0,0,,stretch of time that someone remembers.
+Dialogue: 0,0:26:05.52,0:26:08.92,Chinese,,0,0,0,,今晚的故事就让它停在这里吧
+Dialogue: 0,0:26:05.52,0:26:08.92,English,,0,0,0,,Let's let tonight's story stop here.
+Dialogue: 0,0:26:08.92,0:26:11.66,Chinese,,0,0,0,,请把那些尚未说出口的话
+Dialogue: 0,0:26:08.92,0:26:11.66,English,,0,0,0,,Please keep those words you have yet to say
+Dialogue: 0,0:26:11.66,0:26:14.42,Chinese,,0,0,0,,暂时放在心里最安全的地方
+Dialogue: 0,0:26:11.66,0:26:14.42,English,,0,0,0,,Keep it for now in the safest place in your heart
+Dialogue: 0,0:26:14.42,0:26:16.26,Chinese,,0,0,0,,也许明天醒来
+Dialogue: 0,0:26:14.42,0:26:16.26,English,,0,0,0,,Maybe when you wake up tomorrow
+Dialogue: 0,0:26:16.26,0:26:18.16,Chinese,,0,0,0,,你会愿意写下一句
+Dialogue: 0,0:26:16.26,0:26:18.16,English,,0,0,0,,you’ll be willing to write the next line
+Dialogue: 0,0:26:18.16,0:26:19.76,Chinese,,0,0,0,,也许还不会
+Dialogue: 0,0:26:18.16,0:26:19.76,English,,0,0,0,,or maybe not yet
+Dialogue: 0,0:26:19.76,0:26:21.28,Chinese,,0,0,0,,那也没有关系
+Dialogue: 0,0:26:19.76,0:26:21.28,English,,0,0,0,,and that’s okay too
+Dialogue: 0,0:26:21.28,0:26:23.04,Chinese,,0,0,0,,信可以慢慢写
+Dialogue: 0,0:26:21.28,0:26:23.04,English,,0,0,0,,A letter can be written slowly
+Dialogue: 0,0:26:23.04,0:26:25.10,Chinese,,0,0,0,,人生也可以慢慢过
+Dialogue: 0,0:26:23.04,0:26:25.10,English,,0,0,0,,and life can be lived slowly too
+Dialogue: 0,0:26:25.10,0:26:28.20,Chinese,,0,0,0,,愿你在这个夜晚被温柔包围
+Dialogue: 0,0:26:25.10,0:26:28.20,English,,0,0,0,,May you be wrapped in tenderness tonight
+Dialogue: 0,0:26:28.20,0:26:30.52,Chinese,,0,0,0,,愿你心里那些没有寄出的信
+Dialogue: 0,0:26:28.20,0:26:30.52,English,,0,0,0,,May all the letters in your heart that were never sent
+Dialogue: 0,0:26:30.52,0:26:33.16,Chinese,,0,0,0,,都有一天找到安放之处
+Dialogue: 0,0:26:30.52,0:26:33.16,English,,0,0,0,,one day find a place to rest
+Dialogue: 0,0:26:33.16,0:26:35.00,Chinese,,0,0,0,,愿你像山茶一样
+Dialogue: 0,0:26:33.16,0:26:35.00,English,,0,0,0,,May you be like a camellia
+Dialogue: 0,0:26:35.00,0:26:37.04,Chinese,,0,0,0,,在寒冷里也保有颜色
+Dialogue: 0,0:26:35.00,0:26:37.04,English,,0,0,0,,keeping your color even in the cold
+Dialogue: 0,0:26:37.04,0:26:38.48,Chinese,,0,0,0,,像明日叶一样
+Dialogue: 0,0:26:37.04,0:26:38.48,English,,0,0,0,,like ashitaba
+Dialogue: 0,0:26:38.48,0:26:41.08,Chinese,,0,0,0,,相信明天还会长出新的叶子
+Dialogue: 0,0:26:38.48,0:26:41.08,English,,0,0,0,,believing new leaves will grow again tomorrow
+Dialogue: 0,0:26:41.08,0:26:42.54,Chinese,,0,0,0,,也像鸠子一样
+Dialogue: 0,0:26:41.08,0:26:42.54,English,,0,0,0,,and like Hatoko too
+Dialogue: 0,0:26:42.54,0:26:44.08,Chinese,,0,0,0,,即使一度停下
+Dialogue: 0,0:26:42.54,0:26:44.08,English,,0,0,0,,even if you once came to a stop
+Dialogue: 0,0:26:44.08,0:26:45.98,Chinese,,0,0,0,,也终会在自己的节奏里
+Dialogue: 0,0:26:44.08,0:26:45.98,English,,0,0,0,,you will, in your own rhythm,
+Dialogue: 0,0:26:45.98,0:26:47.36,Chinese,,0,0,0,,重新铺开信纸
+Dialogue: 0,0:26:45.98,0:26:47.36,English,,0,0,0,,unfold the letter paper once more
+Dialogue: 0,0:26:47.36,0:26:49.88,Chinese,,0,0,0,,写下属于生活的下一行
+Dialogue: 0,0:26:47.36,0:26:49.88,English,,0,0,0,,and write the next line that belongs to life
+Dialogue: 0,0:26:49.88,0:26:53.40,Chinese,,0,0,0,,温柔解读小川糸《山茶的情书》
+Dialogue: 0,0:26:49.88,0:26:53.40,English,,0,0,0,,A gentle reading of Ito Ogawa’s The Camellia Love Letter
+Dialogue: 0,0:26:53.40,0:26:56.14,Chinese,,0,0,0,,从山茶文具店重新开门
+Dialogue: 0,0:26:53.40,0:26:56.14,English,,0,0,0,,From the reopening of the Camellia Stationery Shop
+Dialogue: 0,0:26:56.14,0:27:00.14,Chinese,,0,0,0,,到家人、旧信、离别与自我修复
+Dialogue: 0,0:26:56.14,0:27:00.14,English,,0,0,0,,to family, old letters, farewells, and self-healing
+Dialogue: 0,0:27:00.14,0:27:02.14,Chinese,,0,0,0,,在镰仓四季的光影里
+Dialogue: 0,0:27:00.14,0:27:02.14,English,,0,0,0,,in the shifting light of Kamakura’s four seasons
+Dialogue: 0,0:27:02.14,0:27:05.04,Chinese,,0,0,0,,陪你慢慢听见生活深处的回声
+Dialogue: 0,0:27:02.14,0:27:05.04,English,,0,0,0,,we’ll help you slowly hear the echoes deep within everyday life
+Dialogue: 0,0:27:05.04,0:27:08.88,Chinese,,0,0,0,,适合睡前、通勤、独处时安静收
+Dialogue: 0,0:27:05.04,0:27:08.88,English,,0,0,0,,perfect for quiet listening before bed, on your commute, or when you’re alone
+Dialogue: 0,0:27:08.88,0:27:09.54,Chinese,,0,0,0,,听
+Dialogue: 0,0:27:08.88,0:27:09.54,English,,0,0,0,,listen
+Dialogue: 0,0:27:09.54,0:27:12.64,Chinese,,0,0,0,,这一段可以作为旁白的延展：从
+Dialogue: 0,0:27:09.54,0:27:12.64,English,,0,0,0,,This section can serve as an extension of the narration: starting from
+Dialogue: 0,0:27:12.64,0:27:14.74,Chinese,,0,0,0,,人物处境进入主题
+Dialogue: 0,0:27:12.64,0:27:14.74,English,,0,0,0,,the characters’ circumstances and moving into the theme
+Dialogue: 0,0:27:14.74,0:27:17.00,Chinese,,0,0,0,,再回到读者自身的经验
+Dialogue: 0,0:27:14.74,0:27:17.00,English,,0,0,0,,then returning to the reader’s own experiences
+Dialogue: 0,0:27:17.00,0:27:18.56,Chinese,,0,0,0,,让内容更完整
+Dialogue: 0,0:27:17.00,0:27:18.56,English,,0,0,0,,to make the content feel more complete
+Dialogue: 0,0:27:18.56,0:27:21.32,Chinese,,0,0,0,,也更适合三十分钟听书视频的节
+Dialogue: 0,0:27:18.56,0:27:21.32,English,,0,0,0,,and better suited to the pacing of a thirty-minute audiobook video
+Dialogue: 0,0:27:21.32,0:27:21.98,Chinese,,0,0,0,,奏
+Dialogue: 0,0:27:21.32,0:27:21.98,English,,0,0,0,,rhythm
+Dialogue: 0,0:27:21.98,0:27:25.52,Chinese,,0,0,0,,温柔解读小川糸《山茶的情书》
+Dialogue: 0,0:27:21.98,0:27:25.52,English,,0,0,0,,A gentle reading of Ito Ogawa’s The Letters of Camellia
+Dialogue: 0,0:27:25.52,0:27:28.26,Chinese,,0,0,0,,从山茶文具店重新开门
+Dialogue: 0,0:27:25.52,0:27:28.26,English,,0,0,0,,From the reopening of the Camellia Stationery Shop
+Dialogue: 0,0:27:28.26,0:27:32.26,Chinese,,0,0,0,,到家人、旧信、离别与自我修复
+Dialogue: 0,0:27:28.26,0:27:32.26,English,,0,0,0,,to family, old letters, farewells, and self-healing
+Dialogue: 0,0:27:32.26,0:27:34.26,Chinese,,0,0,0,,在镰仓四季的光影里
+Dialogue: 0,0:27:32.26,0:27:34.26,English,,0,0,0,,in the shifting light of Kamakura’s four seasons
+Dialogue: 0,0:27:34.26,0:27:37.16,Chinese,,0,0,0,,陪你慢慢听见生活深处的回声
+Dialogue: 0,0:27:34.26,0:27:37.16,English,,0,0,0,,we’ll help you slowly hear the echoes deep within everyday life
+Dialogue: 0,0:27:37.16,0:27:40.96,Chinese,,0,0,0,,适合睡前、通勤、独处时安静收
+Dialogue: 0,0:27:37.16,0:27:40.96,English,,0,0,0,,perfect for quiet listening before bed, on your commute, or when you’re alone
+Dialogue: 0,0:27:40.96,0:27:41.66,Chinese,,0,0,0,,听
+Dialogue: 0,0:27:40.96,0:27:41.66,English,,0,0,0,,listen
+Dialogue: 0,0:27:41.66,0:27:44.92,Chinese,,0,0,0,,这一段可以作为旁白的延展：从
+Dialogue: 0,0:27:41.66,0:27:44.92,English,,0,0,0,,This section can serve as an extension of the narration: starting from
+Dialogue: 0,0:27:44.92,0:27:46.86,Chinese,,0,0,0,,人物处境进入主题
+Dialogue: 0,0:27:44.92,0:27:46.86,English,,0,0,0,,The characters' circumstances bring us into the theme
+Dialogue: 0,0:27:46.86,0:27:49.12,Chinese,,0,0,0,,再回到读者自身的经验
+Dialogue: 0,0:27:46.86,0:27:49.12,English,,0,0,0,,then lead us back to the reader's own experience
+Dialogue: 0,0:27:49.12,0:27:50.68,Chinese,,0,0,0,,让内容更完整
+Dialogue: 0,0:27:49.12,0:27:50.68,English,,0,0,0,,making the content feel more complete
+Dialogue: 0,0:27:50.68,0:27:53.44,Chinese,,0,0,0,,也更适合三十分钟听书视频的节
+Dialogue: 0,0:27:50.68,0:27:53.44,English,,0,0,0,,and better suited to the pacing of a thirty-minute audiobook video
+Dialogue: 0,0:27:53.44,0:27:54.10,Chinese,,0,0,0,,奏
+Dialogue: 0,0:27:53.44,0:27:54.10,English,,0,0,0,,rhythm
+Dialogue: 0,0:27:54.10,0:27:57.64,Chinese,,0,0,0,,温柔解读小川糸《山茶的情书》
+Dialogue: 0,0:27:54.10,0:27:57.64,English,,0,0,0,,A gentle reading of Ito Ogawa's Camellia Letters
+Dialogue: 0,0:27:57.64,0:28:00.36,Chinese,,0,0,0,,从山茶文具店重新开门
+Dialogue: 0,0:27:57.64,0:28:00.36,English,,0,0,0,,from the reopening of the Camellia Stationery Store
+Dialogue: 0,0:28:00.36,0:28:04.38,Chinese,,0,0,0,,到家人、旧信、离别与自我修复
+Dialogue: 0,0:28:00.36,0:28:04.38,English,,0,0,0,,to family, old letters, farewells, and self-healing
+Dialogue: 0,0:28:04.38,0:28:06.38,Chinese,,0,0,0,,在镰仓四季的光影里
+Dialogue: 0,0:28:04.38,0:28:06.38,English,,0,0,0,,amid the changing light and shadows of Kamakura's four seasons
+Dialogue: 0,0:28:06.38,0:28:09.28,Chinese,,0,0,0,,陪你慢慢听见生活深处的回声
+Dialogue: 0,0:28:06.38,0:28:09.28,English,,0,0,0,,accompanying you as you slowly hear the echoes deep within everyday life
+Dialogue: 0,0:28:09.28,0:28:13.08,Chinese,,0,0,0,,适合睡前、通勤、独处时安静收
+Dialogue: 0,0:28:09.28,0:28:13.08,English,,0,0,0,,perfect for quiet listening before bed, on your commute, or when you're alone
+Dialogue: 0,0:28:13.08,0:28:13.78,Chinese,,0,0,0,,听
+Dialogue: 0,0:28:13.08,0:28:13.78,English,,0,0,0,,listen
+Dialogue: 0,0:28:13.78,0:28:16.96,Chinese,,0,0,0,,这一段可以作为旁白的延展：从
+Dialogue: 0,0:28:13.78,0:28:16.96,English,,0,0,0,,This section can serve as an extended voiceover: from
+Dialogue: 0,0:28:16.96,0:28:18.98,Chinese,,0,0,0,,人物处境进入主题
+Dialogue: 0,0:28:16.96,0:28:18.98,English,,0,0,0,,the characters' circumstances bringing us into the theme
+Dialogue: 0,0:28:18.98,0:28:21.24,Chinese,,0,0,0,,再回到读者自身的经验
+Dialogue: 0,0:28:18.98,0:28:21.24,English,,0,0,0,,then leading us back to the reader's own experience
+Dialogue: 0,0:28:21.24,0:28:22.80,Chinese,,0,0,0,,让内容更完整
+Dialogue: 0,0:28:21.24,0:28:22.80,English,,0,0,0,,making the content feel more complete
+Dialogue: 0,0:28:22.80,0:28:25.56,Chinese,,0,0,0,,也更适合三十分钟听书视频的节
+Dialogue: 0,0:28:22.80,0:28:25.56,English,,0,0,0,,and better suited to the pacing of a thirty-minute audiobook video
+Dialogue: 0,0:28:25.56,0:28:26.22,Chinese,,0,0,0,,奏
+Dialogue: 0,0:28:25.56,0:28:26.22,English,,0,0,0,,rhythm
+Dialogue: 0,0:28:26.22,0:28:29.76,Chinese,,0,0,0,,温柔解读小川糸《山茶的情书》
+Dialogue: 0,0:28:26.22,0:28:29.76,English,,0,0,0,,A gentle reading of Ito Ogawa's Camellia Letters
+Dialogue: 0,0:28:29.76,0:28:32.50,Chinese,,0,0,0,,从山茶文具店重新开门
+Dialogue: 0,0:28:29.76,0:28:32.50,English,,0,0,0,,from the reopening of the Camellia Stationery Store
+Dialogue: 0,0:28:32.50,0:28:36.50,Chinese,,0,0,0,,到家人、旧信、离别与自我修复
+Dialogue: 0,0:28:32.50,0:28:36.50,English,,0,0,0,,to family, old letters, farewells, and self-healing
+Dialogue: 0,0:28:36.50,0:28:38.50,Chinese,,0,0,0,,在镰仓四季的光影里
+Dialogue: 0,0:28:36.50,0:28:38.50,English,,0,0,0,,In the shifting light of Kamakura through the seasons
+Dialogue: 0,0:28:38.50,0:28:41.40,Chinese,,0,0,0,,陪你慢慢听见生活深处的回声
+Dialogue: 0,0:28:38.50,0:28:41.40,English,,0,0,0,,Letting you slowly hear the echoes deep within everyday life
+Dialogue: 0,0:28:41.40,0:28:45.20,Chinese,,0,0,0,,适合睡前、通勤、独处时安静收
+Dialogue: 0,0:28:41.40,0:28:45.20,English,,0,0,0,,Perfect for quiet listening before bed, on your commute, or when you're alone
+Dialogue: 0,0:28:45.20,0:28:45.90,Chinese,,0,0,0,,听
+Dialogue: 0,0:28:45.20,0:28:45.90,English,,0,0,0,,listen
+Dialogue: 0,0:28:45.90,0:28:48.64,Chinese,,0,0,0,,这一段可以作为旁白的延展：从
+Dialogue: 0,0:28:45.90,0:28:48.64,English,,0,0,0,,This section can serve as an extension of the narration: moving from
+Dialogue: 0,0:28:48.64,0:28:50.44,Chinese,,0,0,0,,人物处境进入主题
+Dialogue: 0,0:28:48.64,0:28:50.44,English,,0,0,0,,the characters' circumstances into the main theme
+Dialogue: 0,0:28:50.44,0:28:53.04,Chinese,,0,0,0,,再回到读者自身的经验
+Dialogue: 0,0:28:50.44,0:28:53.04,English,,0,0,0,,then returning to the reader's own experience
+Dialogue: 0,0:28:53.04,0:28:54.92,Chinese,,0,0,0,,让内容更完整
+Dialogue: 0,0:28:53.04,0:28:54.92,English,,0,0,0,,making the content feel more complete
+Dialogue: 0,0:28:54.92,0:28:57.68,Chinese,,0,0,0,,也更适合三十分钟听书视频的节
+Dialogue: 0,0:28:54.92,0:28:57.68,English,,0,0,0,,and better suited to the pacing of a thirty-minute audiobook video
+Dialogue: 0,0:28:57.68,0:28:58.34,Chinese,,0,0,0,,奏
+Dialogue: 0,0:28:57.68,0:28:58.34,English,,0,0,0,,rhythm
+Dialogue: 0,0:28:58.34,0:29:01.92,Chinese,,0,0,0,,温柔解读小川糸《山茶的情书》
+Dialogue: 0,0:28:58.34,0:29:01.92,English,,0,0,0,,A gentle reading of Ito Ogawa's The Camellia Letters
+Dialogue: 0,0:29:01.92,0:29:04.72,Chinese,,0,0,0,,从山茶文具店重新开门
+Dialogue: 0,0:29:01.92,0:29:04.72,English,,0,0,0,,From the reopening of the Camellia Stationery Shop
+Dialogue: 0,0:29:04.72,0:29:07.00,Chinese,,0,0,0,,到家人、旧信、离别与自我修复
+Dialogue: 0,0:29:04.72,0:29:07.00,English,,0,0,0,,to family, old letters, farewells, and self-healing
+Dialogue: 0,0:29:07.00,0:29:09.56,Chinese,,0,0,0,,在镰仓四季的光影里
+Dialogue: 0,0:29:07.00,0:29:09.56,English,,0,0,0,,In the shifting light of Kamakura through the seasons
+Dialogue: 0,0:29:09.56,0:29:13.62,Chinese,,0,0,0,,陪你慢慢听见生活深处的回声
+Dialogue: 0,0:29:09.56,0:29:13.62,English,,0,0,0,,Letting you slowly hear the echoes deep within everyday life
+Dialogue: 0,0:29:13.62,0:29:17.44,Chinese,,0,0,0,,适合睡前、通勤、独处时安静收
+Dialogue: 0,0:29:13.62,0:29:17.44,English,,0,0,0,,Perfect for quiet listening before bed, on your commute, or when you're alone
+Dialogue: 0,0:29:17.44,0:29:18.14,Chinese,,0,0,0,,听
+Dialogue: 0,0:29:17.44,0:29:18.14,English,,0,0,0,,listen
+Dialogue: 0,0:29:18.14,0:29:20.88,Chinese,,0,0,0,,这一段可以作为旁白的延展：从
+Dialogue: 0,0:29:18.14,0:29:20.88,English,,0,0,0,,This section can serve as an extension of the narration: moving from
+Dialogue: 0,0:29:20.88,0:29:23.32,Chinese,,0,0,0,,人物处境进入主题
+Dialogue: 0,0:29:20.88,0:29:23.32,English,,0,0,0,,the characters' circumstances into the main theme
+Dialogue: 0,0:29:23.32,0:29:25.56,Chinese,,0,0,0,,再回到读者自身的经验
+Dialogue: 0,0:29:23.32,0:29:25.56,English,,0,0,0,,then return to the reader’s own experience
+Dialogue: 0,0:29:25.56,0:29:27.14,Chinese,,0,0,0,,让内容更完整
+Dialogue: 0,0:29:25.56,0:29:27.14,English,,0,0,0,,to make the content feel more complete
+Dialogue: 0,0:29:27.14,0:29:29.92,Chinese,,0,0,0,,也更适合三十分钟听书视频的节
+Dialogue: 0,0:29:27.14,0:29:29.92,English,,0,0,0,,and better suited to the pacing of a thirty-minute audiobook video
+Dialogue: 0,0:29:29.92,0:29:30.56,Chinese,,0,0,0,,奏
+Dialogue: 0,0:29:29.92,0:29:30.56,English,,0,0,0,,rhythm
+Dialogue: 0,0:29:30.56,0:29:34.12,Chinese,,0,0,0,,温柔解读小川糸《山茶的情书》
+Dialogue: 0,0:29:30.56,0:29:34.12,English,,0,0,0,,A gentle reading of Ito Ogawa’s Tsubaki Stationery Store
+Dialogue: 0,0:29:34.12,0:29:36.84,Chinese,,0,0,0,,从山茶文具店重新开门
+Dialogue: 0,0:29:34.12,0:29:36.84,English,,0,0,0,,from the reopening of the Tsubaki Stationery Store
+Dialogue: 0,0:29:36.84,0:29:40.86,Chinese,,0,0,0,,到家人、旧信、离别与自我修复
+Dialogue: 0,0:29:36.84,0:29:40.86,English,,0,0,0,,to family, old letters, farewells, and self-healing
+Dialogue: 0,0:29:40.86,0:29:42.86,Chinese,,0,0,0,,在镰仓四季的光影里
+Dialogue: 0,0:29:40.86,0:29:42.86,English,,0,0,0,,amid the changing light and shadows of Kamakura’s four seasons
+Dialogue: 0,0:29:42.86,0:29:45.74,Chinese,,0,0,0,,陪你慢慢听见生活深处的回声
+Dialogue: 0,0:29:42.86,0:29:45.74,English,,0,0,0,,guiding you to slowly hear the echoes deep within everyday life
+Dialogue: 0,0:29:45.74,0:29:49.56,Chinese,,0,0,0,,适合睡前、通勤、独处时安静收
+Dialogue: 0,0:29:45.74,0:29:49.56,English,,0,0,0,,perfect for quiet listening before bed, on your commute, or when you’re alone
+Dialogue: 0,0:29:49.56,0:29:50.26,Chinese,,0,0,0,,听
+Dialogue: 0,0:29:49.56,0:29:50.26,English,,0,0,0,,listening
+Dialogue: 0,0:29:50.26,0:29:53.52,Chinese,,0,0,0,,这一段可以作为旁白的延展：从
+Dialogue: 0,0:29:50.26,0:29:53.52,English,,0,0,0,,This section can serve as an expanded voiceover: moving from
+Dialogue: 0,0:29:53.52,0:29:55.44,Chinese,,0,0,0,,人物处境进入主题
+Dialogue: 0,0:29:53.52,0:29:55.44,English,,0,0,0,,the characters’ circumstances into the central themes
+Dialogue: 0,0:29:55.44,0:29:57.36,Chinese,,0,0,0,,再回到读者自身的经验
+Dialogue: 0,0:29:55.44,0:29:57.36,English,,0,0,0,,then returning to the reader’s own experience
+Dialogue: 0,0:29:57.36,0:29:59.26,Chinese,,0,0,0,,让内容更完整
+Dialogue: 0,0:29:57.36,0:29:59.26,English,,0,0,0,,to make the content feel more complete
+Dialogue: 0,0:29:59.26,0:30:02.00,Chinese,,0,0,0,,也更适合三十分钟听书视频的节
+Dialogue: 0,0:29:59.26,0:30:02.00,English,,0,0,0,,and better suited to the pacing of a thirty-minute audiobook video
+Dialogue: 0,0:30:02.00,0:30:02.92,Chinese,,0,0,0,,奏
+Dialogue: 0,0:30:02.00,0:30:02.92,English,,0,0,0,,rhythm

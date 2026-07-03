@@ -7,6 +7,8 @@ import type {
   AppStatePayload,
   FeishuSendRequest,
   FeishuSendResult,
+  GetOperationLogsRequest,
+  GetOperationLogsResult,
   UpdateInfo
 } from "@/types";
 
@@ -34,5 +36,8 @@ export const frameworkApi = {
   },
   sendFeishuMessage(request: FeishuSendRequest) {
     return callCommand<FeishuSendResult>("send_feishu_message", { request });
+  },
+  getOperationLogs(request: GetOperationLogsRequest) {
+    return callCommand<GetOperationLogsResult>("get_operation_logs", { request });
   }
 };

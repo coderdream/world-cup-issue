@@ -1,0 +1,17 @@
+{
+  "created": 1782697729,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782697729.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs-rv/book_image_1782697729.png",
+      "revised_prompt": "photorealistic cinematic Japanese drama film still, medium-wide environmental shot, professional book-summary video visual, warm natural light, quiet emotional realism, realistic lived-in details, 35mm lens, 16:9, no readable text. Scene 08/8, Sea healing. Primary scene action: the woman stands at a seaside overlook at sunrise, seen from behind or three-quarter back; wooden rail, open sea, red camellias in foreground. same woman visible in every scene, East Asian woman early 30s, short black bob haircut with soft bangs, cream knit cardigan, white top, dark skirt. The woman must be clearly visible as a full-body or half-body figure, occupying about 20 to 35 percent of the frame. She must be interacting with the environment, not posing for camera, not a close-up portrait. Use blank paper and blank envelopes only, no readable words. Keep the composition cinematic and story-driven.",
+      "metrics": {
+        "colors": 18983,
+        "nonBgRatio": 0.998
+      },
+      "elapsedSeconds": 42.99,
+      "model": "SG161222/Realistic_Vision_V5.1_noVAE",
+      "device": "mps"
+    }
+  ]
+}

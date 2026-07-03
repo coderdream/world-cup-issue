@@ -1,0 +1,17 @@
+{
+  "created": 1782658911,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782658911.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs/book_image_1782658911.png",
+      "revised_prompt": "professional cinematic realistic watercolor illustration for a Chinese 30-minute book-summary video, consistent young East Asian woman with shoulder-length black hair and soft cream cardigan, quiet Japanese seaside town and warm stationery-room atmosphere, camellia flowers as recurring motif, letters and notebooks with no readable text, emotional healing tone, elegant composition, soft film lighting, detailed background, 16:9, no readable text, no logo, no watermark, scene 22 of 24, library-like corner with shelves of paper, she compares old letters and notebook pages, piecing together family memories, visualize this subtitle meaning without drawing readable text: 它告诉我们爱不一定总是汹涌也可以是克制的守候陪伴不一定总在身边也可以藏在一张纸、一句话、一段被记住的时光里今晚的故事就让它停在这里吧请把那些尚未说出口的话暂时放在心里最安全的地方也许明天醒来你会愿意写下一句也许还不会那也没有关系信可以慢慢写",
+      "metrics": {
+        "colors": 25027,
+        "nonBgRatio": 0.934
+      },
+      "elapsedSeconds": 130.97,
+      "model": "Lykon/dreamshaper-8-lcm",
+      "device": "mps"
+    }
+  ]
+}

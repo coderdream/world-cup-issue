@@ -1,0 +1,17 @@
+{
+  "created": 1782644684,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782644684.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs/book_image_1782644684.png",
+      "revised_prompt": "warm hand-drawn editorial illustration, Kamakura stationery shop at night, wooden desk with open envelope and camellia flower, soft desk lamp, mother writing a heartfelt letter, teenage daughter behind a half-open sliding door, tender emotional atmosphere, cinematic composition, watercolor and colored pencil texture, rich details, no readable text, no logo, no watermark",
+      "metrics": {
+        "colors": 21266,
+        "nonBgRatio": 0.993
+      },
+      "elapsedSeconds": 15.48,
+      "model": "Lykon/dreamshaper-8-lcm",
+      "device": "mps"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "created": 1782688263,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782688263.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs-rv/book_image_1782688263.png",
+      "revised_prompt": "photorealistic cinematic Japanese drama film still, professional book-summary video visual, warm natural light, quiet emotional realism, shallow depth of field, detailed lived-in environment, 16:9, no readable text. same main character in every image: East Asian woman in her early 30s, shoulder-length straight black bob haircut with soft bangs, cream knit cardigan over a plain white top, dark skirt, calm tired eyes, natural face, no heavy makeup. Scene 07/8, Blocked letter at night. Specific shot: single woman at a night desk under a brass lamp, pen hovering above blank paper, rain on the dark window, one cup of tea, red camellia petals. Exactly one visible person. Blank paper only, no readable words. Connect to this Chinese subtitle theme without writing text in the image: 急着解释急着证明自己没有错可有些话需要等待等待情绪沉淀等待理解加深等待自己有能力承担说出口之后的重量鸠子迟迟没有写冬马先生的信表面看是失败实际上是她对文字的敬畏她不愿用漂亮话敷衍别人的人生这样的停顿也是一种诚实睡前听这本书最适合把注意力放在那些小小的声音上线香花火落地时的轻响水桶里的水晃动的声音热红酒在锅里微微冒泡的声音汽船靠岸前发动机变慢的声音老屋里夜晚的",
+      "metrics": {
+        "colors": 9540,
+        "nonBgRatio": 0.986
+      },
+      "elapsedSeconds": 39.93,
+      "model": "SG161222/Realistic_Vision_V5.1_noVAE",
+      "device": "mps"
+    }
+  ]
+}

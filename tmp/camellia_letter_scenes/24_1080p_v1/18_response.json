@@ -1,0 +1,17 @@
+{
+  "created": 1782658305,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782658304.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs/book_image_1782658304.png",
+      "revised_prompt": "professional cinematic realistic watercolor illustration for a Chinese 30-minute book-summary video, consistent young East Asian woman with shoulder-length black hair and soft cream cardigan, quiet Japanese seaside town and warm stationery-room atmosphere, camellia flowers as recurring motif, letters and notebooks with no readable text, emotional healing tone, elegant composition, soft film lighting, detailed background, 16:9, no readable text, no logo, no watermark, scene 18 of 24, library-like corner with shelves of paper, she compares old letters and notebook pages, piecing together family memories, visualize this subtitle meaning without drawing readable text: 我们很多人都要到长大后甚至到对方离开后才慢慢看见父母或祖父母的人生他们不是天生的长辈他们也曾年轻也曾笨拙也曾在深夜里不知如何是好看见这一点并不会让过去的伤自动消失却会让心里的硬块稍微松动鸠子的成长不是变得更强势而是变得更能容纳复杂她开始明白",
+      "metrics": {
+        "colors": 26009,
+        "nonBgRatio": 0.939
+      },
+      "elapsedSeconds": 132.12,
+      "model": "Lykon/dreamshaper-8-lcm",
+      "device": "mps"
+    }
+  ]
+}

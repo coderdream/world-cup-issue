@@ -1,0 +1,17 @@
+{
+  "created": 1782688024,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782688024.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs-rv/book_image_1782688024.png",
+      "revised_prompt": "photorealistic cinematic Japanese drama film still, professional book-summary video visual, warm natural light, quiet emotional realism, shallow depth of field, detailed lived-in environment, 16:9, no readable text. same main character in every image: East Asian woman in her early 30s, shoulder-length straight black bob haircut with soft bangs, cream knit cardigan over a plain white top, dark skirt, calm tired eyes, natural face, no heavy makeup. Scene 01/8, Opening the letter shop. Specific shot: medium shot from behind her shoulder as she unlocks a small Kamakura stationery shop at dawn, envelopes and fountain pens visible inside, a red camellia pot beside the door. Exactly one visible person. Blank paper only, no readable words. Connect to this Chinese subtitle theme without writing text in the image: 今晚我们一起走进小川糸的《山茶的情书》请把灯光调暗一点把手机放远一点也许窗外有车声也许房间里只有你自己的呼吸没有关系这本书适合在这样的时刻打开它不是一部急着把人推向高潮的故事而像一封慢慢写成的信纸张柔软墨迹微湿信里有镰仓的风有旧屋的寒意有孩子长大的背影也有一个人重新学习与自己相处的漫长过程《山茶的情书》延续了山茶文具店的世界主人公雨宫鸠子继承了祖母留下的文具",
+      "metrics": {
+        "colors": 10864,
+        "nonBgRatio": 0.983
+      },
+      "elapsedSeconds": 39.52,
+      "model": "SG161222/Realistic_Vision_V5.1_noVAE",
+      "device": "mps"
+    }
+  ]
+}

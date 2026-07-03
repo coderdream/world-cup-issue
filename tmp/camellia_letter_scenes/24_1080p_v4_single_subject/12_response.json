@@ -1,0 +1,17 @@
+{
+  "created": 1782664343,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782664343.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs/book_image_1782664343.png",
+      "revised_prompt": "photorealistic cinematic Japanese drama film still, professional 30-minute book-summary video visual, warm natural movie lighting, detailed lived-in interior, emotional quiet realism, Kamakura letter shop mood, red camellia motif, paper letters and fountain pen, 16:9, no readable text. One visible main protagonist only: East Asian woman in her early 30s, shoulder-length black hair, cream cardigan, calm tired eyes. Do not show any second person. Do not show twins. Do not show crowds. Scene 12/24, Blank paper. Specific shot: single protagonist at night desk, pen hovering over blank paper, face reflected faintly in dark window, brass lamp light. Connect to subtitle theme without drawing readable words: 话治好她需要时间需要承认自己的无能为力也需要重新学习如何不把价值完全寄托在能否完成某件事上书里的温柔正在于此它不催促你振作不要求你立刻变好而是陪你坐一会儿就像有人在夜里递给你一杯温热的饮品说今天先到这里也可以明天不必一下子变得光明只要能醒来能洗脸能打开窗就已经是在往前除了鸠子的个",
+      "metrics": {
+        "colors": 18052,
+        "nonBgRatio": 0.897
+      },
+      "elapsedSeconds": 89.64,
+      "model": "Lykon/dreamshaper-8-lcm",
+      "device": "mps"
+    }
+  ]
+}

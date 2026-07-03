@@ -1,0 +1,17 @@
+{
+  "created": 1782662675,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782662675.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs/book_image_1782662675.png",
+      "revised_prompt": "cinematic realistic watercolor book illustration, professional visual for a Chinese 30-minute book-summary video, quiet Kamakura and Izu Oshima atmosphere, Japanese seaside town, camellia flowers, paper letters, fountain pens, warm natural film lighting, detailed environment, emotional healing tone, soft but rich colors, storybook realism, consistent art direction across a 24-image sequence, 16:9, no readable text, no logo, no watermark. Main protagonist: one East Asian woman in her early 30s, shoulder-length black hair, soft cream cardigan, calm tired eyes. Mother: East Asian woman in her late 50s with short grey hair and muted green cardigan, clearly older than the protagonist. Daughter: teenage East Asian girl with school uniform and ponytail, clearly much younger. When a scene includes multiple people, make them different ages, different clothes, different hairstyles, different faces. Scene 24/24, story beat: Final cover still life. Composition: cover-like final still life on a wooden desk by the window, sealed letter, notebook, fountain pen, red camellia, ferry ticket stub, warm sunrise over the sea outside, elegant book-video closing image. People rule: no people. Keep this image narratively connected to the nearby subtitle meaning, but do not draw readable words: 陪你慢慢听见生活深处的回声适合睡前、通勤、独处时安静收听这一段可以作为旁白的延展：从人物处境进入主题再回到读者自身的经验让内容更完整也更适合三十分钟听书视频的节奏温柔解读小川糸《山茶的情书》从山茶文具店重新开门到家人、旧信、离别与自我修复在镰仓四季的光影里陪你慢慢听见生活深处的回声适合睡前、通勤、独",
+      "metrics": {
+        "colors": 25064,
+        "nonBgRatio": 0.982
+      },
+      "elapsedSeconds": 80.86,
+      "model": "Lykon/dreamshaper-8-lcm",
+      "device": "mps"
+    }
+  ]
+}

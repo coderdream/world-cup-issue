@@ -1,0 +1,35 @@
+{
+  "base": "http://100.96.199.26:30018/openai/v1",
+  "model": "gpt-5.5",
+  "keyPrefix": "cr_d2b...510e",
+  "tests": [
+    {
+      "name": "models",
+      "status": 404,
+      "error": null,
+      "bodyPreview": "{\"error\":\"Not Found\",\"message\":\"Route /openai/v1/models not found\",\"timestamp\":\"2026-06-28T10:21:04.138Z\"}"
+    },
+    {
+      "name": "chat_completions",
+      "status": 500,
+      "error": null,
+      "ok": false,
+      "bodyPreview": "{\"error\":{\"message\":\"Internal server error\",\"type\":\"internal_error\",\"details\":\"getaddrinfo ENOTFOUND sub.rkshadow.site\"}}"
+    },
+    {
+      "name": "images_generations",
+      "result": {
+        "status": 200,
+        "error": null,
+        "bodyPreview": "{\"created\":1782642082,\"data\":[{\"b64_json\":\"iVBORw0KGgoAAAANSUhEUgAABgAAAAQACAIAAACoEwUVAAA6YElEQVR4nOzdwY0kSZOe4RVkwMsAIw9l+EWhJL8a1IAXysIbweMehmgOq6vKMr0iwv0ze4DnymkPi7b0zHebu//xf/73/wIAAACgsf/YfgIAAAAAbiUAAQAAADQnAAEAAAA0JwABAAAANCcAAQAAADQnAAEAAAA0JwABAAAANCcAAQAAADQnAAEAAAA0JwABAAAANCcAAQAAADQnAAEAAAA0JwABAAAANCcAAQAAADQnAAEAAAA0JwABAAAANCcAAQAAADQnAAEAAAA0JwABAAAANCcAAQAAADQnAAEAAAA0JwABAAAANCcAAQAAADQnAAEAAAA0JwABAAAANCcAAQAAADQnAAEAAAA0JwABAAAANCcAAQAAADQnAAEAAAA0JwABAAAANCcAAQAAADQnAAEAAAA0JwABAAAANCcAAQAAADQnAAEAAAA0JwABAAAANCcAAQAAADQnAAEAAAA0JwABAAAANCcAAQAAADQnAAEAAAA0JwABAAAANCcAAQAAADQnAAEAAAA0JwABAAAANCcAAQAAADQnAAEAAAA0JwABAAAANCcAAQAAADQnAAEAAAA0JwABAAAANCcAAQAAADQnAAEAAAA0JwABAAAANCcAAQAAADQnAAEAAAA0JwABAAAANJcXgP7n//jvAAAAAHttLyQCEAAAAMC9thcSAQgAAADgXtsLiQAEAAAAcK/thUQAA",
+        "imagePath": "D:\\04_GitHub\\world-cup-issue\\tmp\\codex_image_key_verify\\image_1782642080.png",
+        "width": 1536,
+        "height": 1024,
+        "sizeKB": 14.6,
+        "colors": 590,
+        "nonBgRatio": 0.081,
+        "looksLikeLowDetailLineArt": true
+      }
+    }
+  ]
+}

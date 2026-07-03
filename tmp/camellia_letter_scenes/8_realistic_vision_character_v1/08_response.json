@@ -1,0 +1,17 @@
+{
+  "created": 1782688304,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782688304.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs-rv/book_image_1782688304.png",
+      "revised_prompt": "photorealistic cinematic Japanese drama film still, professional book-summary video visual, warm natural light, quiet emotional realism, shallow depth of field, detailed lived-in environment, 16:9, no readable text. same main character in every image: East Asian woman in her early 30s, shoulder-length straight black bob haircut with soft bangs, cream knit cardigan over a plain white top, dark skirt, calm tired eyes, natural face, no heavy makeup. Scene 08/8, Healing by the sea. Specific shot: single woman seen from behind at a seaside overlook at sunrise, hands on wooden rail, open sea ahead, red camellias in foreground, hopeful ending mood. Exactly one visible person. Blank paper only, no readable words. Connect to this Chinese subtitle theme without writing text in the image: 它告诉我们爱不一定总是汹涌也可以是克制的守候陪伴不一定总在身边也可以藏在一张纸、一句话、一段被记住的时光里今晚的故事就让它停在这里吧请把那些尚未说出口的话暂时放在心里最安全的地方也许明天醒来你会愿意写下一句也许还不会那也没有关系信可以慢慢写人生也可以慢慢过愿你在这个夜晚被温柔包围愿你心里那些没有寄出的信都有一天找到安放之处愿你像山茶一样在寒冷里也保有颜色像明",
+      "metrics": {
+        "colors": 9913,
+        "nonBgRatio": 1.0
+      },
+      "elapsedSeconds": 40.05,
+      "model": "SG161222/Realistic_Vision_V5.1_noVAE",
+      "device": "mps"
+    }
+  ]
+}

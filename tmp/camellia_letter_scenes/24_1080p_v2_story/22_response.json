@@ -1,0 +1,17 @@
+{
+  "created": 1782662512,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782662512.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs/book_image_1782662512.png",
+      "revised_prompt": "cinematic realistic watercolor book illustration, professional visual for a Chinese 30-minute book-summary video, quiet Kamakura and Izu Oshima atmosphere, Japanese seaside town, camellia flowers, paper letters, fountain pens, warm natural film lighting, detailed environment, emotional healing tone, soft but rich colors, storybook realism, consistent art direction across a 24-image sequence, 16:9, no readable text, no logo, no watermark. Main protagonist: one East Asian woman in her early 30s, shoulder-length black hair, soft cream cardigan, calm tired eyes. Mother: East Asian woman in her late 50s with short grey hair and muted green cardigan, clearly older than the protagonist. Daughter: teenage East Asian girl with school uniform and ponytail, clearly much younger. When a scene includes multiple people, make them different ages, different clothes, different hairstyles, different faces. Scene 22/24, story beat: Dawn shop reopening. Composition: dawn light entering the stationery shop, protagonist lifts the shop curtain and opens the door, shelves glow warmly, new day and recovered rhythm. People rule: single protagonist only. Keep this image narratively connected to the nearby subtitle meaning, but do not draw readable words: 它告诉我们爱不一定总是汹涌也可以是克制的守候陪伴不一定总在身边也可以藏在一张纸、一句话、一段被记住的时光里今晚的故事就让它停在这里吧请把那些尚未说出口的话暂时放在心里最安全的地方也许明天醒来你会愿意写下一句也许还不会那也没有关系信可以慢慢写人生也可以慢慢过愿你在这个夜晚被温柔包围愿你心里那些没有寄出",
+      "metrics": {
+        "colors": 28213,
+        "nonBgRatio": 0.983
+      },
+      "elapsedSeconds": 79.7,
+      "model": "Lykon/dreamshaper-8-lcm",
+      "device": "mps"
+    }
+  ]
+}

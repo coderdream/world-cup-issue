@@ -1,6 +1,6 @@
 import { APP_VERSION } from "@/config/app";
 import { defaultSettings } from "@/store/defaults";
-import type { AiGenerateResult, AiTestResult, AppSettings, AppStatePayload, FeishuSendResult, UpdateInfo } from "@/types";
+import type { AiGenerateResult, AiTestResult, AppSettings, AppStatePayload, FeishuSendResult, GetOperationLogsResult, UpdateInfo } from "@/types";
 
 declare global {
   interface Window {
@@ -97,6 +97,34 @@ async function localCommand<T>(command: string, args?: Record<string, unknown>):
         ok: Boolean(settings.feishuProfile.webhookUrl),
         message: settings.feishuProfile.webhookUrl ? "飞书配置可用，本地预览模式已通过。" : "请先填写飞书 Webhook 地址。"
       } satisfies FeishuSendResult as T;
+    case "get_operation_logs":
+      {
+        const request = args?.request as { traceId?: string } | undefined;
+        const traceId = request?.traceId || "framework-preview";
+        return {
+          entries: [
+            {
+              id: 1,
+              createdAt: new Date().toISOString().slice(0, 19).replace("T", " "),
+              level: "INFO",
+              module: "app",
+              action: "startup",
+              message: "Tauri Framework started",
+              traceId
+            },
+            {
+              id: 2,
+              createdAt: new Date().toISOString().slice(0, 19).replace("T", " "),
+              level: "DEBUG",
+              module: "logs",
+              action: "preview",
+              message: "本地预览模式日志",
+              detail: "安装版会读取 SQLite operate_log 表，并支持 trace_id 过滤。",
+              traceId
+            }
+          ]
+        } satisfies GetOperationLogsResult as T;
+      }
     default:
       throw new Error(`Unsupported local command: ${command}`);
   }

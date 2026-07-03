@@ -523,6 +523,327 @@ textarea:focus {
   color: var(--gold);
 }
 
+.logs-page {
+  max-width: none;
+}
+
+.logs-panel {
+  position: relative;
+}
+
+.log-scope-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid #263b34;
+  border-radius: 7px;
+  margin: -4px 0 10px;
+  padding: 7px 10px;
+  color: #a8b9c5;
+  background: rgba(8, 20, 15, 0.52);
+  font-size: 12px;
+}
+
+.log-scope-row b {
+  color: #42e6aa;
+}
+
+.log-scope-row code {
+  min-width: 0;
+  overflow: hidden;
+  color: #9ab7ff;
+  font-family: "JetBrains Mono", "Cascadia Mono", "Consolas", monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.log-searchbar,
+.log-console-toolbar {
+  display: flex;
+  align-items: center;
+  border: 1px solid #2a3036;
+  background: #1e2024;
+}
+
+.log-searchbar {
+  min-height: 40px;
+  margin-bottom: 8px;
+}
+
+.log-console-toolbar {
+  width: fit-content;
+  min-height: 34px;
+  border-radius: 7px;
+  margin-bottom: 8px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.log-search-icon,
+.log-tool-btn,
+.log-token-btn {
+  display: grid;
+  height: 30px;
+  place-items: center;
+  border: 0;
+  border-radius: 5px;
+  color: #b9c0c9;
+  background: transparent;
+  cursor: pointer;
+}
+
+.log-search-icon {
+  width: 32px;
+}
+
+.log-tool-btn {
+  width: 30px;
+}
+
+.log-token-btn {
+  width: 30px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.log-tool-btn:hover,
+.log-token-btn:hover,
+.log-search-icon:hover,
+.log-tool-btn.active,
+.log-token-btn.active {
+  color: #f0f5f8;
+  background: #373b42;
+}
+
+.log-tool-btn.danger:hover {
+  color: #ffd6dc;
+  background: rgba(255, 83, 100, 0.2);
+}
+
+.log-tool-btn:disabled,
+.log-token-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.log-search-input {
+  position: relative;
+  display: flex;
+  min-width: 220px;
+  flex: 1;
+  align-items: center;
+  gap: 7px;
+  padding: 0 8px;
+}
+
+.log-search-input svg {
+  flex: 0 0 auto;
+  color: #aab2bd;
+}
+
+.log-search-input input {
+  width: 100%;
+  min-height: 32px;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  color: #f2f5f8;
+  background: transparent;
+  box-shadow: none;
+}
+
+.log-search-input input:focus {
+  border: 0;
+  box-shadow: none;
+}
+
+.log-search-history {
+  position: absolute;
+  z-index: 20;
+  inset: calc(100% + 5px) 0 auto 0;
+  display: grid;
+  max-height: 320px;
+  overflow: auto;
+  border: 1px solid #3a3f48;
+  border-radius: 6px;
+  padding: 7px;
+  background: #2a2d33;
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.36);
+}
+
+.log-search-history button {
+  height: 28px;
+  border: 0;
+  border-radius: 4px;
+  padding: 0 9px;
+  color: #f3f6fa;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.log-search-history button:hover {
+  background: #365286;
+}
+
+.log-match-count {
+  min-width: 58px;
+  color: #8fa0b8;
+  font-size: 12px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.log-match-count.error {
+  color: #ff8d9a;
+}
+
+.log-viewport {
+  min-height: 540px;
+  max-height: calc(100vh - 260px);
+  overflow: auto;
+  border: 1px solid #252930;
+  border-radius: 8px;
+  padding: 10px 0;
+  color: #c9d1d9;
+  background: #1b1d21;
+  font-family: "JetBrains Mono", "Cascadia Mono", "Consolas", "Microsoft YaHei UI", monospace;
+  font-size: 12px;
+  line-height: 1.7;
+  outline: none;
+  user-select: text;
+}
+
+.log-row {
+  display: block;
+  min-width: max-content;
+  padding: 1px 10px;
+  white-space: pre;
+  cursor: default;
+}
+
+.log-viewport.wrap .log-row {
+  min-width: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.log-row:hover {
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.log-row.selected {
+  background: #214c91;
+}
+
+.log-row.active-search {
+  box-shadow: inset 3px 0 #8ab4ff;
+}
+
+.log-time {
+  color: #16c7c0;
+}
+
+.log-module {
+  color: #9aa8ba;
+}
+
+.log-trace {
+  color: #7aa2f7;
+}
+
+.log-level {
+  color: #36a3ff;
+  font-weight: 700;
+}
+
+.log-level.debug {
+  color: #8b949e;
+}
+
+.log-level.warn {
+  color: #facc15;
+}
+
+.log-level.error {
+  color: #ff6678;
+}
+
+.log-action {
+  color: #c084fc;
+  font-weight: 700;
+}
+
+.log-message {
+  color: #d8dee9;
+}
+
+.log-detail {
+  display: block;
+  padding-left: 18px;
+  color: #42a5f5;
+}
+
+.log-row mark {
+  border-radius: 2px;
+  color: inherit;
+  background: #345f9e;
+  outline: 1px solid rgba(140, 185, 255, 0.32);
+}
+
+.log-empty {
+  display: grid;
+  min-height: 300px;
+  place-items: center;
+  color: #78828f;
+}
+
+.log-context-menu {
+  position: fixed;
+  z-index: 40;
+  min-width: 180px;
+  border: 1px solid #474c55;
+  border-radius: 7px;
+  padding: 6px;
+  background: #2a2d33;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.42);
+}
+
+.log-context-menu button {
+  display: flex;
+  width: 100%;
+  height: 30px;
+  align-items: center;
+  justify-content: space-between;
+  border: 0;
+  border-radius: 4px;
+  padding: 0 10px;
+  color: #eef3f8;
+  background: transparent;
+  cursor: pointer;
+}
+
+.log-context-menu button:hover {
+  background: #365286;
+}
+
+.log-context-menu button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.log-context-menu button.danger {
+  margin-top: 5px;
+  border-top: 1px solid #454a52;
+  color: #ffd6dc;
+}
+
+.log-context-menu span {
+  color: #9aa8ba;
+  font-size: 12px;
+}
+
 @media (max-width: 980px) {
   .app-shell {
     grid-template-columns: 72px minmax(0, 1fr);
@@ -545,5 +866,13 @@ textarea:focus {
 
   .field-grid {
     grid-template-columns: 1fr;
+  }
+
+  .log-searchbar {
+    flex-wrap: wrap;
+  }
+
+  .log-search-input {
+    min-width: 180px;
   }
 }

@@ -46,9 +46,11 @@ export function LogsPage() {
   const [showHistory, setShowHistory] = useState(false);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [error, setError] = useState("");
+  const [lastLoadedAt, setLastLoadedAt] = useState("");
 
   const logViewportRef = useRef<HTMLDivElement | null>(null);
   const rowRefs = useRef(new Map<number, HTMLDivElement>());
+  const shouldStickToBottomRef = useRef(true);
 
   useEffect(() => {
     let canceled = false;
@@ -56,7 +58,9 @@ export function LogsPage() {
       try {
         const result = await frameworkApi.getOperationLogs({ limit: LOG_LIMIT, traceId: currentTraceId || undefined });
         if (!canceled) {
+          shouldStickToBottomRef.current = isNearLogBottom(logViewportRef.current);
           setEntries(result.entries);
+          setLastLoadedAt(new Date().toLocaleTimeString());
           setError("");
         }
       } catch (caught) {
@@ -71,6 +75,12 @@ export function LogsPage() {
       window.clearInterval(timer);
     };
   }, [currentTraceId]);
+
+  useEffect(() => {
+    if (shouldStickToBottomRef.current) {
+      scrollToEnd();
+    }
+  }, [entries.length]);
 
   useEffect(() => {
     const closeMenu = () => setContextMenu(null);
@@ -139,6 +149,10 @@ export function LogsPage() {
           <span>当前显示</span>
           <b>{currentTraceId ? "本次生成任务" : "本次启动后日志"}</b>
           <code>{displayedTraceId || "点击生成按钮后显示对应任务日志"}</code>
+          <span>最后刷新</span>
+          <b>{lastLoadedAt || "-"}</b>
+          <span>日志条数</span>
+          <b>{String(visibleEntries.length)}</b>
         </div>
 
         <div className="log-searchbar">
@@ -443,6 +457,11 @@ function formatLogEntry(entry: OperationLogEntry) {
     entry.message,
     entry.detail ? `: ${entry.detail}` : ""
   ].join(" ");
+}
+
+function isNearLogBottom(node: HTMLDivElement | null) {
+  if (!node) return true;
+  return node.scrollHeight - node.scrollTop - node.clientHeight < 48;
 }
 
 function buildSearchRegex(query: string, options: SearchOptions) {

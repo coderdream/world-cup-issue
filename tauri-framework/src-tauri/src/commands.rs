@@ -1,8 +1,10 @@
 use crate::models::{
     AiGenerateRequest, AiGenerateResult, AiTestResult, AppSettings, AppStatePayload, ChatCompletionRequest, ChatCompletionResponse,
-    ChatMessage, FeishuSendRequest, FeishuSendResult, FeishuWebhookResponse, UpdateInfo,
+    ChatMessage, FeishuSendRequest, FeishuSendResult, FeishuWebhookResponse, GetOperationLogsRequest, GetOperationLogsResult,
+    OperationLogEntry, UpdateInfo,
 };
 use crate::operation_log::OperationLogger;
+use rusqlite::Connection;
 use std::fs;
 use std::path::PathBuf;
 use std::sync::Mutex;
@@ -11,6 +13,7 @@ use tauri::{Manager, State};
 pub struct AppData {
     settings: Mutex<AppSettings>,
     settings_path: PathBuf,
+    db_path: PathBuf,
     logger: OperationLogger,
 }
 
@@ -28,7 +31,7 @@ impl AppData {
         let settings_path = app_data_dir.join("settings.json");
         let db_path = app_data_dir.join("app.db");
         let log_dir = app_local_data_dir.join("logs");
-        let logger = OperationLogger::new(db_path, log_dir);
+        let logger = OperationLogger::new(db_path.clone(), log_dir);
 
         let settings = fs::read_to_string(&settings_path)
             .ok()
@@ -40,6 +43,7 @@ impl AppData {
         Self {
             settings: Mutex::new(settings),
             settings_path,
+            db_path,
             logger,
         }
     }
@@ -190,6 +194,79 @@ pub async fn send_feishu_message(data: State<'_, AppData>, request: FeishuSendRe
             Err(error)
         }
     }
+}
+
+#[tauri::command]
+pub fn get_operation_logs(data: State<'_, AppData>, request: GetOperationLogsRequest) -> Result<GetOperationLogsResult, CommandError> {
+    let limit = request.limit.clamp(1, 1000);
+    let trace_id = request.trace_id.as_deref().filter(|value| !value.trim().is_empty());
+    let connection = Connection::open(&data.db_path).map_err(|error| command_error(format!("读取操作日志数据库失败：{error}")))?;
+    let entries = if let Some(trace_id) = trace_id {
+        query_operation_logs_by_trace(&connection, limit, trace_id)?
+    } else {
+        query_operation_logs(&connection, limit)?
+    };
+    Ok(GetOperationLogsResult { entries })
+}
+
+fn query_operation_logs(connection: &Connection, limit: usize) -> Result<Vec<OperationLogEntry>, CommandError> {
+    let mut statement = connection
+        .prepare(
+            r#"
+            SELECT id, created_at, level, module, action, message, detail, trace_id
+            FROM operate_log
+            ORDER BY id DESC
+            LIMIT ?1
+            "#,
+        )
+        .map_err(|error| command_error(format!("准备操作日志查询失败：{error}")))?;
+    let rows = statement
+        .query_map([limit as i64], operation_log_from_row)
+        .map_err(|error| command_error(format!("查询操作日志失败：{error}")))?;
+    collect_operation_logs(rows)
+}
+
+fn query_operation_logs_by_trace(connection: &Connection, limit: usize, trace_id: &str) -> Result<Vec<OperationLogEntry>, CommandError> {
+    let mut statement = connection
+        .prepare(
+            r#"
+            SELECT id, created_at, level, module, action, message, detail, trace_id
+            FROM operate_log
+            WHERE trace_id = ?1
+            ORDER BY id DESC
+            LIMIT ?2
+            "#,
+        )
+        .map_err(|error| command_error(format!("准备任务日志查询失败：{error}")))?;
+    let rows = statement
+        .query_map((trace_id, limit as i64), operation_log_from_row)
+        .map_err(|error| command_error(format!("查询任务日志失败：{error}")))?;
+    collect_operation_logs(rows)
+}
+
+fn collect_operation_logs<F>(rows: rusqlite::MappedRows<'_, F>) -> Result<Vec<OperationLogEntry>, CommandError>
+where
+    F: FnMut(&rusqlite::Row<'_>) -> rusqlite::Result<OperationLogEntry>,
+{
+    let mut entries = Vec::new();
+    for row in rows {
+        entries.push(row.map_err(|error| command_error(format!("读取操作日志行失败：{error}")))?);
+    }
+    entries.reverse();
+    Ok(entries)
+}
+
+fn operation_log_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<OperationLogEntry> {
+    Ok(OperationLogEntry {
+        id: row.get(0)?,
+        created_at: row.get(1)?,
+        level: row.get(2)?,
+        module: row.get(3)?,
+        action: row.get(4)?,
+        message: row.get(5)?,
+        detail: row.get(6)?,
+        trace_id: row.get(7)?,
+    })
 }
 
 async fn call_ai(settings: &AppSettings, messages: Vec<ChatMessage>) -> Result<String, CommandError> {

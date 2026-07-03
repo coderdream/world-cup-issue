@@ -1,0 +1,17 @@
+{
+  "created": 1782658779,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782658779.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs/book_image_1782658779.png",
+      "revised_prompt": "professional cinematic realistic watercolor illustration for a Chinese 30-minute book-summary video, consistent young East Asian woman with shoulder-length black hair and soft cream cardigan, quiet Japanese seaside town and warm stationery-room atmosphere, camellia flowers as recurring motif, letters and notebooks with no readable text, emotional healing tone, elegant composition, soft film lighting, detailed background, 16:9, no readable text, no logo, no watermark, scene 21 of 24, library-like corner with shelves of paper, she compares old letters and notebook pages, piecing together family memories, visualize this subtitle meaning without drawing readable text: 你可以有低潮可以写不出来可以不想说话可以在完成一件大事之后突然空下来这些都不是失败而是身心在提醒你需要重新分配力气请允许自己慢一点真正的恢复不是回到过去那个完美运转的自己而是在新的生活里找到新的呼吸方式《山茶的情书》最动人的地方也许就在它不",
+      "metrics": {
+        "colors": 22972,
+        "nonBgRatio": 0.915
+      },
+      "elapsedSeconds": 166.01,
+      "model": "Lykon/dreamshaper-8-lcm",
+      "device": "mps"
+    }
+  ]
+}

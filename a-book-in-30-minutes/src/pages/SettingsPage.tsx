@@ -128,10 +128,20 @@ export function SettingsPage() {
         <p className="settings-help">菜单字体作用于左侧导航；内容字体作用于页面正文、表格和配置项。默认菜单 13px、内容 12px。</p>
         <div className="field-grid">
           <label className="field">
-            <span>素材已有则跳过</span>
+            <span>文本已有则跳过</span>
             <select
-              value={settings.pipelineProfile.skipExistingMaterials ? "yes" : "no"}
-              onChange={(event) => void updatePipelineProfile({ skipExistingMaterials: event.target.value === "yes" })}
+              value={(settings.pipelineProfile.skipExistingText ?? settings.pipelineProfile.skipExistingMaterials) ? "yes" : "no"}
+              onChange={(event) => void updatePipelineProfile({ skipExistingText: event.target.value === "yes", skipExistingMaterials: event.target.value === "yes" })}
+            >
+              <option value="yes">是</option>
+              <option value="no">否，每次重新生成</option>
+            </select>
+          </label>
+          <label className="field">
+            <span>图片已有则跳过</span>
+            <select
+              value={settings.pipelineProfile.skipExistingImages ? "yes" : "no"}
+              onChange={(event) => void updatePipelineProfile({ skipExistingImages: event.target.value === "yes" })}
             >
               <option value="yes">是</option>
               <option value="no">否，每次重新生成</option>
@@ -148,6 +158,16 @@ export function SettingsPage() {
             </select>
           </label>
           <label className="field">
+            <span>字幕已有则跳过</span>
+            <select
+              value={settings.pipelineProfile.skipExistingSubtitles ? "yes" : "no"}
+              onChange={(event) => void updatePipelineProfile({ skipExistingSubtitles: event.target.value === "yes" })}
+            >
+              <option value="yes">是</option>
+              <option value="no">否，每次重新生成</option>
+            </select>
+          </label>
+          <label className="field">
             <span>视频已有则跳过</span>
             <select
               value={settings.pipelineProfile.skipExistingVideo ? "yes" : "no"}
@@ -157,8 +177,18 @@ export function SettingsPage() {
               <option value="no">否，每次重新生成</option>
             </select>
           </label>
+          <label className="field">
+            <span>发布资料已有则跳过</span>
+            <select
+              value={settings.pipelineProfile.skipExistingPublish ? "yes" : "no"}
+              onChange={(event) => void updatePipelineProfile({ skipExistingPublish: event.target.value === "yes" })}
+            >
+              <option value="yes">是</option>
+              <option value="no">否，每次重新生成</option>
+            </select>
+          </label>
         </div>
-        <p className="settings-help">默认选择“是”，流水线会跳过已有产物；选择“否”时，对应阶段每次点击都会重新生成。</p>
+        <p className="settings-help">默认选择“是”，流水线会跳过已有产物；选择“否”时，对应阶段每次点击都会重新生成。图片和字幕当前由视频流水线生成，独立配置先用于阶段入口和后续拆分。</p>
       </Panel>
 
       <Panel>
@@ -408,6 +438,25 @@ export function SettingsPage() {
 
       <Panel>
         <SectionTitle icon={<Wrench size={16} />} title="工具路径" inline />
+        <div className="field-grid">
+          <label className="field">
+            <span>背景音乐循环方式</span>
+            <select
+              value={settings.toolProfile.backgroundMusicMode ?? "single"}
+              onChange={(event) => void updateToolProfile({ backgroundMusicMode: event.target.value as "single" | "playlist" })}
+            >
+              <option value="single">单曲循环</option>
+              <option value="playlist">列表循环</option>
+            </select>
+          </label>
+          <label className="field">
+            <span>背景音乐文件</span>
+            <input
+              value={settings.toolProfile.backgroundMusicPath ?? ""}
+              onChange={(event) => void updateToolProfile({ backgroundMusicPath: event.target.value })}
+            />
+          </label>
+        </div>
         <label className="field">
           <span>ffmpeg.exe 路径</span>
           <div className="path-input-row">
@@ -497,11 +546,18 @@ export function SettingsPage() {
   }
 
   function updatePipelineProfile(profile: Partial<typeof settings.pipelineProfile>) {
+    const nextProfile = {
+      ...settings.pipelineProfile,
+      ...profile
+    };
+    if ("skipExistingText" in profile && !("skipExistingMaterials" in profile)) {
+      nextProfile.skipExistingMaterials = nextProfile.skipExistingText;
+    }
+    if ("skipExistingMaterials" in profile && !("skipExistingText" in profile)) {
+      nextProfile.skipExistingText = nextProfile.skipExistingMaterials;
+    }
     void updateSettings({
-      pipelineProfile: {
-        ...settings.pipelineProfile,
-        ...profile
-      }
+      pipelineProfile: nextProfile
     });
   }
 

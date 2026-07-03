@@ -1,0 +1,17 @@
+{
+  "created": 1782661126,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782661126.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs/book_image_1782661126.png",
+      "revised_prompt": "cinematic realistic watercolor book illustration, professional visual for a Chinese 30-minute book-summary video, quiet Kamakura and Izu Oshima atmosphere, Japanese seaside town, camellia flowers, paper letters, fountain pens, warm natural film lighting, detailed environment, emotional healing tone, soft but rich colors, storybook realism, consistent art direction across a 24-image sequence, 16:9, no readable text, no logo, no watermark. Main protagonist: one East Asian woman in her early 30s, shoulder-length black hair, soft cream cardigan, calm tired eyes. Mother: East Asian woman in her late 50s with short grey hair and muted green cardigan, clearly older than the protagonist. Daughter: teenage East Asian girl with school uniform and ponytail, clearly much younger. When a scene includes multiple people, make them different ages, different clothes, different hairstyles, different faces. Scene 03/24, story beat: Family breakfast pressure. Composition: small family kitchen in the morning, rice bowls and miso soup on the table, the protagonist tries to manage breakfast while the older mother sits nearby with a letter, domestic pressure and tenderness in the same frame. People rule: two women only, protagonist and clearly older mother. Keep this image narratively connected to the nearby subtitle meaning, but do not draw readable words: 邀请大家在需要的时候再次来到山茶文具店这样一封信表面上是营业通知其实更像鸠子写给过去的自己和旧日时光的一封回信她终于从一段漫长的育儿假期里抬起头来看见樱花看见店门看见那个曾经坐在桌前铺开信纸的自己可是重新开始并不等于一切恢复原状人一旦走过某些岁月就不可能真的回到从前鸠子也明白过去那个独自生活、和芭芭",
+      "metrics": {
+        "colors": 29482,
+        "nonBgRatio": 0.926
+      },
+      "elapsedSeconds": 79.79,
+      "model": "Lykon/dreamshaper-8-lcm",
+      "device": "mps"
+    }
+  ]
+}

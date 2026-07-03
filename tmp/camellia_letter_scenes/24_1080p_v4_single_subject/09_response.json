@@ -1,0 +1,17 @@
+{
+  "created": 1782664098,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782664098.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs/book_image_1782664098.png",
+      "revised_prompt": "photorealistic cinematic Japanese drama film still, professional 30-minute book-summary video visual, warm natural movie lighting, detailed lived-in interior, emotional quiet realism, Kamakura letter shop mood, red camellia motif, paper letters and fountain pen, 16:9, no readable text. One visible main protagonist only: East Asian woman in her early 30s, shoulder-length black hair, cream cardigan, calm tired eyes. Do not show any second person. Do not show twins. Do not show crowds. Scene 09/24, Harbor arrival. Specific shot: single protagonist steps onto a wet island pier with the wrapped box, fishing ropes and small boats, cloudy light. Connect to subtitle theme without drawing readable words: 等多年后由另一个人轻轻打开船靠岸时天空覆着厚厚的云层鸠子对那些书信说你们很快就可以融为一体了这样一句话像为旧日情感举行的安静仪式她不是去揭开隐私也不是去评判长辈的人生而是以代笔人的温柔把曾经被分开的心意送到该去的地方书信在这里不再只是传递消息的工具它们有重量有灵魂甚至像沉睡的生命",
+      "metrics": {
+        "colors": 16069,
+        "nonBgRatio": 0.969
+      },
+      "elapsedSeconds": 86.9,
+      "model": "Lykon/dreamshaper-8-lcm",
+      "device": "mps"
+    }
+  ]
+}

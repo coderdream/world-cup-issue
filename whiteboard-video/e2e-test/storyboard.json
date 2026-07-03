@@ -1,0 +1,24 @@
+{
+  "totalDuration": 3000,
+  "sceneCount": 1,
+  "scenes": [
+    {
+      "id": "scene_001",
+      "startTime": 0,
+      "duration": 3000,
+      "segments": [
+        {
+          "text": "Codex key 需要通过中转平台生成图片和视频。",
+          "relativeStart": 0,
+          "relativeDuration": 3000
+        }
+      ],
+      "semanticTags": [
+        "codex",
+        "gateway",
+        "fallback"
+      ],
+      "visualHint": "标题居中，旁边画一个简洁的 API 网关和图片图标，强调兼容性检查。"
+    }
+  ]
+}

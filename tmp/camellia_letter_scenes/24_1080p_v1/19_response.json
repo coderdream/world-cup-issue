@@ -1,0 +1,17 @@
+{
+  "created": 1782658455,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782658455.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs/book_image_1782658455.png",
+      "revised_prompt": "professional cinematic realistic watercolor illustration for a Chinese 30-minute book-summary video, consistent young East Asian woman with shoulder-length black hair and soft cream cardigan, quiet Japanese seaside town and warm stationery-room atmosphere, camellia flowers as recurring motif, letters and notebooks with no readable text, emotional healing tone, elegant composition, soft film lighting, detailed background, 16:9, no readable text, no logo, no watermark, scene 19 of 24, library-like corner with shelves of paper, she compares old letters and notebook pages, piecing together family memories, visualize this subtitle meaning without drawing readable text: 急着解释急着证明自己没有错可有些话需要等待等待情绪沉淀等待理解加深等待自己有能力承担说出口之后的重量鸠子迟迟没有写冬马先生的信表面看是失败实际上是她对文字的敬畏她不愿用漂亮话敷衍别人的人生这样的停顿也是一种诚实睡前听这本书最适合把注意力放在",
+      "metrics": {
+        "colors": 24165,
+        "nonBgRatio": 0.898
+      },
+      "elapsedSeconds": 149.43,
+      "model": "Lykon/dreamshaper-8-lcm",
+      "device": "mps"
+    }
+  ]
+}

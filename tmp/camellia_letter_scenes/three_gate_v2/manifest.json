@@ -1,0 +1,77 @@
+{
+  "endpoint": "http://100.96.199.26:30019/v1/images/generations",
+  "createdAt": "2026-06-28 19:27:56",
+  "allPassedMetrics": true,
+  "manualGate": "passed",
+  "contactSheet": "D:\\04_GitHub\\world-cup-issue\\tmp\\camellia_letter_scenes\\three_gate_v2\\contact_sheet.png",
+  "results": [
+    {
+      "id": "scene_01_writing_letter",
+      "label": "01 writing letter",
+      "ok": true,
+      "status": 200,
+      "imageBytes": 426672,
+      "serverElapsedSeconds": 16.06,
+      "clientElapsedSeconds": 16.61,
+      "localMetrics": {
+        "width": 768,
+        "height": 432,
+        "colors": 23311,
+        "nearBlackRatio": 0.187,
+        "nearWhiteRatio": 0.013
+      },
+      "imagePath": "D:\\04_GitHub\\world-cup-issue\\tmp\\camellia_letter_scenes\\three_gate_v2\\scene_01_writing_letter.png",
+      "responsePath": "D:\\04_GitHub\\world-cup-issue\\tmp\\camellia_letter_scenes\\three_gate_v2\\scene_01_writing_letter_response.json",
+      "remotePath": "/Volumes/System/docker/book-image-service/outputs/book_image_1782646045.png",
+      "seed": 320201,
+      "prompt": "cinematic realistic watercolor illustration, intimate book-summary video background, young East Asian woman, visible handwritten letter pages with no readable text, camellia flowers, warm soft light, emotional quiet mood, detailed interior, 16:9, no readable text, no logo, no watermark, close interior shot inside a small Japanese stationery room at night, woman sitting at wooden desk writing a letter with fountain pen, brass lamp, open envelope, notebook pages, pink camellia in ceramic vase beside her hand, shelves of paper softly blurred, tender lonely atmosphere"
+    },
+    {
+      "id": "scene_02_mother_memory",
+      "label": "02 mother memory",
+      "ok": true,
+      "status": 200,
+      "imageBytes": 431907,
+      "serverElapsedSeconds": 15.14,
+      "clientElapsedSeconds": 15.48,
+      "localMetrics": {
+        "width": 768,
+        "height": 432,
+        "colors": 21932,
+        "nearBlackRatio": 0.113,
+        "nearWhiteRatio": 0.005
+      },
+      "imagePath": "D:\\04_GitHub\\world-cup-issue\\tmp\\camellia_letter_scenes\\three_gate_v2\\scene_02_mother_memory.png",
+      "responsePath": "D:\\04_GitHub\\world-cup-issue\\tmp\\camellia_letter_scenes\\three_gate_v2\\scene_02_mother_memory_response.json",
+      "remotePath": "/Volumes/System/docker/book-image-service/outputs/book_image_1782646061.png",
+      "seed": 320202,
+      "prompt": "cinematic realistic watercolor illustration, intimate book-summary video background, young East Asian woman, visible handwritten letter pages with no readable text, camellia flowers, warm soft light, emotional quiet mood, detailed interior, 16:9, no readable text, no logo, no watermark, emotional memory scene in a Japanese tatami room at dusk, mother and daughter separated by a half open sliding door, mother holding an old letter, daughter looking down quietly, low table with envelope and camellia branch, warm indoor lamp and blue evening window, restrained family tenderness"
+    },
+    {
+      "id": "scene_03_reading_by_sea",
+      "label": "03 reading by sea",
+      "ok": true,
+      "status": 200,
+      "imageBytes": 488456,
+      "serverElapsedSeconds": 15.84,
+      "clientElapsedSeconds": 16.09,
+      "localMetrics": {
+        "width": 768,
+        "height": 432,
+        "colors": 25527,
+        "nearBlackRatio": 0.183,
+        "nearWhiteRatio": 0.029
+      },
+      "imagePath": "D:\\04_GitHub\\world-cup-issue\\tmp\\camellia_letter_scenes\\three_gate_v2\\scene_03_reading_by_sea.png",
+      "responsePath": "D:\\04_GitHub\\world-cup-issue\\tmp\\camellia_letter_scenes\\three_gate_v2\\scene_03_reading_by_sea_response.json",
+      "remotePath": "/Volumes/System/docker/book-image-service/outputs/book_image_1782646077.png",
+      "seed": 320203,
+      "prompt": "cinematic realistic watercolor illustration, intimate book-summary video background, young East Asian woman, visible handwritten letter pages with no readable text, camellia flowers, warm soft light, emotional quiet mood, detailed interior, 16:9, no readable text, no logo, no watermark, morning interior by a seaside window, woman reading an old letter at a wooden table, teacup, notebook, camellia flowers on the table, misty harbor and green hills visible outside window, healing hopeful feeling, soft rain light"
+    }
+  ],
+  "manualReview": {
+    "status": "passed",
+    "notes": "Second 3-image gate passed: consistent character, letter/book action, camellia or Japanese interior motif.",
+    "reviewedAt": "2026-06-28 19:28"
+  }
+}

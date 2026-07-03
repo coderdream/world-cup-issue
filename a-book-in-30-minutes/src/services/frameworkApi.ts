@@ -16,6 +16,8 @@ import type {
   GenerateBookVideoResult,
   GeneratePublishMaterialsRequest,
   GeneratePublishMaterialsResult,
+  GetMaterialTaskStepsRequest,
+  GetMaterialTaskStepsResult,
   GetMaterialTasksRequest,
   GetSpeechVoicesResult,
   GetOperationLogsRequest,
@@ -120,5 +122,8 @@ export const frameworkApi = {
   },
   getOperationLogs(request: GetOperationLogsRequest) {
     return callCommand<GetOperationLogsResult>("get_operation_logs", { request });
+  },
+  getMaterialTaskSteps(request: GetMaterialTaskStepsRequest) {
+    return callCommand<GetMaterialTaskStepsResult>("get_material_task_steps", { request });
   }
 };

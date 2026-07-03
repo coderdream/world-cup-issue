@@ -24,8 +24,12 @@ export interface UiProfile {
 
 export interface PipelineProfile {
   skipExistingMaterials: boolean;
+  skipExistingText: boolean;
+  skipExistingImages: boolean;
   skipExistingAudio: boolean;
+  skipExistingSubtitles: boolean;
   skipExistingVideo: boolean;
+  skipExistingPublish: boolean;
 }
 
 export interface UpdateInfo {
@@ -109,6 +113,8 @@ export interface SpeechProfile {
 
 export interface ToolProfile {
   ffmpegPath: string;
+  backgroundMusicMode: "single" | "playlist";
+  backgroundMusicPath: string;
 }
 
 export interface GenerateAudioRequest {
@@ -133,6 +139,7 @@ export interface GenerateAudioResult {
 export interface GenerateBookVideoRequest {
   epubPath: string;
   traceId?: string;
+  pipelineStage?: "image" | "subtitle" | "video";
   allowPlaceholderVisuals?: boolean;
   controlledProgrammaticVisuals?: boolean;
   ignoreExistingVisualAssets?: boolean;
@@ -245,6 +252,14 @@ export interface MaterialFile {
   audioDurationMs?: number | null;
   audioChunks?: number | null;
   audioMessage: string;
+  imageStatus: "pending" | "generating" | "success" | "failed";
+  imageProgress: number;
+  imageOutputDir?: string | null;
+  imageMessage: string;
+  subtitleStatus: "pending" | "generating" | "success" | "failed";
+  subtitleProgress: number;
+  subtitleFile?: string | null;
+  subtitleMessage: string;
   videoStatus: "pending" | "generating" | "success" | "failed";
   videoProgress: number;
   videoFile?: string | null;
@@ -353,4 +368,27 @@ export interface OperationLogEntry {
 
 export interface GetOperationLogsResult {
   entries: OperationLogEntry[];
+}
+
+export interface GetMaterialTaskStepsRequest {
+  traceId?: string;
+  path?: string;
+}
+
+export interface MaterialTaskStep {
+  traceId: string;
+  path: string;
+  stepCode: string;
+  stepName: string;
+  status: "pending" | "generating" | "success" | "failed";
+  progress: number;
+  detail: string;
+  startedAt?: string | null;
+  finishedAt?: string | null;
+  elapsedMs?: number | null;
+  updatedAt: string;
+}
+
+export interface GetMaterialTaskStepsResult {
+  steps: MaterialTaskStep[];
 }

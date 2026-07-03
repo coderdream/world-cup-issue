@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Animated 5-Bar Chart Preview</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background: #08110f;
+        color: #f5fff9;
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+      }
+
+      body {
+        display: grid;
+        place-items: center;
+      }
+
+      .stage {
+        position: relative;
+        width: min(100vw, 1280px);
+        aspect-ratio: 16 / 9;
+        overflow: hidden;
+        background: #08110f;
+        padding: 72px;
+        box-sizing: border-box;
+      }
+
+      .eyebrow {
+        color: #8ee7bd;
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 10px;
+      }
+
+      .subtitle {
+        color: #c9d8d1;
+        font-size: 18px;
+      }
+
+      .chart {
+        position: absolute;
+        left: 88px;
+        right: 88px;
+        top: 184px;
+        bottom: 74px;
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 28px;
+      }
+
+      .grid {
+        position: absolute;
+        inset: 0;
+      }
+
+      .grid span {
+        position: absolute;
+        left: 0;
+        right: 0;
+        border-top: 1px solid rgba(94, 117, 107, 0.38);
+      }
+
+      .barWrap {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-end;
+      }
+
+      .value {
+        margin-bottom: 16px;
+        color: #e9fff5;
+        font-size: 34px;
+        font-weight: 800;
+      }
+
+      .bar {
+        width: 100%;
+        min-height: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        border-radius: 8px;
+        transform-origin: bottom;
+        animation: grow 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+
+      .label {
+        margin-top: 18px;
+        color: #b7c9c0;
+        font-size: 24px;
+        font-weight: 700;
+      }
+
+      @keyframes grow {
+        from {
+          transform: scaleY(0);
+        }
+        to {
+          transform: scaleY(1);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="stage">
+      <section>
+        <div class="eyebrow">Revenue Pulse</div>
+        <div class="subtitle">Animated 5-bar Remotion chart</div>
+      </section>
+
+      <section class="chart" aria-label="五柱动画图表预览">
+        <div class="grid">
+          <span style="top: 0%"></span>
+          <span style="top: 25%"></span>
+          <span style="top: 50%"></span>
+          <span style="top: 75%"></span>
+        </div>
+
+        <div class="barWrap">
+          <div class="value">42</div>
+          <div
+            class="bar"
+            style="
+              height: 48.84%;
+              background: linear-gradient(180deg, #21c55d, #123529);
+              box-shadow: 0 18px 48px #21c55d55;
+            "
+          ></div>
+          <div class="label">Q1</div>
+        </div>
+        <div class="barWrap">
+          <div class="value">68</div>
+          <div
+            class="bar"
+            style="
+              height: 79.07%;
+              animation-delay: 160ms;
+              background: linear-gradient(180deg, #38bdf8, #123529);
+              box-shadow: 0 18px 48px #38bdf855;
+            "
+          ></div>
+          <div class="label">Q2</div>
+        </div>
+        <div class="barWrap">
+          <div class="value">54</div>
+          <div
+            class="bar"
+            style="
+              height: 62.79%;
+              animation-delay: 320ms;
+              background: linear-gradient(180deg, #f59e0b, #123529);
+              box-shadow: 0 18px 48px #f59e0b55;
+            "
+          ></div>
+          <div class="label">Q3</div>
+        </div>
+        <div class="barWrap">
+          <div class="value">86</div>
+          <div
+            class="bar"
+            style="
+              height: 100%;
+              animation-delay: 480ms;
+              background: linear-gradient(180deg, #f43f5e, #123529);
+              box-shadow: 0 18px 48px #f43f5e55;
+            "
+          ></div>
+          <div class="label">Q4</div>
+        </div>
+        <div class="barWrap">
+          <div class="value">73</div>
+          <div
+            class="bar"
+            style="
+              height: 84.88%;
+              animation-delay: 640ms;
+              background: linear-gradient(180deg, #a78bfa, #123529);
+              box-shadow: 0 18px 48px #a78bfa55;
+            "
+          ></div>
+          <div class="label">Q5</div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

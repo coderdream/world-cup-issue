@@ -1,0 +1,9 @@
+﻿{
+    "model":  "gpt-5.5",
+    "messages":  [
+                     {
+                         "content":  "Reply with JSON only: {\"ok\":true}",
+                         "role":  "user"
+                     }
+                 ]
+}

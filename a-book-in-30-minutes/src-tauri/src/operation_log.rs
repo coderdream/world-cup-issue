@@ -1,4 +1,4 @@
-use chrono::Local;
+﻿use chrono::Local;
 use rusqlite::{params, Connection};
 use std::{
     fs::{self, OpenOptions},
@@ -166,6 +166,10 @@ impl OperationLogger {
         detail: Option<&str>,
         trace_id: Option<&str>,
     ) {
+        let clean_message = clean_log_text(message, module, action);
+        let clean_detail = detail.map(|value| clean_log_text(value, module, action));
+        let message = clean_message.as_str();
+        let detail = clean_detail.as_deref();
         let now = Local::now();
         let created_at = now.format("%Y-%m-%d %H:%M:%S").to_string();
         let date = now.format("%Y-%m-%d");
@@ -200,3 +204,73 @@ impl OperationLogger {
         }
     }
 }
+
+fn clean_log_text(value: &str, module: &str, action: &str) -> String {
+    if !looks_like_mojibake(value) {
+        return value.to_string();
+    }
+    if let Some(message) = fallback_log_message(module, action) {
+        return message.to_string();
+    }
+    format!("{} completed.", action.replace('.', " "))
+}
+
+fn looks_like_mojibake(value: &str) -> bool {
+    if value.contains('�') || value.contains("锟") || value.contains("???") {
+        return true;
+    }
+    let suspicious = value
+        .chars()
+        .filter(|ch| {
+            matches!(
+                *ch,
+                '闁' | '闂' | '閻' | '閺' | '閿' | '婵' | '濞' | '缂' | '鐎'
+                    | '鐠' | '鈧' | '鏉' | '绋' | '€'
+            ) || ('\u{e000}'..='\u{f8ff}').contains(ch)
+        })
+        .count();
+    suspicious >= 2
+}
+fn fallback_log_message(module: &str, action: &str) -> Option<&'static str> {
+    match (module, action) {
+        ("materials", "generate.start") => Some("Start generating book materials."),
+        ("materials", "settings.snapshot") => Some("Loaded AI settings for material generation."),
+        ("materials", "source.file") => Some("Source file resolved."),
+        ("materials", "source.read") => Some("Reading source book."),
+        ("materials", "source.read.done") => Some("Source book read successfully."),
+        ("materials", "source.read.timeout") => Some("Source book read timed out."),
+        ("materials", "prompt.build") => Some("AI prompt built."),
+        ("materials", "ai.request") => Some("Requesting AI material generation JSON."),
+        ("materials", "ai.response") => Some("AI material generation response received."),
+        ("materials", "ai.request.failed") => Some("AI material generation request failed."),
+        ("materials", "ai.local_initial_fallback") => Some("Using local material fallback."),
+        ("materials", "ai.parse") => Some("AI material JSON parsed."),
+        ("materials", "ai.parse.failed") => Some("AI material JSON parse failed."),
+        ("materials", "ai.repair.skip") => Some("Narration length is within target range."),
+        ("materials", "ai.repair.required") => Some("Narration length repair is required."),
+        ("materials", "ai.repair.request") => Some("Requesting AI narration repair."),
+        ("materials", "ai.repair.response") => Some("AI narration repair response received."),
+        ("materials", "ai.repair.done") => Some("Narration repair completed."),
+        ("materials", "ai.repair.parse_failed") => Some("Narration repair response could not be parsed."),
+        ("materials", "ai.repair.failed") => Some("Narration repair request failed."),
+        ("materials", "ai.repair.local_fallback") => Some("Using local narration repair fallback."),
+        ("materials", "ai.repair.out_of_range") => Some("Narration length is still outside target range."),
+        ("materials", "subtitle.split") => Some("Subtitles split from narration."),
+        ("materials", "generate.done") => Some("Book materials generated."),
+        ("materials", "generate.auto_export.done") => Some("Book materials exported."),
+        ("materials", "generate.auto_export.failed") => Some("Book materials export failed."),
+        ("audio", "generate.start") => Some("Start generating narration audio."),
+        ("audio", "generate.plan") => Some("Audio generation plan built."),
+        ("audio", "speech.request") => Some("Requesting speech synthesis chunk."),
+        ("audio", "speech.response") => Some("Speech synthesis chunk completed."),
+        ("audio", "speech.request.failed") => Some("Speech synthesis chunk failed."),
+        ("audio", "ffmpeg.concat") => Some("Concatenating audio chunks."),
+        ("audio", "ffmpeg.concat.done") => Some("Audio chunks concatenated."),
+        ("audio", "duration.probe") => Some("Audio duration probed."),
+        ("audio", "generate.done") => Some("Narration audio generated."),
+        ("app", "get_app_state") => Some("已读取应用状态。"),
+        ("settings", "load") => Some("配置已从数据库加载。"),
+        _ => None,
+    }
+}
+

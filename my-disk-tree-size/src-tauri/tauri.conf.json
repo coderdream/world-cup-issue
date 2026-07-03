@@ -1,0 +1,62 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "MyDiskTreeSize",
+  "version": "0.1.20",
+  "identifier": "com.mydisktreesize.desktop",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://127.0.0.1:1421",
+    "beforeBuildCommand": "pnpm build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [
+      {
+        "label": "main",
+        "title": "MyDiskTreeSize",
+        "width": 1360,
+        "height": 860,
+        "minWidth": 1040,
+        "minHeight": 660,
+        "decorations": false,
+        "resizable": true,
+        "center": true,
+        "visible": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "publisher": "MyDiskTreeSize",
+    "copyright": "Copyright 2026 MyDiskTreeSize",
+    "category": "Utility",
+    "shortDescription": "Windows disk usage tree analyzer",
+    "longDescription": "MyDiskTreeSize scans local folders, mapped drives, and UNC paths to show disk usage in a sortable tree table.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico"
+    ],
+    "windows": {
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper"
+      },
+      "nsis": {
+        "installerIcon": "icons/icon.ico",
+        "installMode": "perMachine",
+        "languages": ["SimpChinese"],
+        "displayLanguageSelector": false
+      }
+    }
+  },
+  "plugins": {}
+}
+
+
+

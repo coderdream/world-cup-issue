@@ -1,0 +1,17 @@
+{
+  "created": 1782697516,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782697516.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs-rv/book_image_1782697516.png",
+      "revised_prompt": "photorealistic cinematic Japanese drama film still, medium-wide environmental shot, professional book-summary video visual, warm natural light, quiet emotional realism, realistic lived-in details, 35mm lens, 16:9, no readable text. Scene 03/8, Breakfast tension. Primary scene action: the woman stands in a small kitchen holding an unopened letter; two untouched rice bowls and a school bag on a chair imply family pressure. same woman visible in every scene, East Asian woman early 30s, short black bob haircut with soft bangs, cream knit cardigan, white top, dark skirt. The woman must be clearly visible as a full-body or half-body figure, occupying about 20 to 35 percent of the frame. She must be interacting with the environment, not posing for camera, not a close-up portrait. Use blank paper and blank envelopes only, no readable words. Keep the composition cinematic and story-driven.",
+      "metrics": {
+        "colors": 21153,
+        "nonBgRatio": 0.921
+      },
+      "elapsedSeconds": 41.35,
+      "model": "SG161222/Realistic_Vision_V5.1_noVAE",
+      "device": "mps"
+    }
+  ]
+}

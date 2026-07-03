@@ -1,0 +1,17 @@
+{
+  "created": 1782661571,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782661571.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs/book_image_1782661571.png",
+      "revised_prompt": "cinematic realistic watercolor book illustration, professional visual for a Chinese 30-minute book-summary video, quiet Kamakura and Izu Oshima atmosphere, Japanese seaside town, camellia flowers, paper letters, fountain pens, warm natural film lighting, detailed environment, emotional healing tone, soft but rich colors, storybook realism, consistent art direction across a 24-image sequence, 16:9, no readable text, no logo, no watermark. Main protagonist: one East Asian woman in her early 30s, shoulder-length black hair, soft cream cardigan, calm tired eyes. Mother: East Asian woman in her late 50s with short grey hair and muted green cardigan, clearly older than the protagonist. Daughter: teenage East Asian girl with school uniform and ponytail, clearly much younger. When a scene includes multiple people, make them different ages, different clothes, different hairstyles, different faces. Scene 09/24, story beat: Cloudy harbor arrival. Composition: cloudy island harbor arrival, ropes, gulls, wet concrete pier, small fishing boats, the protagonist steps off the ferry with the box, the mood shifts from memory to journey. People rule: single protagonist only. Keep this image narratively connected to the nearby subtitle meaning, but do not draw readable words: 等多年后由另一个人轻轻打开船靠岸时天空覆着厚厚的云层鸠子对那些书信说你们很快就可以融为一体了这样一句话像为旧日情感举行的安静仪式她不是去揭开隐私也不是去评判长辈的人生而是以代笔人的温柔把曾经被分开的心意送到该去的地方书信在这里不再只是传递消息的工具它们有重量有灵魂甚至像沉睡的生命鸠子一路护着木盒仿佛",
+      "metrics": {
+        "colors": 26381,
+        "nonBgRatio": 0.923
+      },
+      "elapsedSeconds": 81.18,
+      "model": "Lykon/dreamshaper-8-lcm",
+      "device": "mps"
+    }
+  ]
+}

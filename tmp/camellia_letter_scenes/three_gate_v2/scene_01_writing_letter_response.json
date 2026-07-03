@@ -1,0 +1,17 @@
+{
+  "created": 1782646045,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782646045.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs/book_image_1782646045.png",
+      "revised_prompt": "cinematic realistic watercolor illustration, intimate book-summary video background, young East Asian woman, visible handwritten letter pages with no readable text, camellia flowers, warm soft light, emotional quiet mood, detailed interior, 16:9, no readable text, no logo, no watermark, close interior shot inside a small Japanese stationery room at night, woman sitting at wooden desk writing a letter with fountain pen, brass lamp, open envelope, notebook pages, pink camellia in ceramic vase beside her hand, shelves of paper softly blurred, tender lonely atmosphere",
+      "metrics": {
+        "colors": 23311,
+        "nonBgRatio": 0.945
+      },
+      "elapsedSeconds": 16.06,
+      "model": "Lykon/dreamshaper-8-lcm",
+      "device": "mps"
+    }
+  ]
+}

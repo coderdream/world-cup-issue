@@ -1,0 +1,9 @@
+﻿{
+    "version":  "0.1.101",
+    "product":  "A Book in 30 Minutes",
+    "installer":  "D:\\04_GitHub\\world-cup-issue\\release\\A Book in 30 Minutes_0.1.101_x64-setup.exe",
+    "sizeBytes":  9112572,
+    "sha256":  "105EF84E30C5BFA5691A13D9CE0A7D4A334EB18F7BD18FAC610C0C5EBE40872C",
+    "builtAt":  "2026-07-01 00:51:28",
+    "notes":  "Adds resumable AI subtitle translation cache for video pipeline E2E."
+}

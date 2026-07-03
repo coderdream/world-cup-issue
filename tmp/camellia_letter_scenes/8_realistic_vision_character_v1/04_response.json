@@ -1,0 +1,17 @@
+{
+  "created": 1782688143,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782688143.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs-rv/book_image_1782688143.png",
+      "revised_prompt": "photorealistic cinematic Japanese drama film still, professional book-summary video visual, warm natural light, quiet emotional realism, shallow depth of field, detailed lived-in environment, 16:9, no readable text. same main character in every image: East Asian woman in her early 30s, shoulder-length straight black bob haircut with soft bangs, cream knit cardigan over a plain white top, dark skirt, calm tired eyes, natural face, no heavy makeup. Scene 04/8, Daughter distance implied. Specific shot: single woman seated near a half-open sliding door, a school bag and small shoes left in the doorway imply a teenage daughter leaving, quiet emotional distance. Exactly one visible person. Blank paper only, no readable words. Connect to this Chinese subtitle theme without writing text in the image: 鸠子一开始以为自己能够完成可后来她发现事情没有那么简单优秀的代笔人不是把句子写得漂亮而是要让委托人的心准确地出现在纸上若不能抵达那颗心再华丽的文字也只是空壳这个认知让鸠子陷入停滞四月来了阳菜穿着略显肥大的新校服升入高中小梅和莲太朗也开始读小学二年级海水依旧寒冷蜜朗却频繁去海边冲浪全家似乎都在向前只有鸠子停在原地世界春光烂漫她却郁郁寡欢樱花散尽绿叶满枝她才意识",
+      "metrics": {
+        "colors": 6822,
+        "nonBgRatio": 1.0
+      },
+      "elapsedSeconds": 38.82,
+      "model": "SG161222/Realistic_Vision_V5.1_noVAE",
+      "device": "mps"
+    }
+  ]
+}

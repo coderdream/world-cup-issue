@@ -8,6 +8,7 @@ import type {
   BookMaterials,
   ExportBookMaterialsResult,
   FeishuSendResult,
+  GetMaterialTaskStepsResult,
   GetSpeechVoicesResult,
   GetOperationLogsResult,
   ScanMaterialFilesResult,
@@ -152,6 +153,10 @@ function readSettings(): AppSettings {
       toolProfile: {
         ...defaultSettings.toolProfile,
         ...(parsed.toolProfile ?? {})
+      },
+      pipelineProfile: {
+        ...defaultSettings.pipelineProfile,
+        ...(parsed.pipelineProfile ?? {})
       }
     };
   } catch {
@@ -441,6 +446,8 @@ async function localCommand<T>(command: string, args?: Record<string, unknown>):
           ]
         } satisfies GetOperationLogsResult as T;
       }
+    case "get_material_task_steps":
+      return { steps: [] } satisfies GetMaterialTaskStepsResult as T;
     default:
       throw new Error(`Unsupported local command: ${command}`);
   }

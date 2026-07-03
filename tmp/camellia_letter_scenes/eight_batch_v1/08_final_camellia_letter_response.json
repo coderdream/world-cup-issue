@@ -1,0 +1,17 @@
+{
+  "created": 1782646351,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782646351.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs/book_image_1782646351.png",
+      "revised_prompt": "professional cinematic realistic watercolor illustration for a Chinese 30-minute book-summary video, consistent young East Asian woman with shoulder-length black hair and soft cardigan, intimate emotional storytelling, camellia flowers as recurring motif, letters and notebooks with no readable text, Japanese seaside town atmosphere, warm soft film lighting, detailed interior, elegant composition, 16:9, no readable text, no logo, no watermark, final symbolic still life for book video, open letter and notebook on wooden desk, fountain pen, pink camellia flowers, soft seaside window light, faint silhouette of the young woman in background, peaceful closure, elegant cover-like composition",
+      "metrics": {
+        "colors": 22406,
+        "nonBgRatio": 0.945
+      },
+      "elapsedSeconds": 16.2,
+      "model": "Lykon/dreamshaper-8-lcm",
+      "device": "mps"
+    }
+  ]
+}

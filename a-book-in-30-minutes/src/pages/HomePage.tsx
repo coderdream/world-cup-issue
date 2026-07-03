@@ -6,6 +6,7 @@ import {
   FileText,
   FolderOpen,
   Hash,
+  Image,
   ListChecks,
   ListVideo,
   Loader2,
@@ -40,7 +41,7 @@ export function HomePage() {
   const { request, materials, scanResult, fileStatuses, selectedTaskPath, outputDir, error, copyState, exportState, activeTab, currentTraceId, busy, scanning, exporting } = workbench;
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; file: MaterialFile } | null>(null);
   const [selectedTaskPaths, setSelectedTaskPaths] = useState<string[]>([]);
-  const [activePipelineStage, setActivePipelineStage] = useState<"materials" | "audio" | "video" | "publish" | null>(null);
+  const [activePipelineStage, setActivePipelineStage] = useState<"materials" | "image" | "audio" | "subtitle" | "video" | "publish" | null>(null);
 
   useEffect(() => {
     void loadStoredTasks(settings.materialProfile.categoryName);
@@ -99,6 +100,14 @@ export function HomePage() {
   const allTaskPaths = scanResult?.files.map((file) => file.path) ?? [];
   const selectedTaskSet = new Set(selectedTaskPaths);
   const allTasksSelected = allTaskPaths.length > 0 && allTaskPaths.every((path) => selectedTaskSet.has(path));
+  const currentPipelineTask = useMemo(
+    () => pickPipelineProgressTask(scanResult?.files ?? [], request.epubPath, selectedTaskPath),
+    [request.epubPath, scanResult?.files, selectedTaskPath]
+  );
+  const pipelineProgressItems = useMemo(
+    () => buildPipelineProgressItems(currentPipelineTask, activePipelineStage, exportState),
+    [activePipelineStage, currentPipelineTask, exportState]
+  );
 
   return (
     <div className="page material-page" onClick={() => setContextMenu(null)}>
@@ -136,6 +145,21 @@ export function HomePage() {
           <span>目标：{settings.materialProfile.targetMinChars}-{settings.materialProfile.targetMaxChars} 字</span>
           <span>状态：{scanResult ? `${scanResult.files.length} 个任务` : "等待扫描"}</span>
         </div>
+        <div className="pipeline-progress-strip" aria-label="流水线阶段进度">
+          {pipelineProgressItems.map((item) => (
+            <div className={`pipeline-progress-card ${item.status}`} key={item.key}>
+              <div className="pipeline-progress-head">
+                {item.icon}
+                <b>{item.label}</b>
+                <span>{item.progress}%</span>
+              </div>
+              <div className="pipeline-progress-bar">
+                <i style={{ width: `${item.progress}%` }} />
+              </div>
+              <p title={item.message}>{item.message}</p>
+            </div>
+          ))}
+        </div>
           {error && <p className="status error">{error}</p>}
           {copyState && <p className="status success">{copyState}</p>}
           {exportState && <p className="status success">{exportState}</p>}
@@ -151,16 +175,21 @@ export function HomePage() {
               </label>
               <span>任务</span>
               <span>格式</span>
-              <span>素材</span>
-              <span>素材进度</span>
+              <span>文本</span>
+              <span>文本进度</span>
               <span>成稿字数</span>
+              <span>图片</span>
+              <span>图片进度</span>
               <span>音频</span>
               <span>音频进度</span>
               <span>音频时长</span>
+              <span>字幕</span>
+              <span>字幕进度</span>
               <span>视频</span>
               <span>视频进度</span>
               <span>视频时长</span>
               <span>视频大小</span>
+              <span>发布</span>
             </div>
             {scanResult.files.map((file) => renderTaskRow(file))}
           </div>
@@ -276,17 +305,28 @@ export function HomePage() {
         <span className={getGenerationStatusClass(generation, parsable, supported)}>{formatGenerationStatus(generation, parsable, supported)}</span>
         <span>{formatProgress(generation, parsable)}</span>
         <small className={supported ? undefined : "unsupported"}>{formatNarrationChars(generation)}</small>
+        <span className={getGenerationStatusClass({ status: file.imageStatus }, true, true)}>
+          {formatStageStatus(file.imageStatus)}
+        </span>
+        <span>{formatRawProgress(file.imageProgress)}</span>
         <span className={getGenerationStatusClass({ status: file.audioStatus }, true, true)}>
           {formatStageStatus(file.audioStatus)}
         </span>
         <span>{formatRawProgress(file.audioProgress)}</span>
         <span>{formatAudioDuration(file.audioDurationMs)}</span>
+        <span className={getGenerationStatusClass({ status: file.subtitleStatus }, true, true)}>
+          {formatStageStatus(file.subtitleStatus)}
+        </span>
+        <span>{formatRawProgress(file.subtitleProgress)}</span>
         <span className={getVideoStatusClass(file)}>
           {formatVideoStageStatus(file)}
         </span>
         <span>{formatVideoProgress(file)}</span>
         <span>{formatAudioDuration(file.videoDurationMs)}</span>
         <span>{formatOptionalBytes(file.videoFileSize)}</span>
+        <span className={getGenerationStatusClass({ status: file.videoFile ? "success" : "pending" }, true, true)}>
+          {file.videoFile ? "可发布" : "待生成"}
+        </span>
       </div>
     );
   }
@@ -296,17 +336,25 @@ export function HomePage() {
       <div className="pipeline-actions">
         <button className={getPipelineStageClass("materials")} disabled={busy} type="button" onClick={() => void generateSelectedMaterials()}>
           {busy && activePipelineStage === "materials" ? <Loader2 className="spin" size={16} /> : <BookOpenText size={16} />}
-          素材
+          文本
+        </button>
+        <button className={getPipelineStageClass("image")} disabled={busy || !hasPipelineTarget("image")} type="button" title="生成图片素材" onClick={() => void runVisualPipeline("image")}>
+          {busy && activePipelineStage === "image" ? <Loader2 className="spin" size={16} /> : <Image size={16} />}
+          图片
         </button>
         <button className={getPipelineStageClass("audio")} disabled={busy} type="button" onClick={() => void runAudioPipeline()}>
           {busy && activePipelineStage === "audio" ? <Loader2 className="spin" size={16} /> : <Volume2 size={16} />}
           音频
         </button>
-        <button className={getPipelineStageClass("video")} disabled={busy || !hasVideoPipelineTarget()} type="button" title="一键生成视频" onClick={() => void runVideoPipeline()}>
+        <button className={getPipelineStageClass("subtitle")} disabled={busy || !hasPipelineTarget("subtitle")} type="button" title="生成 SRT/ASS 字幕" onClick={() => void runVisualPipeline("subtitle")}>
+          {busy && activePipelineStage === "subtitle" ? <Loader2 className="spin" size={16} /> : <MessageSquareText size={16} />}
+          字幕
+        </button>
+        <button className={getPipelineStageClass("video")} disabled={busy || !hasPipelineTarget("video")} type="button" title="一键生成视频" onClick={() => void runVideoPipeline()}>
           {busy && activePipelineStage === "video" ? <Loader2 className="spin" size={16} /> : <Video size={16} />}
           视频
         </button>
-        <button className={getPipelineStageClass("publish")} disabled={busy || !hasVideoPipelineTarget()} type="button" title="生成 YouTube 发布资料" onClick={() => void generatePublishMaterials()}>
+        <button className={getPipelineStageClass("publish")} disabled={busy || !hasPipelineTarget("publish")} type="button" title="生成 YouTube 发布资料" onClick={() => void generatePublishMaterials()}>
           {busy && activePipelineStage === "publish" ? <Loader2 className="spin" size={16} /> : <Send size={16} />}
           发布
         </button>
@@ -314,7 +362,7 @@ export function HomePage() {
     );
   }
 
-  function getPipelineStageClass(stage: "materials" | "audio" | "video" | "publish") {
+  function getPipelineStageClass(stage: "materials" | "image" | "audio" | "subtitle" | "video" | "publish") {
     return `pipeline-stage-btn${activePipelineStage === stage ? " active" : ""}`;
   }
 
@@ -446,31 +494,17 @@ export function HomePage() {
     setActivePipelineStage("audio");
     const candidates = getAudioPipelineCandidates();
     if (candidates.length === 0) {
-      updateWorkbench({ copyState: "", error: "请先勾选已生成素材的任务。", exportState: "" });
+      updateWorkbench({ copyState: "", error: "Please select a task that can generate audio.", exportState: "" });
       return;
     }
-    updateWorkbench({ busy: true, error: "", copyState: "", exportState: `开始生成 ${candidates.length} 个任务的音频。` });
+    updateWorkbench({ busy: true, error: "", copyState: "", exportState: `Starting audio generation for ${candidates.length} task(s).` });
     try {
       for (const file of candidates) {
-        await setTaskAudioState(file.path, { audioStatus: "generating", audioProgress: 10, audioMessage: "正在准备音频" });
-        try {
-          const result = await frameworkApi.generateMaterialTaskAudio({ path: file.path, traceId: `${createTraceId()}-audio` });
-          await setTaskAudioState(file.path, {
-            audioStatus: "success",
-            audioProgress: 100,
-            audioOutputDir: result.outputDir,
-            audioFile: result.audioFile,
-            audioDurationMs: result.durationMs ?? null,
-            audioChunks: result.chunks,
-            audioMessage: "音频已生成"
-          });
-        } catch (caught) {
-          const message = caught instanceof Error ? caught.message : String(caught);
-          await setTaskAudioState(file.path, { audioStatus: "failed", audioProgress: 0, audioMessage: message });
-          throw caught;
-        }
+        const traceId = `${createTraceId()}-audio`;
+        const current = await ensureTextForPipeline(file, traceId, "Audio");
+        await ensureAudioForPipeline(current, traceId, "Audio");
       }
-      updateWorkbench({ exportState: `音频生成完成：${candidates.length} 个任务。`, error: "" });
+      updateWorkbench({ exportState: `Audio generation finished: ${candidates.length} task(s).`, error: "" });
     } catch (caught) {
       updateWorkbench({ error: caught instanceof Error ? caught.message : String(caught), exportState: "" });
     } finally {
@@ -481,53 +515,64 @@ export function HomePage() {
 
   async function runVideoPipeline() {
     setActivePipelineStage("video");
-    const target = getVideoPipelineTarget();
+    await runVideoPipelineStage("video");
+  }
+
+  async function runVisualPipeline(stage: "image" | "subtitle") {
+    setActivePipelineStage(stage);
+    await runVideoPipelineStage(stage);
+  }
+
+  async function runVideoPipelineStage(stage: "image" | "subtitle" | "video") {
+    const target = getPipelineTarget(stage);
     if (!target) {
-      updateWorkbench({ copyState: "", error: "请先勾选或选择 EPUB 任务。", exportState: "" });
+      updateWorkbench({ copyState: "", error: "\u8bf7\u5148\u9009\u62e9\u6216\u52fe\u9009 EPUB \u4efb\u52a1\u3002", exportState: "" });
       return;
     }
     const path = target.path;
     const traceId = `${createTraceId()}-video`;
-    updateWorkbench({ busy: true, error: "", copyState: "", exportState: "正在执行一键视频流水线。", currentTraceId: traceId });
+    const stageLabel = pipelineStageLabel(stage);
+    updateWorkbench({ busy: true, error: "", copyState: "", exportState: `\u6b63\u5728\u6267\u884c${stageLabel}\u6d41\u6c34\u7ebf\u3002`, currentTraceId: traceId });
     try {
-      let current = target;
-      if (shouldGenerateMaterial(current) || !current.materialOutputDir) {
-        updateWorkbench({ exportState: "视频流水线：正在补生成素材。", error: "" });
-        await generateMaterialsForVideo(path, traceId);
-        await loadStoredTasks(settings.materialProfile.categoryName);
-        current = findTaskByPath(path) ?? current;
+      await refreshSettingsForPipeline();
+      const freshTarget = await refreshTaskForPipeline(path);
+      let current = await ensureTextForPipeline(freshTarget ?? target, traceId, stageLabel);
+      if (stage === "subtitle" || stage === "video") {
+        current = await ensureAudioForPipeline(current, traceId, stageLabel);
       }
-      if (shouldGenerateAudio(current) || !current.audioFile) {
-        updateWorkbench({ exportState: "视频流水线：正在补生成音频。", error: "" });
-        await setTaskAudioState(path, { audioStatus: "generating", audioProgress: 10, audioMessage: "正在准备音频" });
-        const audio = await frameworkApi.generateMaterialTaskAudio({ path, traceId: `${traceId}-audio` });
-        await setTaskAudioState(path, {
-          audioStatus: "success",
-          audioProgress: 100,
-          audioOutputDir: audio.outputDir,
-          audioFile: audio.audioFile,
-          audioDurationMs: audio.durationMs ?? null,
-          audioChunks: audio.chunks,
-          audioMessage: "音频已生成"
-        });
+      if (stage === "video") {
+        current = await ensureTimedSubtitlesForPipeline(current, traceId, stageLabel);
       }
-      updateWorkbench({ exportState: "视频流水线：正在启动视频后台任务。", error: "" });
-      await updateVideoState(path, { status: "generating", progress: 30, message: "视频任务启动中" });
+      updateWorkbench({ exportState: `${stageLabel}\u6d41\u6c34\u7ebf\uff1a\u6b63\u5728\u542f\u52a8\u540e\u53f0\u4efb\u52a1\u3002`, error: "" });
+      if (stage === "image") {
+        await setTaskImageState(path, { imageStatus: "generating", imageProgress: 20, imageMessage: "\u6b63\u5728\u751f\u6210\u56fe\u7247\u7d20\u6750" });
+      }
+      if (stage === "subtitle") {
+        await setTaskSubtitleState(path, { subtitleStatus: "generating", subtitleProgress: 20, subtitleMessage: "\u6b63\u5728\u751f\u6210 SRT/ASS \u5b57\u5e55\u6587\u4ef6" });
+      }
+      await updateVideoState(path, { status: "generating", progress: stage === "image" ? 35 : stage === "subtitle" ? 50 : 30, message: `${stageLabel}\u4efb\u52a1\u542f\u52a8\u4e2d\u3002` });
       await frameworkApi.generateBookVideoPipeline({
         epubPath: path,
         traceId,
+        pipelineStage: stage,
         allowPlaceholderVisuals: false,
         controlledProgrammaticVisuals: true,
         ignoreExistingVisualAssets: true
       });
-      await updateVideoState(path, { status: "generating", progress: 40, message: "视频后台生成中，请到操作日志查看实际进度" });
+      await updateVideoState(path, { status: "generating", progress: stage === "image" ? 45 : stage === "subtitle" ? 60 : 40, message: `${stageLabel}\u540e\u53f0\u751f\u6210\u4e2d\uff0c\u8bf7\u5230\u64cd\u4f5c\u65e5\u5fd7\u67e5\u770b\u5b9e\u9645\u8fdb\u5ea6\u3002` });
       updateWorkbench({
-        exportState: "视频后台任务已启动。实际进度请到“操作日志”菜单查看。",
+        exportState: `${stageLabel}\u540e\u53f0\u4efb\u52a1\u5df2\u542f\u52a8\u3002\u8bf7\u5230\u64cd\u4f5c\u65e5\u5fd7\u67e5\u770b\u5b9e\u9645\u8fdb\u5ea6\u3002`,
         error: ""
       });
-      await loadStoredTasks(settings.materialProfile.categoryName);
+      await loadStoredTasks(useAppStore.getState().settings.materialProfile.categoryName);
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : String(caught);
+      if (stage === "image") {
+        await setTaskImageState(path, { imageStatus: "failed", imageProgress: 0, imageMessage: message });
+      }
+      if (stage === "subtitle") {
+        await setTaskSubtitleState(path, { subtitleStatus: "failed", subtitleProgress: 0, subtitleMessage: message });
+      }
       await updateVideoState(path, { status: "failed", progress: 0, message });
       updateWorkbench({ error: message, exportState: "" });
     } finally {
@@ -535,19 +580,84 @@ export function HomePage() {
     }
   }
 
+  async function refreshSettingsForPipeline() {
+    const latest = await frameworkApi.getSettings();
+    useAppStore.setState({ settings: latest });
+    return latest;
+  }
+
+  async function refreshTaskForPipeline(path: string) {
+    const fresh = await frameworkApi.getMaterialTask({ path });
+    if (fresh) {
+      await patchTaskState(path, fresh);
+    }
+    return fresh;
+  }
+
+  async function ensureTextForPipeline(file: MaterialFile, traceId: string, stageLabel: string) {
+    const current = (await refreshTaskForPipeline(file.path)) ?? file;
+    if (!shouldGenerateMaterial(current)) return current;
+    updateWorkbench({ exportState: `${stageLabel}\u6d41\u6c34\u7ebf\uff1a\u6b63\u5728\u5148\u751f\u6210\u6587\u672c\u548c subtitles.txt\u3002`, error: "" });
+    await generateMaterialsForVideo(file.path, traceId);
+    await loadStoredTasks(useAppStore.getState().settings.materialProfile.categoryName);
+    return (await refreshTaskForPipeline(file.path)) ?? findTaskByPath(file.path) ?? file;
+  }
+
+  async function ensureAudioForPipeline(file: MaterialFile, traceId: string, stageLabel: string) {
+    const current = (await refreshTaskForPipeline(file.path)) ?? file;
+    if (!shouldGenerateAudio(current)) return current;
+    try {
+      updateWorkbench({ exportState: `${stageLabel}\u6d41\u6c34\u7ebf\uff1a\u6b63\u5728\u6839\u636e subtitles.txt \u751f\u6210\u97f3\u9891\u3002`, error: "" });
+      await setTaskAudioState(file.path, { audioStatus: "generating", audioProgress: 10, audioMessage: "\u6b63\u5728\u51c6\u5907\u97f3\u9891" });
+      const audio = await frameworkApi.generateMaterialTaskAudio({ path: file.path, traceId: `${traceId}-audio` });
+      await setTaskAudioState(file.path, {
+        audioStatus: "success",
+        audioProgress: 100,
+        audioOutputDir: audio.outputDir,
+        audioFile: audio.audioFile,
+        audioDurationMs: audio.durationMs ?? null,
+        audioChunks: audio.chunks,
+        audioMessage: "\u97f3\u9891\u5df2\u751f\u6210"
+      });
+      await loadStoredTasks(useAppStore.getState().settings.materialProfile.categoryName);
+      return (await refreshTaskForPipeline(file.path)) ?? { ...file, audioStatus: "success" as const, audioFile: audio.audioFile };
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : String(caught);
+      await setTaskAudioState(file.path, { audioStatus: "failed", audioProgress: 0, audioMessage: message });
+      throw caught;
+    }
+  }
+
+  async function ensureTimedSubtitlesForPipeline(file: MaterialFile, traceId: string, stageLabel: string) {
+    const current = (await refreshTaskForPipeline(file.path)) ?? file;
+    if (!shouldGenerateSubtitle(current)) return current;
+    updateWorkbench({ exportState: `${stageLabel}\u6d41\u6c34\u7ebf\uff1a\u6b63\u5728\u6839\u636e\u97f3\u9891\u751f\u6210 SRT/ASS \u5b57\u5e55\u3002`, error: "" });
+    await setTaskSubtitleState(file.path, { subtitleStatus: "generating", subtitleProgress: 20, subtitleMessage: "\u6b63\u5728\u751f\u6210 SRT/ASS \u5b57\u5e55\u6587\u4ef6" });
+    await frameworkApi.generateBookVideoPipeline({
+      epubPath: file.path,
+      traceId: `${traceId}-subtitle`,
+      pipelineStage: "subtitle",
+      allowPlaceholderVisuals: false,
+      controlledProgrammaticVisuals: false,
+      ignoreExistingVisualAssets: false
+    });
+    await loadStoredTasks(useAppStore.getState().settings.materialProfile.categoryName);
+    return (await refreshTaskForPipeline(file.path)) ?? findTaskByPath(file.path) ?? file;
+  }
+
   async function generatePublishMaterials() {
     setActivePipelineStage("publish");
-    const target = getVideoPipelineTarget();
+    const target = getPipelineTarget("publish");
     if (!target) {
-      updateWorkbench({ copyState: "", error: "请先勾选或选择 EPUB 任务。", exportState: "" });
+      updateWorkbench({ copyState: "", error: "\u8bf7\u5148\u52fe\u9009\u6216\u9009\u62e9 EPUB \u4efb\u52a1\u3002", exportState: "" });
       return;
     }
     const traceId = `${createTraceId()}-publish`;
-    updateWorkbench({ busy: true, error: "", copyState: "", exportState: "正在生成发布资料 Markdown。", currentTraceId: traceId });
+    updateWorkbench({ busy: true, error: "", copyState: "", exportState: "\u6b63\u5728\u751f\u6210\u53d1\u5e03\u8d44\u6599 Markdown\u3002", currentTraceId: traceId });
     try {
       const result = await frameworkApi.generatePublishMaterials({ epubPath: target.path, traceId });
       updateWorkbench({
-        exportState: `发布资料已生成：${result.markdownFile}`,
+        exportState: `\u53d1\u5e03\u8d44\u6599\u5df2\u751f\u6210\uff1a${result.markdownFile}`,
         error: ""
       });
     } catch (caught) {
@@ -652,13 +762,32 @@ export function HomePage() {
     const selected = selectedTaskPaths.length > 0
       ? files.filter((file) => selectedTaskSet.has(file.path))
       : files.filter((file) => file.path === request.epubPath || file.path === selectedTaskPath);
-    return (selected.length > 0 ? selected : files)
-      .filter((file) => file.status === "success" && Boolean(file.materialOutputDir))
-      .filter(shouldGenerateAudio);
+    return (selected.length > 0 ? selected : files).filter(canGenerate).filter(shouldGenerateAudio);
   }
 
   function hasVideoPipelineTarget() {
     return Boolean(getVideoPipelineTarget());
+  }
+
+  function hasPipelineTarget(stage: "image" | "subtitle" | "video" | "publish") {
+    return Boolean(getPipelineTarget(stage));
+  }
+
+  function getPipelineTarget(stage: "image" | "subtitle" | "video" | "publish") {
+    const files = scanResult?.files ?? [];
+    const shouldGenerateStage = (file: MaterialFile) => {
+      if (stage === "image") return shouldGenerateImage(file);
+      if (stage === "subtitle") return shouldGenerateSubtitle(file);
+      if (stage === "publish") return true;
+      return shouldGenerateVideo(file);
+    };
+    if (selectedTaskPaths.length > 0) {
+      return files.find((file) => selectedTaskSet.has(file.path) && canGenerate(file) && shouldGenerateStage(file));
+    }
+    const requestPath = request.epubPath.trim();
+    return files.find((file) => file.path === requestPath && canGenerate(file) && shouldGenerateStage(file))
+      ?? files.find((file) => file.path === selectedTaskPath && canGenerate(file) && shouldGenerateStage(file))
+      ?? (request.epubPath.trim() ? materialFileFromPath(request.epubPath.trim()) : undefined);
   }
 
   function getVideoPipelineTarget() {
@@ -687,11 +816,11 @@ export function HomePage() {
       extraDirection: settings.materialProfile.extraDirection,
       traceId: `${traceId}-materials`
     };
-    await updateTaskStatus(path, { status: "generating", progress: 0, message: "等待后端开始处理" });
+    await updateTaskStatus(path, { status: "generating", progress: 10, message: "\u6b63\u5728\u51c6\u5907\u751f\u6210\u6587\u672c" });
     const result = await frameworkApi.generateBookMaterials(requestWithTrace);
     const narrationChars = countHanChars(result.narration);
     updateWorkbench({ materials: result, activeTab: "title" });
-    await updateTaskStatus(path, { status: "success", progress: 100, narrationChars, message: "已完成" });
+    await updateTaskStatus(path, { status: "success", progress: 100, narrationChars, message: "\u6587\u672c\u5df2\u751f\u6210" });
   }
 
   async function setTaskAudioState(path: string, patch: Partial<Pick<MaterialFile, "audioStatus" | "audioProgress" | "audioOutputDir" | "audioFile" | "audioDurationMs" | "audioChunks" | "audioMessage">>) {
@@ -703,6 +832,25 @@ export function HomePage() {
             files: current.scanResult.files.map((file) => (file.path === path ? { ...file, ...patch } : file))
           }
         : current.scanResult
+    });
+  }
+
+  async function setTaskImageState(path: string, patch: Partial<Pick<MaterialFile, "imageStatus" | "imageProgress" | "imageOutputDir" | "imageMessage">>) {
+    await patchTaskState(path, patch);
+  }
+
+  async function setTaskSubtitleState(path: string, patch: Partial<Pick<MaterialFile, "subtitleStatus" | "subtitleProgress" | "subtitleFile" | "subtitleMessage">>) {
+    await patchTaskState(path, patch);
+  }
+
+  async function patchTaskState(path: string, patch: Partial<MaterialFile>) {
+    const current = useAppStore.getState().materialsWorkbench;
+    if (!current.scanResult) return;
+    updateWorkbench({
+      scanResult: {
+        ...current.scanResult,
+        files: current.scanResult.files.map((file) => (file.path === path ? { ...file, ...patch } : file))
+      }
     });
   }
 
@@ -892,7 +1040,9 @@ export function HomePage() {
 }
 
 function shouldGenerateMaterial(file: MaterialFile) {
-  if (!useAppStore.getState().settings.pipelineProfile.skipExistingMaterials) return true;
+  const profile = useAppStore.getState().settings.pipelineProfile;
+  const skipExistingText = profile.skipExistingText ?? profile.skipExistingMaterials;
+  if (!skipExistingText) return true;
   return needsMaterialGeneration(file);
 }
 
@@ -901,13 +1051,109 @@ function shouldGenerateAudio(file: MaterialFile) {
   return file.audioStatus !== "success" || !file.audioFile || file.audioProgress < 100;
 }
 
+function shouldGenerateImage(file: MaterialFile) {
+  if (!useAppStore.getState().settings.pipelineProfile.skipExistingImages) return true;
+  return file.imageStatus !== "success" || !file.imageOutputDir || file.imageProgress < 100;
+}
+
+function shouldGenerateSubtitle(file: MaterialFile) {
+  if (!useAppStore.getState().settings.pipelineProfile.skipExistingSubtitles) return true;
+  return file.subtitleStatus !== "success" || !file.subtitleFile || file.subtitleProgress < 100;
+}
+
 function shouldGenerateVideo(file: MaterialFile) {
   if (!useAppStore.getState().settings.pipelineProfile.skipExistingVideo) return true;
   return file.videoStatus !== "success" || !file.videoFile || file.videoProgress < 100;
 }
 
 function needsMaterialGeneration(file: MaterialFile) {
-  return file.status !== "success" || typeof file.narrationChars !== "number" || file.narrationChars <= 0 || file.progress < 100 || !file.materialOutputDir;
+  return file.status !== "success" || file.progress < 100 || !file.materialOutputDir;
+}
+
+function pickPipelineProgressTask(files: MaterialFile[], requestPath: string, selectedTaskPath: string) {
+  const normalizedRequestPath = requestPath.trim();
+  return (
+    files.find((file) => file.path === selectedTaskPath) ??
+    files.find((file) => file.path === normalizedRequestPath) ??
+    files.find((file) => file.status === "generating" || file.imageStatus === "generating" || file.audioStatus === "generating" || file.subtitleStatus === "generating" || file.videoStatus === "generating") ??
+    files[0] ??
+    null
+  );
+}
+
+function buildPipelineProgressItems(
+  file: MaterialFile | null,
+  activeStage: "materials" | "image" | "audio" | "subtitle" | "video" | "publish" | null,
+  exportState: string
+) {
+  const items = [
+    {
+      key: "materials",
+      label: "文本",
+      icon: <BookOpenText size={15} />,
+      status: file?.status ?? "pending",
+      progress: file?.progress ?? 0,
+      message: file?.message || "等待生成标题、简介、标签、旁白和字幕文本。"
+    },
+    {
+      key: "image",
+      label: "图片",
+      icon: <Image size={15} />,
+      status: file?.imageStatus ?? "pending",
+      progress: file?.imageProgress ?? 0,
+      message: file?.imageMessage || "等待生成封面和分镜图。"
+    },
+    {
+      key: "audio",
+      label: "音频",
+      icon: <Volume2 size={15} />,
+      status: file?.audioStatus ?? "pending",
+      progress: file?.audioProgress ?? 0,
+      message: file?.audioMessage || "等待读取旁白、拆分片段并合成音频。"
+    },
+    {
+      key: "subtitle",
+      label: "字幕",
+      icon: <MessageSquareText size={15} />,
+      status: file?.subtitleStatus ?? "pending",
+      progress: file?.subtitleProgress ?? 0,
+      message: file?.subtitleMessage || "等待生成 SRT/ASS 字幕。"
+    },
+    {
+      key: "video",
+      label: "视频",
+      icon: <Video size={15} />,
+      status: file?.videoStatus ?? "pending",
+      progress: file?.videoProgress ?? 0,
+      message: file?.videoMessage || "等待启动视频流水线。"
+    },
+    {
+      key: "publish",
+      label: "发布",
+      icon: <Send size={15} />,
+      status: file?.videoFile ? "success" : "pending",
+      progress: file?.videoFile ? 100 : 0,
+      message: file?.videoFile ? "视频已就绪，可生成 YouTube 发布资料。" : "等待最终视频产物。"
+    }
+  ] as const;
+
+  return items.map((item) => {
+    const isActive = activeStage === item.key;
+    const status = isActive && item.status === "pending" ? "generating" : item.status;
+    const progress = clampProgress(isActive && item.progress === 0 ? 5 : item.progress);
+    return {
+      ...item,
+      status,
+      progress,
+      message: isActive && exportState ? exportState : item.message
+    };
+  });
+}
+
+function pipelineStageLabel(stage: "image" | "subtitle" | "video") {
+  if (stage === "image") return "\u56fe\u7247";
+  if (stage === "subtitle") return "\u5b57\u5e55";
+  return "\u89c6\u9891";
 }
 
 const materialFileFilter = {
@@ -976,6 +1222,14 @@ function materialFileFromPath(path: string): MaterialFile {
     audioDurationMs: null,
     audioChunks: null,
     audioMessage: "",
+    imageStatus: "pending",
+    imageProgress: 0,
+    imageOutputDir: null,
+    imageMessage: "",
+    subtitleStatus: "pending",
+    subtitleProgress: 0,
+    subtitleFile: null,
+    subtitleMessage: "",
     videoStatus: "pending",
     videoProgress: 0,
     videoFile: null,

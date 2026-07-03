@@ -1,0 +1,17 @@
+{
+  "created": 1782663681,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782663681.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs/book_image_1782663681.png",
+      "revised_prompt": "photorealistic cinematic Japanese drama film still, professional 30-minute book-summary video visual, warm natural movie lighting, detailed lived-in interior, emotional quiet realism, Kamakura letter shop mood, red camellia motif, paper letters and fountain pen, 16:9, no readable text. One visible main protagonist only: East Asian woman in her early 30s, shoulder-length black hair, cream cardigan, calm tired eyes. Do not show any second person. Do not show twins. Do not show crowds. Scene 04/24, Daughter distance. Specific shot: single protagonist seated near a half-open sliding door, a school bag left in the doorway, emotional distance without showing the daughter. Connect to subtitle theme without drawing readable words: 束那个夜晚鸠子和蜜朗一起在院子里放烟火线香花火最后一束火花落在地面余烬扑哧扑哧地跳动像一只小动物随后慢慢被夜色吞没鸠子说结束了呢她没有说结束的是夏天可蜜朗懂两个人之间有一种经过岁月沉淀后的默契句子不必完整意思已经抵达可是当他们拎着水桶回到家阳菜正一边看电视一边玩手机对母亲的招呼没",
+      "metrics": {
+        "colors": 19034,
+        "nonBgRatio": 0.915
+      },
+      "elapsedSeconds": 77.24,
+      "model": "Lykon/dreamshaper-8-lcm",
+      "device": "mps"
+    }
+  ]
+}

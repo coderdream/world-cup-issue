@@ -1,0 +1,17 @@
+{
+  "created": 1782665644,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782665644.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs/book_image_1782665644.png",
+      "revised_prompt": "photorealistic cinematic modern Japanese drama film still, 16:9. One East Asian woman in cream cardigan steps from a ferry onto a wet island pier, holding a wrapped wooden box. Fishing ropes, small boats, cloudy harbor light, close medium shot with real narrative action. Exactly one visible person, no readable text.",
+      "metrics": {
+        "colors": 20154,
+        "nonBgRatio": 0.839
+      },
+      "elapsedSeconds": 85.06,
+      "model": "Lykon/dreamshaper-8-lcm",
+      "device": "mps"
+    }
+  ]
+}

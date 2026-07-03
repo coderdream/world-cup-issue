@@ -1,0 +1,38 @@
+{
+  "pipeline": "epub -> 8000-word narration -> audio -> subtitles/lrc -> visual timeline -> video",
+  "sourceKind": "smoke",
+  "title": "测试书名",
+  "styleBible": {
+    "format": "professional 30-minute book summary video",
+    "visualStyle": "cinematic editorial listening-video background art",
+    "mood": "quiet, literary, premium, suitable for bedtime listening",
+    "composition": "wide 16:9, restrained negative space, no AI-rendered text",
+    "continuity": "consistent color grading, consistent era cues, recurring motifs from the book"
+  },
+  "imagePrompts": [
+    {
+      "assetId": "scene_01",
+      "image": "a-book-in-30-minutes\\tmp\\visual_plan_smoke\\scene_1.png",
+      "startMs": 3000,
+      "endMs": 5200,
+      "motionProfile": "slow_push_center",
+      "prompt": "Create one cinematic 16:9 background illustration for a professional Chinese book-summary video. No text, no logo, no watermark. Book/video title: 测试书名. Scene source: 第一段讲述主人公面对记忆和家庭关系的裂缝。"
+    },
+    {
+      "assetId": "scene_02",
+      "image": "a-book-in-30-minutes\\tmp\\visual_plan_smoke\\scene_2.png",
+      "startMs": 5200,
+      "endMs": 8100,
+      "motionProfile": "drift_right",
+      "prompt": "Create one cinematic 16:9 background illustration for a professional Chinese book-summary video. No text, no logo, no watermark. Book/video title: 测试书名. Scene source: 第二段进入冲突，画面需要保留安静但有张力的空间。"
+    },
+    {
+      "assetId": "scene_03",
+      "image": "a-book-in-30-minutes\\tmp\\visual_plan_smoke\\scene_3.png",
+      "startMs": 8100,
+      "endMs": 12000,
+      "motionProfile": "drift_left",
+      "prompt": "Create one cinematic 16:9 background illustration for a professional Chinese book-summary video. No text, no logo, no watermark. Book/video title: 测试书名. Scene source: 第三段落到情感回声，形成统一的听书视频气质。"
+    }
+  ]
+}

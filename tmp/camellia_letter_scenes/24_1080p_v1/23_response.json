@@ -1,0 +1,17 @@
+{
+  "created": 1782659035,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782659034.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs/book_image_1782659034.png",
+      "revised_prompt": "professional cinematic realistic watercolor illustration for a Chinese 30-minute book-summary video, consistent young East Asian woman with shoulder-length black hair and soft cream cardigan, quiet Japanese seaside town and warm stationery-room atmosphere, camellia flowers as recurring motif, letters and notebooks with no readable text, emotional healing tone, elegant composition, soft film lighting, detailed background, 16:9, no readable text, no logo, no watermark, scene 23 of 24, library-like corner with shelves of paper, she compares old letters and notebook pages, piecing together family memories, visualize this subtitle meaning without drawing readable text: 人物处境进入主题再回到读者自身的经验让内容更完整也更适合三十分钟听书视频的节奏温柔解读小川糸《山茶的情书》从山茶文具店重新开门到家人、旧信、离别与自我修复在镰仓四季的光影里陪你慢慢听见生活深处的回声适合睡前、通勤、独处时安静收听这一段可以作",
+      "metrics": {
+        "colors": 26108,
+        "nonBgRatio": 0.96
+      },
+      "elapsedSeconds": 122.95,
+      "model": "Lykon/dreamshaper-8-lcm",
+      "device": "mps"
+    }
+  ]
+}

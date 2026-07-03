@@ -1,0 +1,17 @@
+{
+  "created": 1782657343,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782657343.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs/book_image_1782657343.png",
+      "revised_prompt": "professional cinematic realistic watercolor illustration for a Chinese 30-minute book-summary video, consistent young East Asian woman with shoulder-length black hair and soft cream cardigan, quiet Japanese seaside town and warm stationery-room atmosphere, camellia flowers as recurring motif, letters and notebooks with no readable text, emotional healing tone, elegant composition, soft film lighting, detailed background, 16:9, no readable text, no logo, no watermark, scene 12 of 24, library-like corner with shelves of paper, she compares old letters and notebook pages, piecing together family memories, visualize this subtitle meaning without drawing readable text: 话治好她需要时间需要承认自己的无能为力也需要重新学习如何不把价值完全寄托在能否完成某件事上书里的温柔正在于此它不催促你振作不要求你立刻变好而是陪你坐一会儿就像有人在夜里递给你一杯温热的饮品说今天先到这里也可以明天不必一下子变得光明只要能醒来",
+      "metrics": {
+        "colors": 26581,
+        "nonBgRatio": 0.926
+      },
+      "elapsedSeconds": 136.16,
+      "model": "Lykon/dreamshaper-8-lcm",
+      "device": "mps"
+    }
+  ]
+}

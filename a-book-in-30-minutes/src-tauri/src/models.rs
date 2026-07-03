@@ -65,16 +65,24 @@ impl Default for UiProfile {
 #[serde(rename_all = "camelCase")]
 pub struct PipelineProfile {
     pub skip_existing_materials: bool,
+    pub skip_existing_text: bool,
+    pub skip_existing_images: bool,
     pub skip_existing_audio: bool,
+    pub skip_existing_subtitles: bool,
     pub skip_existing_video: bool,
+    pub skip_existing_publish: bool,
 }
 
 impl Default for PipelineProfile {
     fn default() -> Self {
         Self {
             skip_existing_materials: true,
+            skip_existing_text: true,
+            skip_existing_images: true,
             skip_existing_audio: true,
+            skip_existing_subtitles: true,
             skip_existing_video: true,
+            skip_existing_publish: true,
         }
     }
 }
@@ -235,6 +243,14 @@ pub struct MaterialFile {
     pub audio_duration_ms: Option<i64>,
     pub audio_chunks: Option<i64>,
     pub audio_message: String,
+    pub image_status: String,
+    pub image_progress: i64,
+    pub image_output_dir: Option<String>,
+    pub image_message: String,
+    pub subtitle_status: String,
+    pub subtitle_progress: i64,
+    pub subtitle_file: Option<String>,
+    pub subtitle_message: String,
     pub video_status: String,
     pub video_progress: i64,
     pub video_file: Option<String>,
@@ -298,6 +314,7 @@ pub struct GenerateMaterialTaskAudioRequest {
 pub struct GenerateBookVideoRequest {
     pub epub_path: String,
     pub trace_id: Option<String>,
+    pub pipeline_stage: Option<String>,
     pub allow_placeholder_visuals: Option<bool>,
     pub controlled_programmatic_visuals: Option<bool>,
     pub ignore_existing_visual_assets: Option<bool>,
@@ -436,6 +453,35 @@ pub struct GetOperationLogsResult {
     pub entries: Vec<OperationLogEntry>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GetMaterialTaskStepsRequest {
+    pub trace_id: Option<String>,
+    pub path: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MaterialTaskStep {
+    pub trace_id: String,
+    pub path: String,
+    pub step_code: String,
+    pub step_name: String,
+    pub status: String,
+    pub progress: i64,
+    pub detail: String,
+    pub started_at: Option<String>,
+    pub finished_at: Option<String>,
+    pub elapsed_ms: Option<i64>,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GetMaterialTaskStepsResult {
+    pub steps: Vec<MaterialTaskStep>,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AiBookMaterialsPayload {
@@ -443,6 +489,8 @@ pub struct AiBookMaterialsPayload {
     pub description: String,
     pub tags: Vec<String>,
     pub narration: String,
+    #[serde(default)]
+    pub subtitles: Vec<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -516,14 +564,22 @@ fn default_speech_locale() -> String {
 #[serde(rename_all = "camelCase")]
 pub struct ToolProfile {
     pub ffmpeg_path: String,
+    pub background_music_mode: String,
+    pub background_music_path: String,
 }
 
 impl Default for ToolProfile {
     fn default() -> Self {
         Self {
             ffmpeg_path: String::new(),
+            background_music_mode: "single".to_string(),
+            background_music_path: default_background_music_path(),
         }
     }
+}
+
+fn default_background_music_path() -> String {
+    "D:\\04_GitHub\\world-cup-issue\\a-book-in-30-minutes\\music\\01-蝴蝶飞呀.mp3".to_string()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

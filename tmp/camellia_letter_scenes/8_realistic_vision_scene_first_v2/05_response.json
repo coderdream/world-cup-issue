@@ -1,0 +1,17 @@
+{
+  "created": 1782696967,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782696967.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs-rv/book_image_1782696967.png",
+      "revised_prompt": "photorealistic cinematic Japanese drama film still, environmental storytelling, professional book-summary video visual, warm natural light, quiet emotional realism, realistic lived-in details, 35mm lens, 16:9, no readable text. Scene 05/8, Old letter box. Primary instruction: medium low-angle tatami storage room; old wooden box opened on the floor, bundles of blank aged letters tied with string, camellia-pattern cloth; the woman kneels beside the box, hands reaching toward the letters, face not centered. Visible character rule: one East Asian woman, early 30s, short black bob haircut, cream cardigan, white top, dark skirt; exactly one visible person, never a close-up portrait, never looking directly at camera. Emotional theme: old letters reveal family memory and grief. Blank paper only, no readable words.",
+      "metrics": {
+        "colors": 19400,
+        "nonBgRatio": 0.923
+      },
+      "elapsedSeconds": 41.47,
+      "model": "SG161222/Realistic_Vision_V5.1_noVAE",
+      "device": "mps"
+    }
+  ]
+}

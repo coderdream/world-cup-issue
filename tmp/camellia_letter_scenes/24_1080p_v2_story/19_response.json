@@ -1,0 +1,17 @@
+{
+  "created": 1782662288,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782662288.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs/book_image_1782662288.png",
+      "revised_prompt": "cinematic realistic watercolor book illustration, professional visual for a Chinese 30-minute book-summary video, quiet Kamakura and Izu Oshima atmosphere, Japanese seaside town, camellia flowers, paper letters, fountain pens, warm natural film lighting, detailed environment, emotional healing tone, soft but rich colors, storybook realism, consistent art direction across a 24-image sequence, 16:9, no readable text, no logo, no watermark. Main protagonist: one East Asian woman in her early 30s, shoulder-length black hair, soft cream cardigan, calm tired eyes. Mother: East Asian woman in her late 50s with short grey hair and muted green cardigan, clearly older than the protagonist. Daughter: teenage East Asian girl with school uniform and ponytail, clearly much younger. When a scene includes multiple people, make them different ages, different clothes, different hairstyles, different faces. Scene 19/24, story beat: Camellia bloom and letter. Composition: macro cinematic still life, red camellia blossom blooming beside a sealed envelope and fountain pen, soft sea light from a window, symbol of love that waits. People rule: no people. Keep this image narratively connected to the nearby subtitle meaning, but do not draw readable words: 急着解释急着证明自己没有错可有些话需要等待等待情绪沉淀等待理解加深等待自己有能力承担说出口之后的重量鸠子迟迟没有写冬马先生的信表面看是失败实际上是她对文字的敬畏她不愿用漂亮话敷衍别人的人生这样的停顿也是一种诚实睡前听这本书最适合把注意力放在那些小小的声音上线香花火落地时的轻响水桶里的水晃动的声音热红",
+      "metrics": {
+        "colors": 30990,
+        "nonBgRatio": 0.913
+      },
+      "elapsedSeconds": 68.72,
+      "model": "Lykon/dreamshaper-8-lcm",
+      "device": "mps"
+    }
+  ]
+}

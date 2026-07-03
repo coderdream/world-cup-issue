@@ -1,0 +1,17 @@
+{
+  "created": 1782657797,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782657797.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs/book_image_1782657797.png",
+      "revised_prompt": "professional cinematic realistic watercolor illustration for a Chinese 30-minute book-summary video, consistent young East Asian woman with shoulder-length black hair and soft cream cardigan, quiet Japanese seaside town and warm stationery-room atmosphere, camellia flowers as recurring motif, letters and notebooks with no readable text, emotional healing tone, elegant composition, soft film lighting, detailed background, 16:9, no readable text, no logo, no watermark, scene 14 of 24, library-like corner with shelves of paper, she compares old letters and notebook pages, piecing together family memories, visualize this subtitle meaning without drawing readable text: 如果有一天她想回头家里的灯还亮着山茶文具店本身也是这部作品里安静而重要的存在那是一间老店连接着过去与现在纸张、信封、笔墨、印章所有看似过时的东西在这里都保有庄重的生命现代人传递信息太快快到连感情也常常变得仓促可写信需要坐下来需要选择纸需要考",
+      "metrics": {
+        "colors": 24428,
+        "nonBgRatio": 0.954
+      },
+      "elapsedSeconds": 233.67,
+      "model": "Lykon/dreamshaper-8-lcm",
+      "device": "mps"
+    }
+  ]
+}

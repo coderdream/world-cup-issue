@@ -1,0 +1,316 @@
+{
+  "endpoint": "http://192.168.1.9:30020/v1/images/generations",
+  "srtPath": "D:\\books\\0625新书四本\\2025-01《山茶的情书》\\output\\hard_subtitle.aeneas.zh-en.srt",
+  "rawSize": "768x432",
+  "targetSize": "1920x1080",
+  "completedCount": 8,
+  "allPassedMetrics": true,
+  "results": [
+    {
+      "index": 1,
+      "cueStart": 1,
+      "cueEnd": 105,
+      "text": "今晚我们一起走进小川糸的《山茶的情书》请把灯光调暗一点把手机放远一点也许窗外有车声也许房间里只有你自己的呼吸没有关系这本书适合在这样的时刻打开它不是一部急着把人推向高潮的故事而像一封慢慢写成的信纸张柔软墨迹微湿信里有镰仓的风有旧屋的寒意有孩",
+      "title": "Opening the letter shop",
+      "prompt": "photorealistic cinematic Japanese drama film still, medium-wide environmental shot, professional book-summary video visual, warm natural light, quiet emotional realism, realistic lived-in details, 35mm lens, 16:9, no readable text. Scene 01/8, Opening the letter shop. Primary scene action: the woman unlocks a tiny Kamakura stationery shop at dawn; narrow side street, paper door, red camellia pot, shelves of envelopes visible inside. same woman visible in every scene, East Asian woman early 30s, short black bob haircut with soft bangs, cream knit cardigan, white top, dark skirt. The woman must be clearly visible as a full-body or half-body figure, occupying about 20 to 35 percent of the frame. She must be interacting with the environment, not posing for camera, not a close-up portrait. Use blank paper and blank envelopes only, no readable words. Keep the composition cinematic and story-driven.",
+      "negativePrompt": "no person, empty room, empty landscape, close-up portrait, headshot, studio portrait, passport photo, plain wall background, face filling frame, looking directly at camera, glamour shot, two people, three people, crowd, duplicate person, identical twins, clone, same face twice, extra woman, extra protagonist, kimono, yukata, red robe, ancient costume, readable text, letters with readable text, signboard text, watermark, logo, caption, subtitles, random characters, garbled characters, anime, cartoon, illustration, painting, low detail, blurry, bad anatomy, deformed hands, extra fingers, distorted face, plastic skin",
+      "ok": true,
+      "elapsedSecondsClient": 41.37,
+      "serverElapsedSeconds": 41.33,
+      "rawPath": "D:\\04_GitHub\\world-cup-issue\\tmp\\camellia_letter_scenes\\8_realistic_vision_balanced_v3\\raw\\01_0001_0105.png",
+      "finalPath": "D:\\04_GitHub\\world-cup-issue\\tmp\\camellia_letter_scenes\\8_realistic_vision_balanced_v3\\final_1080p\\01_0001_0105_1080p.jpg",
+      "responsePath": "D:\\04_GitHub\\world-cup-issue\\tmp\\camellia_letter_scenes\\8_realistic_vision_balanced_v3\\01_response.json",
+      "rawBytes": 391018,
+      "finalBytes": 313583,
+      "rawMetrics": {
+        "width": 768,
+        "height": 432,
+        "colors": 15596,
+        "nearBlackRatio": 0.04,
+        "nearWhiteRatio": 0.152
+      },
+      "finalMetrics": {
+        "width": 1920,
+        "height": 1080,
+        "colors": 15607,
+        "nearBlackRatio": 0.04,
+        "nearWhiteRatio": 0.148
+      },
+      "remotePath": "/Volumes/System/docker/book-image-service/outputs-rv/book_image_1782697433.png",
+      "serviceMetrics": {
+        "colors": 15596,
+        "nonBgRatio": 0.775
+      },
+      "model": "SG161222/Realistic_Vision_V5.1_noVAE",
+      "pressureAfter": "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:                                     3654.\nPages active:                                 340023.\nPages inactive:                               246909.\nPages speculative:                               146.\nPages throttled:                                   0.\nPages wired down:                             378579.\nPages purgeable:                               14213.\n  174  24.3  0.3  55040 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer\n47993   8.5  1.4 232304 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python\n 1003   4.5  0.5  76448 /System/Library/CoreServices/Finder.app/Contents/MacOS/Finder\n63455   3.0  0.1  20256 sshd-session: coderdream [priv]\n 6313   2.0  0.1  21344 /System/Library/ExtensionKit/Extensions/VPN.appex/Contents/MacOS/VPN\n 1060   1.8  0.1  19424 /System/Library/ExtensionKit/Extensions/VPN.appex/Contents/MacOS/VPN\n    1   1.6  0.1  23072 /sbin/launchd\n 1001   1.2  0.1  14496 /System/Library/CoreServices/Dock.app/Contents/MacOS/Dock\n  181   0.9  0.1  19360 /usr/libexec/runningboardd\n 1216   0.7  0.3  48512 /Applications/Tailscale.app/Contents/PlugIns/IPNExtension.appex/Contents/MacOS/IPNExtension\n{\"ok\":true,\"device\":\"mps\",\"model\":\"SG161222/Realistic_Vision_V5.1_noVAE\",\"dtype\":\"float32\",\"torch\":\"2.8.0\"}"
+    },
+    {
+      "index": 2,
+      "cueStart": 106,
+      "cueEnd": 209,
+      "text": "束那个夜晚鸠子和蜜朗一起在院子里放烟火线香花火最后一束火花落在地面余烬扑哧扑哧地跳动像一只小动物随后慢慢被夜色吞没鸠子说结束了呢她没有说结束的是夏天可蜜朗懂两个人之间有一种经过岁月沉淀后的默契句子不必完整意思已经抵达可是当他们拎着水桶回到家",
+      "title": "Desk and tools",
+      "prompt": "photorealistic cinematic Japanese drama film still, medium-wide environmental shot, professional book-summary video visual, warm natural light, quiet emotional realism, realistic lived-in details, 35mm lens, 16:9, no readable text. Scene 02/8, Desk and tools. Primary scene action: the woman writes at a wooden shop desk; blank envelopes, fountain pen, ink bottle, tea cup, red camellia vase, window light. same woman visible in every scene, East Asian woman early 30s, short black bob haircut with soft bangs, cream knit cardigan, white top, dark skirt. The woman must be clearly visible as a full-body or half-body figure, occupying about 20 to 35 percent of the frame. She must be interacting with the environment, not posing for camera, not a close-up portrait. Use blank paper and blank envelopes only, no readable words. Keep the composition cinematic and story-driven.",
+      "negativePrompt": "no person, empty room, empty landscape, close-up portrait, headshot, studio portrait, passport photo, plain wall background, face filling frame, looking directly at camera, glamour shot, two people, three people, crowd, duplicate person, identical twins, clone, same face twice, extra woman, extra protagonist, kimono, yukata, red robe, ancient costume, readable text, letters with readable text, signboard text, watermark, logo, caption, subtitles, random characters, garbled characters, anime, cartoon, illustration, painting, low detail, blurry, bad anatomy, deformed hands, extra fingers, distorted face, plastic skin",
+      "ok": true,
+      "elapsedSecondsClient": 41.36,
+      "serverElapsedSeconds": 41.33,
+      "rawPath": "D:\\04_GitHub\\world-cup-issue\\tmp\\camellia_letter_scenes\\8_realistic_vision_balanced_v3\\raw\\02_0106_0209.png",
+      "finalPath": "D:\\04_GitHub\\world-cup-issue\\tmp\\camellia_letter_scenes\\8_realistic_vision_balanced_v3\\final_1080p\\02_0106_0209_1080p.jpg",
+      "responsePath": "D:\\04_GitHub\\world-cup-issue\\tmp\\camellia_letter_scenes\\8_realistic_vision_balanced_v3\\02_response.json",
+      "rawBytes": 458127,
+      "finalBytes": 373280,
+      "rawMetrics": {
+        "width": 768,
+        "height": 432,
+        "colors": 20250,
+        "nearBlackRatio": 0.079,
+        "nearWhiteRatio": 0.08
+      },
+      "finalMetrics": {
+        "width": 1920,
+        "height": 1080,
+        "colors": 20270,
+        "nearBlackRatio": 0.08,
+        "nearWhiteRatio": 0.078
+      },
+      "remotePath": "/Volumes/System/docker/book-image-service/outputs-rv/book_image_1782697474.png",
+      "serviceMetrics": {
+        "colors": 20250,
+        "nonBgRatio": 0.81
+      },
+      "model": "SG161222/Realistic_Vision_V5.1_noVAE",
+      "pressureAfter": "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:                                    16654.\nPages active:                                 324940.\nPages inactive:                               249978.\nPages speculative:                               270.\nPages throttled:                                   0.\nPages wired down:                             377785.\nPages purgeable:                               14276.\n63528  16.5  0.1  20224 sshd-session: coderdream [priv]\n47993   9.2  1.4 233520 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python\n    1   1.4  0.1  23072 /sbin/launchd\n 5753   1.0  0.1  12736 /Applications/RustDesk.app/Contents/MacOS/RustDesk\n 1216   1.0  0.3  48528 /Applications/Tailscale.app/Contents/PlugIns/IPNExtension.appex/Contents/MacOS/IPNExtension\n  181   1.0  0.1  19408 /usr/libexec/runningboardd\n  141   0.8  0.1  12608 /usr/libexec/opendirectoryd\n  100   0.7  0.3  45856 /usr/libexec/logd\n  174   0.6  0.3  54768 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer\n  402   0.4  0.1  10960 /Applications/ToDesk.app/Contents/MacOS/ToDesk_Service\n{\"ok\":true,\"device\":\"mps\",\"model\":\"SG161222/Realistic_Vision_V5.1_noVAE\",\"dtype\":\"float32\",\"torch\":\"2.8.0\"}"
+    },
+    {
+      "index": 3,
+      "cueStart": 210,
+      "cueEnd": 314,
+      "text": "这样的片刻极其珍贵鸠子怀念独自生活时的轻盈并不是不爱现在的家而是人在承担许多身份之后依然需要一个不被任何角色占用的角落妻子、母亲、店主、代笔人这些身份都是真实的可在这些名字之外她也只是鸠子她需要听见自己的声音哪怕那声音很小像热红酒蒸汽里一点",
+      "title": "Breakfast tension",
+      "prompt": "photorealistic cinematic Japanese drama film still, medium-wide environmental shot, professional book-summary video visual, warm natural light, quiet emotional realism, realistic lived-in details, 35mm lens, 16:9, no readable text. Scene 03/8, Breakfast tension. Primary scene action: the woman stands in a small kitchen holding an unopened letter; two untouched rice bowls and a school bag on a chair imply family pressure. same woman visible in every scene, East Asian woman early 30s, short black bob haircut with soft bangs, cream knit cardigan, white top, dark skirt. The woman must be clearly visible as a full-body or half-body figure, occupying about 20 to 35 percent of the frame. She must be interacting with the environment, not posing for camera, not a close-up portrait. Use blank paper and blank envelopes only, no readable words. Keep the composition cinematic and story-driven.",
+      "negativePrompt": "no person, empty room, empty landscape, close-up portrait, headshot, studio portrait, passport photo, plain wall background, face filling frame, looking directly at camera, glamour shot, two people, three people, crowd, duplicate person, identical twins, clone, same face twice, extra woman, extra protagonist, kimono, yukata, red robe, ancient costume, readable text, letters with readable text, signboard text, watermark, logo, caption, subtitles, random characters, garbled characters, anime, cartoon, illustration, painting, low detail, blurry, bad anatomy, deformed hands, extra fingers, distorted face, plastic skin",
+      "ok": true,
+      "elapsedSecondsClient": 41.36,
+      "serverElapsedSeconds": 41.35,
+      "rawPath": "D:\\04_GitHub\\world-cup-issue\\tmp\\camellia_letter_scenes\\8_realistic_vision_balanced_v3\\raw\\03_0210_0314.png",
+      "finalPath": "D:\\04_GitHub\\world-cup-issue\\tmp\\camellia_letter_scenes\\8_realistic_vision_balanced_v3\\final_1080p\\03_0210_0314_1080p.jpg",
+      "responsePath": "D:\\04_GitHub\\world-cup-issue\\tmp\\camellia_letter_scenes\\8_realistic_vision_balanced_v3\\03_response.json",
+      "rawBytes": 432992,
+      "finalBytes": 356358,
+      "rawMetrics": {
+        "width": 768,
+        "height": 432,
+        "colors": 21153,
+        "nearBlackRatio": 0.054,
+        "nearWhiteRatio": 0.047
+      },
+      "finalMetrics": {
+        "width": 1920,
+        "height": 1080,
+        "colors": 21423,
+        "nearBlackRatio": 0.054,
+        "nearWhiteRatio": 0.047
+      },
+      "remotePath": "/Volumes/System/docker/book-image-service/outputs-rv/book_image_1782697516.png",
+      "serviceMetrics": {
+        "colors": 21153,
+        "nonBgRatio": 0.921
+      },
+      "model": "SG161222/Realistic_Vision_V5.1_noVAE",
+      "pressureAfter": "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:                                     6761.\nPages active:                                 309657.\nPages inactive:                               274934.\nPages speculative:                               393.\nPages throttled:                                   0.\nPages wired down:                             377722.\nPages purgeable:                               13593.\n63589  19.6  0.1  20224 sshd-session: coderdream [priv]\n47993   5.9  1.4 235008 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python\n  141   2.4  0.1  12592 /usr/libexec/opendirectoryd\n 1216   2.0  0.3  48576 /Applications/Tailscale.app/Contents/PlugIns/IPNExtension.appex/Contents/MacOS/IPNExtension\n    1   1.5  0.1  23072 /sbin/launchd\n  181   1.3  0.1  19408 /usr/libexec/runningboardd\n 1003   1.1  0.5  76432 /System/Library/CoreServices/Finder.app/Contents/MacOS/Finder\n  402   0.8  0.1  10960 /Applications/ToDesk.app/Contents/MacOS/ToDesk_Service\n  174   0.8  0.3  54784 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer\n 1060   0.7  0.1  19424 /System/Library/ExtensionKit/Extensions/VPN.appex/Contents/MacOS/VPN\n{\"ok\":true,\"device\":\"mps\",\"model\":\"SG161222/Realistic_Vision_V5.1_noVAE\",\"dtype\":\"float32\",\"torch\":\"2.8.0\"}"
+    },
+    {
+      "index": 4,
+      "cueStart": 315,
+      "cueEnd": 418,
+      "text": "鸠子一开始以为自己能够完成可后来她发现事情没有那么简单优秀的代笔人不是把句子写得漂亮而是要让委托人的心准确地出现在纸上若不能抵达那颗心再华丽的文字也只是空壳这个认知让鸠子陷入停滞四月来了阳菜穿着略显肥大的新校服升入高中小梅和莲太朗也开始读小",
+      "title": "Doorway distance",
+      "prompt": "photorealistic cinematic Japanese drama film still, medium-wide environmental shot, professional book-summary video visual, warm natural light, quiet emotional realism, realistic lived-in details, 35mm lens, 16:9, no readable text. Scene 04/8, Doorway distance. Primary scene action: the woman sits alone at a low table in a tatami room; half-open sliding door, school shoes and bag near the doorway create emotional distance. same woman visible in every scene, East Asian woman early 30s, short black bob haircut with soft bangs, cream knit cardigan, white top, dark skirt. The woman must be clearly visible as a full-body or half-body figure, occupying about 20 to 35 percent of the frame. She must be interacting with the environment, not posing for camera, not a close-up portrait. Use blank paper and blank envelopes only, no readable words. Keep the composition cinematic and story-driven.",
+      "negativePrompt": "no person, empty room, empty landscape, close-up portrait, headshot, studio portrait, passport photo, plain wall background, face filling frame, looking directly at camera, glamour shot, two people, three people, crowd, duplicate person, identical twins, clone, same face twice, extra woman, extra protagonist, kimono, yukata, red robe, ancient costume, readable text, letters with readable text, signboard text, watermark, logo, caption, subtitles, random characters, garbled characters, anime, cartoon, illustration, painting, low detail, blurry, bad anatomy, deformed hands, extra fingers, distorted face, plastic skin",
+      "ok": true,
+      "elapsedSecondsClient": 41.49,
+      "serverElapsedSeconds": 41.46,
+      "rawPath": "D:\\04_GitHub\\world-cup-issue\\tmp\\camellia_letter_scenes\\8_realistic_vision_balanced_v3\\raw\\04_0315_0418.png",
+      "finalPath": "D:\\04_GitHub\\world-cup-issue\\tmp\\camellia_letter_scenes\\8_realistic_vision_balanced_v3\\final_1080p\\04_0315_0418_1080p.jpg",
+      "responsePath": "D:\\04_GitHub\\world-cup-issue\\tmp\\camellia_letter_scenes\\8_realistic_vision_balanced_v3\\04_response.json",
+      "rawBytes": 458015,
+      "finalBytes": 366086,
+      "rawMetrics": {
+        "width": 768,
+        "height": 432,
+        "colors": 19853,
+        "nearBlackRatio": 0.043,
+        "nearWhiteRatio": 0.02
+      },
+      "finalMetrics": {
+        "width": 1920,
+        "height": 1080,
+        "colors": 19850,
+        "nearBlackRatio": 0.043,
+        "nearWhiteRatio": 0.019
+      },
+      "remotePath": "/Volumes/System/docker/book-image-service/outputs-rv/book_image_1782697558.png",
+      "serviceMetrics": {
+        "colors": 19853,
+        "nonBgRatio": 0.934
+      },
+      "model": "SG161222/Realistic_Vision_V5.1_noVAE",
+      "pressureAfter": "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:                                    16762.\nPages active:                                 322487.\nPages inactive:                               252024.\nPages speculative:                               447.\nPages throttled:                                   0.\nPages wired down:                             377897.\nPages purgeable:                               14293.\n47993   9.2  1.4 236592 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python\n  141   2.9  0.1  12640 /usr/libexec/opendirectoryd\n 6313   2.8  0.1  21344 /System/Library/ExtensionKit/Extensions/VPN.appex/Contents/MacOS/VPN\n 1060   2.7  0.1  19424 /System/Library/ExtensionKit/Extensions/VPN.appex/Contents/MacOS/VPN\n  174   2.2  0.3  54784 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer\n  402   1.5  0.1  10960 /Applications/ToDesk.app/Contents/MacOS/ToDesk_Service\n    1   1.0  0.1  23072 /sbin/launchd\n  100   0.7  0.3  45824 /usr/libexec/logd\n  167   0.4  0.0   4656 /usr/sbin/notifyd\n70620   0.1  0.1  20256 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python\n{\"ok\":true,\"device\":\"mps\",\"model\":\"SG161222/Realistic_Vision_V5.1_noVAE\",\"dtype\":\"float32\",\"torch\":\"2.8.0\"}"
+    },
+    {
+      "index": 5,
+      "cueStart": 419,
+      "cueEnd": 523,
+      "text": "而是许多小动作累积出来的关系有人把剩下的红酒带回家有人深夜提前睡去也不必愧疚有人用省略主语的句子说夏天结束了另一个人听懂了这样的懂平凡却难得阳菜的成长线也很动人她从那个被称作QP妹妹的小女孩进入了不愿回应母亲的青春期她穿上新校服衣服还有些大",
+      "title": "Old letter box",
+      "prompt": "photorealistic cinematic Japanese drama film still, medium-wide environmental shot, professional book-summary video visual, warm natural light, quiet emotional realism, realistic lived-in details, 35mm lens, 16:9, no readable text. Scene 05/8, Old letter box. Primary scene action: the woman kneels beside an old wooden box full of tied blank letters on tatami; camellia-pattern cloth, dust in warm side light. same woman visible in every scene, East Asian woman early 30s, short black bob haircut with soft bangs, cream knit cardigan, white top, dark skirt. The woman must be clearly visible as a full-body or half-body figure, occupying about 20 to 35 percent of the frame. She must be interacting with the environment, not posing for camera, not a close-up portrait. Use blank paper and blank envelopes only, no readable words. Keep the composition cinematic and story-driven.",
+      "negativePrompt": "no person, empty room, empty landscape, close-up portrait, headshot, studio portrait, passport photo, plain wall background, face filling frame, looking directly at camera, glamour shot, two people, three people, crowd, duplicate person, identical twins, clone, same face twice, extra woman, extra protagonist, kimono, yukata, red robe, ancient costume, readable text, letters with readable text, signboard text, watermark, logo, caption, subtitles, random characters, garbled characters, anime, cartoon, illustration, painting, low detail, blurry, bad anatomy, deformed hands, extra fingers, distorted face, plastic skin",
+      "ok": true,
+      "elapsedSecondsClient": 41.83,
+      "serverElapsedSeconds": 41.82,
+      "rawPath": "D:\\04_GitHub\\world-cup-issue\\tmp\\camellia_letter_scenes\\8_realistic_vision_balanced_v3\\raw\\05_0419_0523.png",
+      "finalPath": "D:\\04_GitHub\\world-cup-issue\\tmp\\camellia_letter_scenes\\8_realistic_vision_balanced_v3\\final_1080p\\05_0419_0523_1080p.jpg",
+      "responsePath": "D:\\04_GitHub\\world-cup-issue\\tmp\\camellia_letter_scenes\\8_realistic_vision_balanced_v3\\05_response.json",
+      "rawBytes": 543888,
+      "finalBytes": 459400,
+      "rawMetrics": {
+        "width": 768,
+        "height": 432,
+        "colors": 25127,
+        "nearBlackRatio": 0.047,
+        "nearWhiteRatio": 0.011
+      },
+      "finalMetrics": {
+        "width": 1920,
+        "height": 1080,
+        "colors": 25163,
+        "nearBlackRatio": 0.047,
+        "nearWhiteRatio": 0.01
+      },
+      "remotePath": "/Volumes/System/docker/book-image-service/outputs-rv/book_image_1782697600.png",
+      "serviceMetrics": {
+        "colors": 25127,
+        "nonBgRatio": 0.969
+      },
+      "model": "SG161222/Realistic_Vision_V5.1_noVAE",
+      "pressureAfter": "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:                                    10707.\nPages active:                                 306906.\nPages inactive:                               272548.\nPages speculative:                               535.\nPages throttled:                                   0.\nPages wired down:                             378241.\nPages purgeable:                               14573.\n63729  16.5  0.1  20256 sshd-session: coderdream [priv]\n47993   4.9  1.4 238080 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python\n  208   3.0  0.1  20272 /usr/libexec/airportd\n 1003   2.7  0.5  76432 /System/Library/CoreServices/Finder.app/Contents/MacOS/Finder\n  402   1.9  0.1  10960 /Applications/ToDesk.app/Contents/MacOS/ToDesk_Service\n  174   1.5  0.3  54800 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer\n    1   1.5  0.1  23072 /sbin/launchd\n 1060   1.2  0.1  19424 /System/Library/ExtensionKit/Extensions/VPN.appex/Contents/MacOS/VPN\n  148   1.1  0.1  20384 /usr/libexec/locationd\n 6313   0.9  0.1  21344 /System/Library/ExtensionKit/Extensions/VPN.appex/Contents/MacOS/VPN\n{\"ok\":true,\"device\":\"mps\",\"model\":\"SG161222/Realistic_Vision_V5.1_noVAE\",\"dtype\":\"float32\",\"torch\":\"2.8.0\"}"
+    },
+    {
+      "index": 6,
+      "cueStart": 524,
+      "cueEnd": 628,
+      "text": "变成某一天忽然想起时胸口的温热读这本书也是在读鸠子对女性身份的重新整理她不是只作为母亲而存在也不是只作为代笔人而存在她会爱孩子也会厌倦家务她会珍惜家庭也会怀念独处她能替别人写出细腻的信却也会在自己的生活里语塞她温柔却并不总是从容这样的不完美",
+      "title": "Ferry journey",
+      "prompt": "photorealistic cinematic Japanese drama film still, medium-wide environmental shot, professional book-summary video visual, warm natural light, quiet emotional realism, realistic lived-in details, 35mm lens, 16:9, no readable text. Scene 06/8, Ferry journey. Primary scene action: the woman stands alone on a ferry deck holding a wrapped wooden box; grey-blue sea, railings, distant island silhouette, windy cardigan. same woman visible in every scene, East Asian woman early 30s, short black bob haircut with soft bangs, cream knit cardigan, white top, dark skirt. The woman must be clearly visible as a full-body or half-body figure, occupying about 20 to 35 percent of the frame. She must be interacting with the environment, not posing for camera, not a close-up portrait. Use blank paper and blank envelopes only, no readable words. Keep the composition cinematic and story-driven.",
+      "negativePrompt": "no person, empty room, empty landscape, close-up portrait, headshot, studio portrait, passport photo, plain wall background, face filling frame, looking directly at camera, glamour shot, two people, three people, crowd, duplicate person, identical twins, clone, same face twice, extra woman, extra protagonist, kimono, yukata, red robe, ancient costume, readable text, letters with readable text, signboard text, watermark, logo, caption, subtitles, random characters, garbled characters, anime, cartoon, illustration, painting, low detail, blurry, bad anatomy, deformed hands, extra fingers, distorted face, plastic skin",
+      "ok": true,
+      "elapsedSecondsClient": 42.47,
+      "serverElapsedSeconds": 42.46,
+      "rawPath": "D:\\04_GitHub\\world-cup-issue\\tmp\\camellia_letter_scenes\\8_realistic_vision_balanced_v3\\raw\\06_0524_0628.png",
+      "finalPath": "D:\\04_GitHub\\world-cup-issue\\tmp\\camellia_letter_scenes\\8_realistic_vision_balanced_v3\\final_1080p\\06_0524_0628_1080p.jpg",
+      "responsePath": "D:\\04_GitHub\\world-cup-issue\\tmp\\camellia_letter_scenes\\8_realistic_vision_balanced_v3\\06_response.json",
+      "rawBytes": 483254,
+      "finalBytes": 397593,
+      "rawMetrics": {
+        "width": 768,
+        "height": 432,
+        "colors": 18595,
+        "nearBlackRatio": 0.113,
+        "nearWhiteRatio": 0.008
+      },
+      "finalMetrics": {
+        "width": 1920,
+        "height": 1080,
+        "colors": 18786,
+        "nearBlackRatio": 0.112,
+        "nearWhiteRatio": 0.007
+      },
+      "remotePath": "/Volumes/System/docker/book-image-service/outputs-rv/book_image_1782697643.png",
+      "serviceMetrics": {
+        "colors": 18595,
+        "nonBgRatio": 0.859
+      },
+      "model": "SG161222/Realistic_Vision_V5.1_noVAE",
+      "pressureAfter": "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:                                     9584.\nPages active:                                 327857.\nPages inactive:                               252974.\nPages speculative:                              1108.\nPages throttled:                                   0.\nPages wired down:                             377941.\nPages purgeable:                               14851.\n63795  19.3  0.1  20256 sshd-session: coderdream [priv]\n  174   6.0  0.3  54800 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer\n47993   5.5  1.4 239392 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python\n 1216   2.7  0.3  48560 /Applications/Tailscale.app/Contents/PlugIns/IPNExtension.appex/Contents/MacOS/IPNExtension\n  141   2.4  0.1  12592 /usr/libexec/opendirectoryd\n 1003   2.0  0.5  76432 /System/Library/CoreServices/Finder.app/Contents/MacOS/Finder\n 1060   1.8  0.1  19424 /System/Library/ExtensionKit/Extensions/VPN.appex/Contents/MacOS/VPN\n 6313   1.6  0.1  21344 /System/Library/ExtensionKit/Extensions/VPN.appex/Contents/MacOS/VPN\n    1   1.4  0.1  23072 /sbin/launchd\n  402   1.0  0.1  10960 /Applications/ToDesk.app/Contents/MacOS/ToDesk_Service\n{\"ok\":true,\"device\":\"mps\",\"model\":\"SG161222/Realistic_Vision_V5.1_noVAE\",\"dtype\":\"float32\",\"torch\":\"2.8.0\"}"
+    },
+    {
+      "index": 7,
+      "cueStart": 629,
+      "cueEnd": 732,
+      "text": "急着解释急着证明自己没有错可有些话需要等待等待情绪沉淀等待理解加深等待自己有能力承担说出口之后的重量鸠子迟迟没有写冬马先生的信表面看是失败实际上是她对文字的敬畏她不愿用漂亮话敷衍别人的人生这样的停顿也是一种诚实睡前听这本书最适合把注意力放在",
+      "title": "Blocked night letter",
+      "prompt": "photorealistic cinematic Japanese drama film still, medium-wide environmental shot, professional book-summary video visual, warm natural light, quiet emotional realism, realistic lived-in details, 35mm lens, 16:9, no readable text. Scene 07/8, Blocked night letter. Primary scene action: the woman sits at a night desk under a brass lamp; blank paper is central, rain-streaked window, tea cup, camellia petals. same woman visible in every scene, East Asian woman early 30s, short black bob haircut with soft bangs, cream knit cardigan, white top, dark skirt. The woman must be clearly visible as a full-body or half-body figure, occupying about 20 to 35 percent of the frame. She must be interacting with the environment, not posing for camera, not a close-up portrait. Use blank paper and blank envelopes only, no readable words. Keep the composition cinematic and story-driven.",
+      "negativePrompt": "no person, empty room, empty landscape, close-up portrait, headshot, studio portrait, passport photo, plain wall background, face filling frame, looking directly at camera, glamour shot, two people, three people, crowd, duplicate person, identical twins, clone, same face twice, extra woman, extra protagonist, kimono, yukata, red robe, ancient costume, readable text, letters with readable text, signboard text, watermark, logo, caption, subtitles, random characters, garbled characters, anime, cartoon, illustration, painting, low detail, blurry, bad anatomy, deformed hands, extra fingers, distorted face, plastic skin",
+      "ok": true,
+      "elapsedSecondsClient": 42.85,
+      "serverElapsedSeconds": 42.84,
+      "rawPath": "D:\\04_GitHub\\world-cup-issue\\tmp\\camellia_letter_scenes\\8_realistic_vision_balanced_v3\\raw\\07_0629_0732.png",
+      "finalPath": "D:\\04_GitHub\\world-cup-issue\\tmp\\camellia_letter_scenes\\8_realistic_vision_balanced_v3\\final_1080p\\07_0629_0732_1080p.jpg",
+      "responsePath": "D:\\04_GitHub\\world-cup-issue\\tmp\\camellia_letter_scenes\\8_realistic_vision_balanced_v3\\07_response.json",
+      "rawBytes": 375243,
+      "finalBytes": 277890,
+      "rawMetrics": {
+        "width": 768,
+        "height": 432,
+        "colors": 10273,
+        "nearBlackRatio": 0.144,
+        "nearWhiteRatio": 0.01
+      },
+      "finalMetrics": {
+        "width": 1920,
+        "height": 1080,
+        "colors": 10475,
+        "nearBlackRatio": 0.144,
+        "nearWhiteRatio": 0.01
+      },
+      "remotePath": "/Volumes/System/docker/book-image-service/outputs-rv/book_image_1782697686.png",
+      "serviceMetrics": {
+        "colors": 10273,
+        "nonBgRatio": 0.973
+      },
+      "model": "SG161222/Realistic_Vision_V5.1_noVAE",
+      "pressureAfter": "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:                                    14402.\nPages active:                                 325551.\nPages inactive:                               251200.\nPages speculative:                              1159.\nPages throttled:                                   0.\nPages wired down:                             377222.\nPages purgeable:                               15068.\n63870  14.3  0.1  20256 sshd-session: coderdream [priv]\n47993   9.3  1.4 240544 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python\n 6313   1.5  0.1  21344 /System/Library/ExtensionKit/Extensions/VPN.appex/Contents/MacOS/VPN\n  402   1.5  0.1  10960 /Applications/ToDesk.app/Contents/MacOS/ToDesk_Service\n    1   1.4  0.1  23072 /sbin/launchd\n 1060   1.3  0.1  19424 /System/Library/ExtensionKit/Extensions/VPN.appex/Contents/MacOS/VPN\n  174   1.3  0.3  54912 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer\n  166   1.0  0.1  22544 /usr/sbin/bluetoothd\n  100   0.6  0.3  45872 /usr/libexec/logd\n  141   0.5  0.1  12608 /usr/libexec/opendirectoryd\n{\"ok\":true,\"device\":\"mps\",\"model\":\"SG161222/Realistic_Vision_V5.1_noVAE\",\"dtype\":\"float32\",\"torch\":\"2.8.0\"}"
+    },
+    {
+      "index": 8,
+      "cueStart": 733,
+      "cueEnd": 837,
+      "text": "它告诉我们爱不一定总是汹涌也可以是克制的守候陪伴不一定总在身边也可以藏在一张纸、一句话、一段被记住的时光里今晚的故事就让它停在这里吧请把那些尚未说出口的话暂时放在心里最安全的地方也许明天醒来你会愿意写下一句也许还不会那也没有关系信可以慢慢写",
+      "title": "Sea healing",
+      "prompt": "photorealistic cinematic Japanese drama film still, medium-wide environmental shot, professional book-summary video visual, warm natural light, quiet emotional realism, realistic lived-in details, 35mm lens, 16:9, no readable text. Scene 08/8, Sea healing. Primary scene action: the woman stands at a seaside overlook at sunrise, seen from behind or three-quarter back; wooden rail, open sea, red camellias in foreground. same woman visible in every scene, East Asian woman early 30s, short black bob haircut with soft bangs, cream knit cardigan, white top, dark skirt. The woman must be clearly visible as a full-body or half-body figure, occupying about 20 to 35 percent of the frame. She must be interacting with the environment, not posing for camera, not a close-up portrait. Use blank paper and blank envelopes only, no readable words. Keep the composition cinematic and story-driven.",
+      "negativePrompt": "no person, empty room, empty landscape, close-up portrait, headshot, studio portrait, passport photo, plain wall background, face filling frame, looking directly at camera, glamour shot, two people, three people, crowd, duplicate person, identical twins, clone, same face twice, extra woman, extra protagonist, kimono, yukata, red robe, ancient costume, readable text, letters with readable text, signboard text, watermark, logo, caption, subtitles, random characters, garbled characters, anime, cartoon, illustration, painting, low detail, blurry, bad anatomy, deformed hands, extra fingers, distorted face, plastic skin",
+      "ok": true,
+      "elapsedSecondsClient": 43.0,
+      "serverElapsedSeconds": 42.99,
+      "rawPath": "D:\\04_GitHub\\world-cup-issue\\tmp\\camellia_letter_scenes\\8_realistic_vision_balanced_v3\\raw\\08_0733_0837.png",
+      "finalPath": "D:\\04_GitHub\\world-cup-issue\\tmp\\camellia_letter_scenes\\8_realistic_vision_balanced_v3\\final_1080p\\08_0733_0837_1080p.jpg",
+      "responsePath": "D:\\04_GitHub\\world-cup-issue\\tmp\\camellia_letter_scenes\\8_realistic_vision_balanced_v3\\08_response.json",
+      "rawBytes": 434906,
+      "finalBytes": 374636,
+      "rawMetrics": {
+        "width": 768,
+        "height": 432,
+        "colors": 18983,
+        "nearBlackRatio": 0.182,
+        "nearWhiteRatio": 0.0
+      },
+      "finalMetrics": {
+        "width": 1920,
+        "height": 1080,
+        "colors": 19226,
+        "nearBlackRatio": 0.18,
+        "nearWhiteRatio": 0.0
+      },
+      "remotePath": "/Volumes/System/docker/book-image-service/outputs-rv/book_image_1782697729.png",
+      "serviceMetrics": {
+        "colors": 18983,
+        "nonBgRatio": 0.998
+      },
+      "model": "SG161222/Realistic_Vision_V5.1_noVAE",
+      "pressureAfter": "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:                                     8885.\nPages active:                                 327801.\nPages inactive:                               254203.\nPages speculative:                              1311.\nPages throttled:                                   0.\nPages wired down:                             377458.\nPages purgeable:                               15096.\n63945  16.2  0.1  20256 sshd-session: coderdream [priv]\n47993   7.7  1.4 241920 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python\n  141   2.1  0.1  12608 /usr/libexec/opendirectoryd\n 1003   2.0  0.5  76432 /System/Library/CoreServices/Finder.app/Contents/MacOS/Finder\n    1   1.5  0.1  23072 /sbin/launchd\n 1216   1.0  0.3  48592 /Applications/Tailscale.app/Contents/PlugIns/IPNExtension.appex/Contents/MacOS/IPNExtension\n  174   0.9  0.3  54896 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer\n 6313   0.4  0.1  21344 /System/Library/ExtensionKit/Extensions/VPN.appex/Contents/MacOS/VPN\n 1060   0.4  0.1  19424 /System/Library/ExtensionKit/Extensions/VPN.appex/Contents/MacOS/VPN\n  181   0.4  0.1  19440 /usr/libexec/runningboardd\n{\"ok\":true,\"device\":\"mps\",\"model\":\"SG161222/Realistic_Vision_V5.1_noVAE\",\"dtype\":\"float32\",\"torch\":\"2.8.0\"}"
+    }
+  ],
+  "contactSheet": "D:\\04_GitHub\\world-cup-issue\\tmp\\camellia_letter_scenes\\8_realistic_vision_balanced_v3\\contact_sheet.jpg",
+  "finishedAt": "2026-06-29 09:48:49"
+}

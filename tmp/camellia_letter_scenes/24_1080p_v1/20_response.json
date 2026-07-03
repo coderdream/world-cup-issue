@@ -1,0 +1,17 @@
+{
+  "created": 1782658612,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782658612.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs/book_image_1782658612.png",
+      "revised_prompt": "professional cinematic realistic watercolor illustration for a Chinese 30-minute book-summary video, consistent young East Asian woman with shoulder-length black hair and soft cream cardigan, quiet Japanese seaside town and warm stationery-room atmosphere, camellia flowers as recurring motif, letters and notebooks with no readable text, emotional healing tone, elegant composition, soft film lighting, detailed background, 16:9, no readable text, no logo, no watermark, scene 20 of 24, library-like corner with shelves of paper, she compares old letters and notebook pages, piecing together family memories, visualize this subtitle meaning without drawing readable text: 只要想一想如果今晚要给某个人写一句话你会写给谁也许是给远方的朋友告诉对方你其实一直记得也许是给亲人说有些感谢从来没好好讲过也许是给曾经的爱人说祝你平安也许是给小时候的自己说你已经很努力了也许是给现在的自己很多人最不会写的就是给自己的信我们对",
+      "metrics": {
+        "colors": 22338,
+        "nonBgRatio": 0.869
+      },
+      "elapsedSeconds": 156.58,
+      "model": "Lykon/dreamshaper-8-lcm",
+      "device": "mps"
+    }
+  ]
+}

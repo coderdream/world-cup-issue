@@ -1,0 +1,17 @@
+{
+  "created": 1782657206,
+  "data": [
+    {
+      "url": "/outputs/book_image_1782657205.png",
+      "path": "/Volumes/System/docker/book-image-service/outputs/book_image_1782657205.png",
+      "revised_prompt": "professional cinematic realistic watercolor illustration for a Chinese 30-minute book-summary video, consistent young East Asian woman with shoulder-length black hair and soft cream cardigan, quiet Japanese seaside town and warm stationery-room atmosphere, camellia flowers as recurring motif, letters and notebooks with no readable text, emotional healing tone, elegant composition, soft film lighting, detailed background, 16:9, no readable text, no logo, no watermark, scene 11 of 24, library-like corner with shelves of paper, she compares old letters and notebook pages, piecing together family memories, visualize this subtitle meaning without drawing readable text: 反而不知道自己为什么存在那些被任务支撑的日子一旦结束内心的空洞便显露出来鸠子不知道自己为了什么而活仿佛沉进一片宽阔的泥沼连脖子都埋在里面她想靠工作摆脱这种情绪可代笔工作也停滞不前脑袋昏沉毫无干劲想尝试新事物又一动身就畏首畏尾冬马先生的信迟迟",
+      "metrics": {
+        "colors": 24067,
+        "nonBgRatio": 0.893
+      },
+      "elapsedSeconds": 132.96,
+      "model": "Lykon/dreamshaper-8-lcm",
+      "device": "mps"
+    }
+  ]
+}
