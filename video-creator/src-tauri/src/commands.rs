@@ -1013,13 +1013,10 @@ fn sync_draft_video_images(draft: &mut Value, publish_dir: &Path) -> Result<(), 
         .collect::<Vec<_>>();
     snapshots.sort_by_key(|path| path.file_name().map(|name| name.to_os_string()));
 
-    let mut target_names = vec!["cover.png".to_string()];
-    target_names.extend(
-        snapshots
-            .iter()
-            .filter_map(|path| path.file_name().and_then(|name| name.to_str()).map(ToOwned::to_owned))
-            .filter(|name| name != "snapshot_001.png"),
-    );
+    let target_names = snapshots
+        .iter()
+        .filter_map(|path| path.file_name().and_then(|name| name.to_str()).map(ToOwned::to_owned))
+        .collect::<Vec<_>>();
     if target_names.is_empty() {
         return Ok(());
     }
