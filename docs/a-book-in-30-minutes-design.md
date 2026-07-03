@@ -1511,3 +1511,8 @@ When only updating the desktop shortcut development build, use `pnpm -C a-book-i
 - 文本阶段跳过以归一化后的任务为准：`status=success`、`progress=100` 且 `materialOutputDir` 存在即可跳过，不再因为 `narrationChars` 为空而误触发文本生成。后端读取任务时会根据 `narration.txt` 自动补齐 `narration_chars`。
 - 后端 `material_task_from_row` 会在返回前按磁盘真实产物归一化阶段状态：文本、音频、图片、字幕、视频产物缺失时对应阶段回到 `pending`；已有产物时保持或修正为可跳过状态。
 - 阶段流水线提示必须使用中文；新增或修改的提示优先使用源码安全写法，避免 Windows 控制台编码把中文写成问号或 mojibake。
+## 2026-07-03 0.1.126 Background Music bf.mp3 98 Percent
+
+This version switches the default background music path to `D:\04_GitHub\world-cup-issue\a-book-in-30-minutes\music\bf.mp3` in both frontend defaults and Rust backend defaults. The compatibility fallback in the video pipeline also checks `bf.mp3` directly, so newly generated videos use the processed ASCII-named background music file instead of the old Chinese filename.
+
+`bf.mp3` is regenerated from the local performance recording at `98%` speed with `ffmpeg atempo=0.98`. The verified output is MP3, 44100 Hz, stereo, approximately `304.666` seconds, size `6,753,058` bytes. This keeps the workflow compatible with the desktop shortcut Release build and avoids generating an installer.

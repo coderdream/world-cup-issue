@@ -3128,7 +3128,7 @@ fn find_background_music_file(settings: &AppSettings) -> Option<PathBuf> {
         }
     }
     let default_project_music = PathBuf::from(
-        "D:\\04_GitHub\\world-cup-issue\\a-book-in-30-minutes\\music\\01-蝴蝶飞呀.mp3",
+        "D:\\04_GitHub\\world-cup-issue\\a-book-in-30-minutes\\music\\bf.mp3",
     );
     if default_project_music.is_file() {
         return Some(default_project_music);

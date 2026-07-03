@@ -1,7 +1,7 @@
 {
   "name": "a-book-in-30-minutes",
   "private": true,
-  "version": "0.1.125",
+  "version": "0.1.126",
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
@@ -34,10 +34,3 @@
     "vite": "^6.0.5"
   }
 }
-
-
-
-
-
-
-

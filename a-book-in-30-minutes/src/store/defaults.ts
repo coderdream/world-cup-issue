@@ -41,7 +41,7 @@ export const defaultSettings: AppSettings = {
   toolProfile: {
     ffmpegPath: "",
     backgroundMusicMode: "single",
-    backgroundMusicPath: "D:\\04_GitHub\\world-cup-issue\\a-book-in-30-minutes\\music\\01-蝴蝶飞呀.mp3"
+    backgroundMusicPath: "D:\\04_GitHub\\world-cup-issue\\a-book-in-30-minutes\\music\\bf.mp3"
   },
   uiProfile: {
     menuFontFamily: "\"Microsoft YaHei UI\", \"Microsoft YaHei\", \"PingFang SC\", \"Noto Sans SC\", \"Segoe UI\", Arial, sans-serif",

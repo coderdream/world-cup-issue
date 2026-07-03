@@ -579,7 +579,7 @@ impl Default for ToolProfile {
 }
 
 fn default_background_music_path() -> String {
-    "D:\\04_GitHub\\world-cup-issue\\a-book-in-30-minutes\\music\\01-蝴蝶飞呀.mp3".to_string()
+    "D:\\04_GitHub\\world-cup-issue\\a-book-in-30-minutes\\music\\bf.mp3".to_string()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
