@@ -14,6 +14,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Mutex;
 use std::thread;
+use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::{Manager, State};
 
 const LEGACY_DB: &str = r"D:\04_GitHub\video-easy-creator\data\video-easy-creator.db";
@@ -875,6 +876,7 @@ fn sync_jianying_draft(settings: &AppSettings, episode: &str) -> Result<String, 
     repair_mojibake_srt(&chn_srt_path)?;
     sync_draft_cover(&draft_dir, &cover_path)?;
     sync_draft_subtitles(&draft_dir, &eng_srt_path, &chn_srt_path)?;
+    sync_draft_media_library(&draft_dir, publish_dir)?;
     Ok(format!("已同步剪映草稿封面和字幕：{}", draft_dir.display()))
 }
 
@@ -1000,23 +1002,7 @@ fn sync_draft_subtitles(draft_dir: &Path, eng_srt_path: &Path, chn_srt_path: &Pa
 
 fn sync_draft_video_images(draft: &mut Value, publish_dir: &Path) -> Result<(), String> {
     let draft_duration = draft.get("duration").and_then(Value::as_i64).unwrap_or(0);
-    let mut snapshots = fs::read_dir(publish_dir)
-        .map_err(|error| format!("读取发布素材目录失败：{error}"))?
-        .filter_map(Result::ok)
-        .map(|entry| entry.path())
-        .filter(|path| {
-            path.file_name()
-                .and_then(|name| name.to_str())
-                .map(|name| name.starts_with("snapshot_") && name.ends_with(".png"))
-                .unwrap_or(false)
-        })
-        .collect::<Vec<_>>();
-    snapshots.sort_by_key(|path| path.file_name().map(|name| name.to_os_string()));
-
-    let target_names = snapshots
-        .iter()
-        .filter_map(|path| path.file_name().and_then(|name| name.to_str()).map(ToOwned::to_owned))
-        .collect::<Vec<_>>();
+    let target_names = list_snapshot_names(publish_dir)?;
     if target_names.is_empty() {
         return Ok(());
     }
@@ -1116,6 +1102,95 @@ fn sync_draft_video_images(draft: &mut Value, publish_dir: &Path) -> Result<(), 
     }
 
     Ok(())
+}
+
+fn sync_draft_media_library(draft_dir: &Path, publish_dir: &Path) -> Result<(), String> {
+    let meta_path = draft_dir.join("draft_meta_info.json");
+    if !meta_path.exists() {
+        return Ok(());
+    }
+
+    let mut meta = read_json_file(&meta_path)?;
+    let materials = meta
+        .get_mut("draft_materials")
+        .and_then(Value::as_array_mut)
+        .ok_or_else(|| "draft_meta_info.json 缺少 draft_materials".to_string())?;
+    let photo_group = materials
+        .iter_mut()
+        .find(|group| group.get("type").and_then(Value::as_i64) == Some(0))
+        .ok_or_else(|| "draft_meta_info.json 缺少本地媒体素材组".to_string())?;
+    let values = photo_group
+        .get_mut("value")
+        .and_then(Value::as_array_mut)
+        .ok_or_else(|| "draft_meta_info.json 本地媒体素材组缺少 value".to_string())?;
+
+    let mut image_names = vec!["cover.png".to_string()];
+    image_names.extend(list_snapshot_names(publish_dir)?);
+    let existing = values.clone();
+    let mut next_values = Vec::new();
+
+    for item in existing.iter().filter(|item| item.get("metetype").and_then(Value::as_str) != Some("photo")) {
+        next_values.push(item.clone());
+    }
+
+    let now = current_unix_seconds();
+    for name in image_names {
+        let source = publish_dir.join(&name);
+        if !source.exists() {
+            continue;
+        }
+        let existing_item = existing.iter().find(|item| item.get("extra_info").and_then(Value::as_str) == Some(name.as_str()));
+        let id = existing_item
+            .and_then(|item| item.get("id"))
+            .and_then(Value::as_str)
+            .filter(|value| !value.trim().is_empty())
+            .map(ToOwned::to_owned)
+            .unwrap_or_else(|| format!("video-creator-{name}"));
+        let mut item = existing_item.cloned().unwrap_or_else(|| serde_json::json!({}));
+        item["create_time"] = Value::from(now);
+        item["duration"] = Value::from(5_000_000);
+        item["extra_info"] = Value::String(name.clone());
+        item["file_Path"] = Value::String(format!("D:/0000/video/0001_SixMinutes_Draft/{name}"));
+        item["height"] = Value::from(1080);
+        item["id"] = Value::String(id);
+        item["import_time"] = Value::from(now);
+        item["import_time_ms"] = Value::from(now * 1_000_000);
+        item["item_source"] = Value::from(1);
+        item["md5"] = Value::String(String::new());
+        item["metetype"] = Value::String("photo".to_string());
+        item["roughcut_time_range"] = serde_json::json!({ "duration": -1, "start": -1 });
+        item["sub_time_range"] = serde_json::json!({ "duration": -1, "start": -1 });
+        item["type"] = Value::from(0);
+        item["width"] = Value::from(1920);
+        next_values.push(item);
+    }
+
+    *values = next_values;
+    write_json_file(&meta_path, &meta)
+}
+
+fn list_snapshot_names(publish_dir: &Path) -> Result<Vec<String>, String> {
+    let mut snapshots = fs::read_dir(publish_dir)
+        .map_err(|error| format!("读取发布素材目录失败：{error}"))?
+        .filter_map(Result::ok)
+        .map(|entry| entry.path())
+        .filter(|path| {
+            path.file_name()
+                .and_then(|name| name.to_str())
+                .map(|name| name.starts_with("snapshot_") && name.ends_with(".png"))
+                .unwrap_or(false)
+        })
+        .filter_map(|path| path.file_name().and_then(|name| name.to_str()).map(ToOwned::to_owned))
+        .collect::<Vec<_>>();
+    snapshots.sort();
+    Ok(snapshots)
+}
+
+fn current_unix_seconds() -> i64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_secs() as i64)
+        .unwrap_or(0)
 }
 
 fn sync_text_track(track: &mut Value, cues: &[SrtCue], text_ids: &mut Vec<String>) -> Result<(), String> {
