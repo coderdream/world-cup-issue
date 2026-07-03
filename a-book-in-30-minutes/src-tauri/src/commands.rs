@@ -1588,6 +1588,9 @@ pub fn get_material_tasks(
     files.retain(|file| Path::new(&file.path).exists());
     for file in &mut files {
         let _ = migrate_task_outputs_to_source_output(&connection, file);
+        let before = file.clone();
+        normalize_material_task_outputs(file);
+        persist_reconciled_task_status(&connection, &before, file);
     }
     data.logger.info(
         "materials",
@@ -1615,6 +1618,9 @@ pub fn get_material_task(
     let mut file = load_material_task_by_path(&connection, path)?;
     if let Some(file) = file.as_mut() {
         let _ = migrate_task_outputs_to_source_output(&connection, file);
+        let before = file.clone();
+        normalize_material_task_outputs(file);
+        persist_reconciled_task_status(&connection, &before, file);
     }
     Ok(file)
 }
@@ -4978,6 +4984,49 @@ fn normalize_material_task_outputs_from_disk(file: &mut MaterialFile) {
         file.video_duration_ms = None;
         file.video_file_size = None;
         file.video_message = "视频文件缺失，请按需重新生成视频。".to_string();
+    }
+}
+
+fn persist_reconciled_task_status(
+    connection: &Connection,
+    before: &MaterialFile,
+    after: &MaterialFile,
+) {
+    let now = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+    // 文本阶段
+    if before.status != after.status || before.progress != after.progress || before.material_output_dir != after.material_output_dir {
+        let _ = connection.execute(
+            "UPDATE material_tasks SET status=?2, progress=?3, material_output_dir=COALESCE(?4, material_output_dir), narration_chars=COALESCE(?5, narration_chars), message=?6, updated_at=?7 WHERE path=?1",
+            params![after.path, after.status, after.progress, after.material_output_dir, after.narration_chars, after.message, now],
+        );
+    }
+    // 音频阶段
+    if before.audio_status != after.audio_status || before.audio_progress != after.audio_progress || before.audio_file != after.audio_file {
+        let _ = connection.execute(
+            "UPDATE material_tasks SET audio_status=?2, audio_progress=?3, audio_file=COALESCE(?4, audio_file), audio_message=?5, updated_at=?6 WHERE path=?1",
+            params![after.path, after.audio_status, after.audio_progress, after.audio_file, after.audio_message, now],
+        );
+    }
+    // 图片阶段
+    if before.image_status != after.image_status || before.image_progress != after.image_progress || before.image_output_dir != after.image_output_dir {
+        let _ = connection.execute(
+            "UPDATE material_tasks SET image_status=?2, image_progress=?3, image_output_dir=COALESCE(?4, image_output_dir), image_message=?5, updated_at=?6 WHERE path=?1",
+            params![after.path, after.image_status, after.image_progress, after.image_output_dir, after.image_message, now],
+        );
+    }
+    // 字幕阶段
+    if before.subtitle_status != after.subtitle_status || before.subtitle_progress != after.subtitle_progress || before.subtitle_file != after.subtitle_file {
+        let _ = connection.execute(
+            "UPDATE material_tasks SET subtitle_status=?2, subtitle_progress=?3, subtitle_file=COALESCE(?4, subtitle_file), subtitle_message=?5, updated_at=?6 WHERE path=?1",
+            params![after.path, after.subtitle_status, after.subtitle_progress, after.subtitle_file, after.subtitle_message, now],
+        );
+    }
+    // 视频阶段
+    if before.video_status != after.video_status || before.video_progress != after.video_progress || before.video_file != after.video_file {
+        let _ = connection.execute(
+            "UPDATE material_tasks SET video_status=?2, video_progress=?3, video_file=COALESCE(?4, video_file), video_message=?5, updated_at=?6 WHERE path=?1",
+            params![after.path, after.video_status, after.video_progress, after.video_file, after.video_message, now],
+        );
     }
 }
 

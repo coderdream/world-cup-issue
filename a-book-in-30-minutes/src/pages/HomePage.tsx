@@ -151,7 +151,6 @@ export function HomePage() {
               <div className="pipeline-progress-head">
                 {item.icon}
                 <b>{item.label}</b>
-                <span>{item.progress}%</span>
               </div>
               <div className="pipeline-progress-bar">
                 <i style={{ width: `${item.progress}%` }} />
