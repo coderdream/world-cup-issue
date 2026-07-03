@@ -1024,12 +1024,7 @@ fn sync_draft_video_images(draft: &mut Value, publish_dir: &Path) -> Result<(), 
     let mut material_ids = Vec::with_capacity(target_names.len());
     for (index, name) in target_names.iter().enumerate() {
         let material = &mut videos[index];
-        let id = material
-            .get("id")
-            .and_then(Value::as_str)
-            .filter(|value| !value.trim().is_empty())
-            .map(ToOwned::to_owned)
-            .unwrap_or_else(|| format!("VIDEO_CREATOR_IMAGE_{index:03}"));
+        let id = stable_jianying_image_id(name);
         material["id"] = Value::String(id.clone());
         material["material_name"] = Value::String(name.clone());
         material["name"] = Value::String(name.clone());
@@ -1089,19 +1084,30 @@ fn sync_draft_video_images(draft: &mut Value, publish_dir: &Path) -> Result<(), 
     }
 
     for (index, segment) in segments.iter_mut().enumerate() {
-        segment["id"] = Value::String(
-            segment
-                .get("id")
-                .and_then(Value::as_str)
-                .filter(|value| !value.trim().is_empty() && index < original_len)
-                .map(ToOwned::to_owned)
-                .unwrap_or_else(|| format!("VIDEO_CREATOR_IMAGE_SEGMENT_{index:03}")),
-        );
+        segment["id"] = Value::String(stable_jianying_segment_id(&target_names[index]));
         segment["material_id"] = Value::String(material_ids[index].clone());
         segment["visible"] = Value::Bool(true);
     }
 
     Ok(())
+}
+
+fn stable_jianying_image_id(name: &str) -> String {
+    let suffix = name
+        .trim_end_matches(".png")
+        .replace("snapshot_", "SNAPSHOT_")
+        .replace("cover", "COVER")
+        .replace('-', "_");
+    format!("VIDEO_CREATOR_IMAGE_{suffix}")
+}
+
+fn stable_jianying_segment_id(name: &str) -> String {
+    let suffix = name
+        .trim_end_matches(".png")
+        .replace("snapshot_", "SNAPSHOT_")
+        .replace("cover", "COVER")
+        .replace('-', "_");
+    format!("VIDEO_CREATOR_IMAGE_SEGMENT_{suffix}")
 }
 
 fn sync_draft_media_library(draft_dir: &Path, publish_dir: &Path) -> Result<(), String> {
@@ -1140,12 +1146,7 @@ fn sync_draft_media_library(draft_dir: &Path, publish_dir: &Path) -> Result<(), 
             continue;
         }
         let existing_item = existing.iter().find(|item| item.get("extra_info").and_then(Value::as_str) == Some(name.as_str()));
-        let id = existing_item
-            .and_then(|item| item.get("id"))
-            .and_then(Value::as_str)
-            .filter(|value| !value.trim().is_empty())
-            .map(ToOwned::to_owned)
-            .unwrap_or_else(|| format!("video-creator-{name}"));
+        let id = stable_jianying_image_id(&name);
         let mut item = existing_item.cloned().unwrap_or_else(|| serde_json::json!({}));
         item["create_time"] = Value::from(now);
         item["duration"] = Value::from(5_000_000);
