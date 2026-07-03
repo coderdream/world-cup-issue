@@ -6,7 +6,9 @@ use crate::models::{
 };
 use crate::operation_log::OperationLogger;
 use chrono::{Duration, NaiveDateTime};
+use encoding_rs::GBK;
 use rusqlite::Connection;
+use serde_json::Value;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -153,6 +155,7 @@ pub fn run_video_workflow_in_background(
     let logger = logger.clone();
     let command_name = command.to_string();
     let args_text = args.join(" ");
+    let sync_episode = request.episode.clone();
     logger.info("video", "run_workflow", &format!("Background task submitted: {args_text}"));
 
     thread::Builder::new()
@@ -177,6 +180,14 @@ pub fn run_video_workflow_in_background(
                     let exit_code = output.status.code();
                     if output.status.success() {
                         logger.info("video", "run_workflow", &format!("Background task {command_name} completed."));
+                        if command_name == "prepare-sixminutes" {
+                            if let Some(episode) = sync_episode.as_deref().filter(|value| !value.trim().is_empty()) {
+                                match sync_jianying_draft(episode) {
+                                    Ok(summary) => logger.info("video", "sync_jianying_draft", &summary),
+                                    Err(error) => logger.error("video", "sync_jianying_draft", "Failed to sync Jianying draft", error),
+                                }
+                            }
+                        }
                         if !stdout.trim().is_empty() {
                             logger.trace_info("video", "run_workflow_stdout", "Background task stdout", stdout.trim(), &command_name);
                         }
@@ -835,6 +846,252 @@ async fn call_feishu(settings: &AppSettings, text: &str) -> Result<FeishuSendRes
         ok: true,
         message: "Feishu connectivity test succeeded; message sent.".to_string(),
     })
+}
+
+#[derive(Debug, Clone)]
+struct SrtCue {
+    start_us: i64,
+    duration_us: i64,
+    text: String,
+}
+
+fn sync_jianying_draft(episode: &str) -> Result<String, String> {
+    let publish_dir = Path::new(r"D:\0000\video\0001_SixMinutes_Draft");
+    let draft_name = format!("六分钟英语_{}", episode.trim().chars().take(4).collect::<String>());
+    let draft_dir = Path::new(r"D:\03_Software\JianyingPro Drafts").join(draft_name);
+    if !draft_dir.exists() {
+        return Err(format!("剪映草稿目录不存在：{}", draft_dir.display()));
+    }
+
+    let cover_path = publish_dir.join("cover.png");
+    let eng_srt_path = publish_dir.join("eng.srt");
+    let chn_srt_path = publish_dir.join("chn.srt");
+    for path in [&cover_path, &eng_srt_path, &chn_srt_path] {
+        if !path.exists() {
+            return Err(format!("发布素材缺失：{}", path.display()));
+        }
+    }
+
+    repair_mojibake_srt(&chn_srt_path)?;
+    sync_draft_cover(&draft_dir, &cover_path)?;
+    sync_draft_subtitles(&draft_dir, &eng_srt_path, &chn_srt_path)?;
+    Ok(format!("已同步剪映草稿封面和字幕：{}", draft_dir.display()))
+}
+
+fn sync_draft_cover(draft_dir: &Path, cover_path: &Path) -> Result<(), String> {
+    let content_path = draft_dir.join("draft_content.json");
+    let meta_path = draft_dir.join("draft_meta_info.json");
+    let content = read_json_file(&content_path)?;
+    let cover_resource = content
+        .pointer("/materials/drafts/0/draft/materials/videos/0/path")
+        .and_then(Value::as_str)
+        .and_then(|value| value.split("##/").nth(1))
+        .map(|relative| draft_dir.join(relative.replace('/', "\\")));
+
+    if let Some(path) = cover_resource {
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+        }
+        fs::copy(cover_path, &path).map_err(|error| format!("覆盖草稿内部封面失败：{error}"))?;
+    }
+
+    for name in ["draft_cover.jpg", "draft_local_cover.jpg"] {
+        let target = draft_dir.join(name);
+        if target.exists() {
+            fs::copy(cover_path, target).map_err(|error| format!("覆盖草稿封面缩略图失败：{error}"))?;
+        }
+    }
+
+    if meta_path.exists() {
+        let mut meta = read_json_file(&meta_path)?;
+        meta["draft_cover"] = Value::String("draft_cover.jpg".to_string());
+        write_json_file(&meta_path, &meta)?;
+    }
+    Ok(())
+}
+
+fn sync_draft_subtitles(draft_dir: &Path, eng_srt_path: &Path, chn_srt_path: &Path) -> Result<(), String> {
+    let content_path = draft_dir.join("draft_content.json");
+    let mut draft = read_json_file(&content_path)?;
+    let english = parse_srt_file(eng_srt_path)?;
+    let chinese = parse_srt_file(chn_srt_path)?;
+    if english.is_empty() || chinese.is_empty() {
+        return Err("字幕文件为空，无法同步到剪映草稿".to_string());
+    }
+
+    let tracks = draft
+        .get_mut("tracks")
+        .and_then(Value::as_array_mut)
+        .ok_or_else(|| "draft_content.json 缺少 tracks".to_string())?;
+    let text_track_indexes: Vec<usize> = tracks
+        .iter()
+        .enumerate()
+        .filter_map(|(index, track)| (track.get("type").and_then(Value::as_str) == Some("text")).then_some(index))
+        .collect();
+    if text_track_indexes.len() < 2 {
+        return Err("剪映草稿缺少双语字幕轨".to_string());
+    }
+
+    let mut text_ids = Vec::new();
+    sync_text_track(&mut tracks[text_track_indexes[0]], &english, &mut text_ids)?;
+    sync_text_track(&mut tracks[text_track_indexes[1]], &chinese, &mut text_ids)?;
+
+    let texts = draft
+        .pointer_mut("/materials/texts")
+        .and_then(Value::as_array_mut)
+        .ok_or_else(|| "draft_content.json 缺少 materials.texts".to_string())?;
+    for cue in english.iter().chain(chinese.iter()) {
+        let id = text_ids.remove(0);
+        if let Some(material) = texts.iter_mut().find(|item| item.get("id").and_then(Value::as_str) == Some(id.as_str())) {
+            update_text_material(material, &cue.text)?;
+        }
+    }
+
+    let duration = english
+        .iter()
+        .chain(chinese.iter())
+        .map(|cue| cue.start_us + cue.duration_us)
+        .max()
+        .unwrap_or(0);
+    if duration > 0 {
+        draft["duration"] = Value::from(duration);
+        draft["tm_duration"] = Value::from(duration / 1000);
+    }
+
+    write_json_file(&content_path, &draft)
+}
+
+fn sync_text_track(track: &mut Value, cues: &[SrtCue], text_ids: &mut Vec<String>) -> Result<(), String> {
+    let segments = track
+        .get_mut("segments")
+        .and_then(Value::as_array_mut)
+        .ok_or_else(|| "字幕轨缺少 segments".to_string())?;
+    if segments.len() < cues.len() {
+        return Err(format!("字幕轨片段不足：草稿 {} 条，SRT {} 条", segments.len(), cues.len()));
+    }
+    segments.truncate(cues.len());
+    for (segment, cue) in segments.iter_mut().zip(cues.iter()) {
+        let material_id = segment
+            .get("material_id")
+            .and_then(Value::as_str)
+            .ok_or_else(|| "字幕片段缺少 material_id".to_string())?
+            .to_string();
+        segment["target_timerange"]["start"] = Value::from(cue.start_us);
+        segment["target_timerange"]["duration"] = Value::from(cue.duration_us);
+        text_ids.push(material_id);
+    }
+    Ok(())
+}
+
+fn update_text_material(material: &mut Value, text: &str) -> Result<(), String> {
+    let content = material
+        .get("content")
+        .and_then(Value::as_str)
+        .ok_or_else(|| "字幕素材缺少 content".to_string())?;
+    let mut content_json: Value = serde_json::from_str(content).map_err(|error| format!("解析字幕素材 content 失败：{error}"))?;
+    content_json["text"] = Value::String(text.to_string());
+    if let Some(styles) = content_json.get_mut("styles").and_then(Value::as_array_mut) {
+        for style in styles {
+            style["range"] = Value::Array(vec![Value::from(0), Value::from(text.chars().count() as i64)]);
+        }
+    }
+    material["content"] = Value::String(serde_json::to_string(&content_json).map_err(|error| error.to_string())?);
+    Ok(())
+}
+
+fn parse_srt_file(path: &Path) -> Result<Vec<SrtCue>, String> {
+    let content = fs::read_to_string(path).map_err(|error| format!("读取字幕失败 {}：{error}", path.display()))?;
+    let normalized = content.replace("\r\n", "\n").replace('\r', "\n");
+    let mut cues = Vec::new();
+    for block in normalized.split("\n\n") {
+        let mut lines = block.lines().filter(|line| !line.trim().is_empty());
+        let first = match lines.next() {
+            Some(value) => value.trim(),
+            None => continue,
+        };
+        let timing = if first.contains("-->") {
+            first
+        } else {
+            match lines.next() {
+                Some(value) => value.trim(),
+                None => continue,
+            }
+        };
+        let Some((start, end)) = timing.split_once("-->") else {
+            continue;
+        };
+        let start_us = parse_srt_time(start.trim())?;
+        let end_us = parse_srt_time(end.trim())?;
+        let text = lines.collect::<Vec<_>>().join("\n").trim().to_string();
+        if !text.is_empty() && end_us > start_us {
+            cues.push(SrtCue {
+                start_us,
+                duration_us: end_us - start_us,
+                text,
+            });
+        }
+    }
+    Ok(cues)
+}
+
+fn parse_srt_time(value: &str) -> Result<i64, String> {
+    let clean = value.split_whitespace().next().unwrap_or(value);
+    let parts: Vec<&str> = clean.split([':', ',']).collect();
+    if parts.len() != 4 {
+        return Err(format!("无法解析字幕时间：{value}"));
+    }
+    let hours = parts[0].parse::<i64>().map_err(|error| error.to_string())?;
+    let minutes = parts[1].parse::<i64>().map_err(|error| error.to_string())?;
+    let seconds = parts[2].parse::<i64>().map_err(|error| error.to_string())?;
+    let millis = parts[3].parse::<i64>().map_err(|error| error.to_string())?;
+    Ok(((hours * 3600 + minutes * 60 + seconds) * 1000 + millis) * 1000)
+}
+
+fn repair_mojibake_srt(path: &Path) -> Result<(), String> {
+    let content = fs::read_to_string(path).map_err(|error| format!("读取中文字幕失败：{error}"))?;
+    if !looks_mojibake(&content) {
+        return Ok(());
+    }
+    let mut repaired = String::with_capacity(content.len());
+    for ch in content.chars() {
+        if ch.is_ascii() {
+            repaired.push(ch);
+            continue;
+        }
+        let mut source = [0u8; 4];
+        let encoded = ch.encode_utf8(&mut source);
+        let (decoded, _, had_errors) = GBK.decode(encoded.as_bytes());
+        if had_errors {
+            repaired.push(ch);
+        } else {
+            repaired.push_str(&decoded);
+        }
+    }
+    if looks_mojibake(&repaired) {
+        return Err("中文字幕疑似乱码，自动修复后仍未通过检查".to_string());
+    }
+    fs::write(path, repaired).map_err(|error| format!("写回修复后的中文字幕失败：{error}"))
+}
+
+fn looks_mojibake(value: &str) -> bool {
+    ["鎴", "锛", "銆", "�", "鐨", "涓"].iter().any(|token| value.contains(token))
+}
+
+fn read_json_file(path: &Path) -> Result<Value, String> {
+    let content = fs::read_to_string(path).map_err(|error| format!("读取 JSON 失败 {}：{error}", path.display()))?;
+    serde_json::from_str(&content).map_err(|error| format!("解析 JSON 失败 {}：{error}", path.display()))
+}
+
+fn write_json_file(path: &Path, value: &Value) -> Result<(), String> {
+    let backup = path.with_extension(format!(
+        "{}.bak",
+        path.extension().and_then(|extension| extension.to_str()).unwrap_or("json")
+    ));
+    if path.exists() {
+        fs::copy(path, backup).map_err(|error| format!("备份 JSON 失败 {}：{error}", path.display()))?;
+    }
+    let content = serde_json::to_string(value).map_err(|error| format!("序列化 JSON 失败：{error}"))?;
+    fs::write(path, content).map_err(|error| format!("写入 JSON 失败 {}：{error}", path.display()))
 }
 
 fn command_error(message: impl Into<String>) -> CommandError {
