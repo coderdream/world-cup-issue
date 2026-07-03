@@ -994,7 +994,131 @@ fn sync_draft_subtitles(draft_dir: &Path, eng_srt_path: &Path, chn_srt_path: &Pa
         draft["tm_duration"] = Value::from(duration / 1000);
     }
 
+    sync_draft_video_images(&mut draft, Path::new(r"D:\0000\video\0001_SixMinutes_Draft"))?;
     write_json_file(&content_path, &draft)
+}
+
+fn sync_draft_video_images(draft: &mut Value, publish_dir: &Path) -> Result<(), String> {
+    let draft_duration = draft.get("duration").and_then(Value::as_i64).unwrap_or(0);
+    let mut snapshots = fs::read_dir(publish_dir)
+        .map_err(|error| format!("读取发布素材目录失败：{error}"))?
+        .filter_map(Result::ok)
+        .map(|entry| entry.path())
+        .filter(|path| {
+            path.file_name()
+                .and_then(|name| name.to_str())
+                .map(|name| name.starts_with("snapshot_") && name.ends_with(".png"))
+                .unwrap_or(false)
+        })
+        .collect::<Vec<_>>();
+    snapshots.sort_by_key(|path| path.file_name().map(|name| name.to_os_string()));
+
+    let mut target_names = vec!["cover.png".to_string()];
+    target_names.extend(
+        snapshots
+            .iter()
+            .filter_map(|path| path.file_name().and_then(|name| name.to_str()).map(ToOwned::to_owned))
+            .filter(|name| name != "snapshot_001.png"),
+    );
+    if target_names.is_empty() {
+        return Ok(());
+    }
+
+    let videos = draft
+        .pointer_mut("/materials/videos")
+        .and_then(Value::as_array_mut)
+        .ok_or_else(|| "draft_content.json 缺少 materials.videos".to_string())?;
+    let video_template = videos
+        .first()
+        .cloned()
+        .ok_or_else(|| "剪映草稿缺少图片素材模板".to_string())?;
+
+    while videos.len() < target_names.len() {
+        videos.push(video_template.clone());
+    }
+    videos.truncate(target_names.len());
+
+    let mut material_ids = Vec::with_capacity(target_names.len());
+    for (index, name) in target_names.iter().enumerate() {
+        let material = &mut videos[index];
+        let id = material
+            .get("id")
+            .and_then(Value::as_str)
+            .filter(|value| !value.trim().is_empty())
+            .map(ToOwned::to_owned)
+            .unwrap_or_else(|| format!("VIDEO_CREATOR_IMAGE_{index:03}"));
+        material["id"] = Value::String(id.clone());
+        material["material_name"] = Value::String(name.clone());
+        material["name"] = Value::String(name.clone());
+        material["path"] = Value::String(format!("D:/0000/video/0001_SixMinutes_Draft/{name}"));
+        material["media_path"] = Value::String(String::new());
+        material["type"] = Value::String("photo".to_string());
+        material["width"] = Value::from(1920);
+        material["height"] = Value::from(1080);
+        material_ids.push(id);
+    }
+
+    let tracks = draft
+        .get_mut("tracks")
+        .and_then(Value::as_array_mut)
+        .ok_or_else(|| "draft_content.json 缺少 tracks".to_string())?;
+    let video_track = tracks
+        .iter_mut()
+        .find(|track| track.get("type").and_then(Value::as_str) == Some("video"))
+        .ok_or_else(|| "剪映草稿缺少视频轨".to_string())?;
+    let segments = video_track
+        .get_mut("segments")
+        .and_then(Value::as_array_mut)
+        .ok_or_else(|| "视频轨缺少 segments".to_string())?;
+    let segment_template = segments
+        .last()
+        .cloned()
+        .ok_or_else(|| "视频轨缺少图片片段模板".to_string())?;
+    let original_len = segments.len();
+    let original_end = segments
+        .last()
+        .and_then(|segment| segment.get("target_timerange"))
+        .and_then(|range| Some(range.get("start")?.as_i64()? + range.get("duration")?.as_i64()?))
+        .unwrap_or(draft_duration);
+
+    while segments.len() < target_names.len() {
+        segments.push(segment_template.clone());
+    }
+    segments.truncate(target_names.len());
+
+    if target_names.len() > original_len && original_len > 0 {
+        let split_start = segments[original_len - 1]
+            .get("target_timerange")
+            .and_then(|range| range.get("start"))
+            .and_then(Value::as_i64)
+            .unwrap_or(0);
+        let split_count = (target_names.len() - original_len + 1) as i64;
+        let split_duration = ((original_end - split_start) / split_count).max(1);
+        for index in (original_len - 1)..target_names.len() {
+            segments[index]["target_timerange"]["start"] = Value::from(split_start + ((index - original_len + 1) as i64 * split_duration));
+            let duration = if index == target_names.len() - 1 {
+                (original_end - segments[index]["target_timerange"]["start"].as_i64().unwrap_or(split_start)).max(1)
+            } else {
+                split_duration
+            };
+            segments[index]["target_timerange"]["duration"] = Value::from(duration);
+        }
+    }
+
+    for (index, segment) in segments.iter_mut().enumerate() {
+        segment["id"] = Value::String(
+            segment
+                .get("id")
+                .and_then(Value::as_str)
+                .filter(|value| !value.trim().is_empty() && index < original_len)
+                .map(ToOwned::to_owned)
+                .unwrap_or_else(|| format!("VIDEO_CREATOR_IMAGE_SEGMENT_{index:03}")),
+        );
+        segment["material_id"] = Value::String(material_ids[index].clone());
+        segment["visible"] = Value::Bool(true);
+    }
+
+    Ok(())
 }
 
 fn sync_text_track(track: &mut Value, cues: &[SrtCue], text_ids: &mut Vec<String>) -> Result<(), String> {

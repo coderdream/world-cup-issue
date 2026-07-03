@@ -1034,6 +1034,76 @@ tr:hover td {
   color: var(--muted);
 }
 
+.log-searchbar,
+.log-console-toolbar {
+  border: 1px solid #2a3036;
+  background: #1e2024;
+}
+
+.log-searchbar {
+  min-height: 40px;
+  height: auto;
+  margin-bottom: 8px;
+}
+
+.log-console-toolbar {
+  min-height: 34px;
+  border-radius: 7px;
+  margin-bottom: 8px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.log-search-icon,
+.log-tool-btn,
+.log-token-btn {
+  display: grid;
+  min-height: 0;
+  height: 30px;
+  place-items: center;
+  border: 0;
+  border-radius: 5px;
+  padding: 0;
+  gap: 0;
+  color: #b9c0c9;
+  background: transparent;
+  cursor: pointer;
+  transform: none;
+  transition: color 120ms ease, background 120ms ease;
+}
+
+.log-search-icon {
+  width: 32px;
+}
+
+.log-tool-btn,
+.log-token-btn {
+  width: 30px;
+}
+
+.log-search-icon svg,
+.log-tool-btn svg,
+.log-token-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2;
+}
+
+.log-tool-btn:hover,
+.log-token-btn:hover,
+.log-search-icon:hover,
+.log-tool-btn.active,
+.log-token-btn.active {
+  color: #f0f5f8;
+  background: #373b42;
+  transform: none;
+}
+
+.log-tool-btn.danger:hover {
+  color: #ffd6dc;
+  background: rgba(255, 83, 100, 0.2);
+}
+
 @media (max-width: 980px) {
   .app-shell {
     grid-template-columns: 72px minmax(0, 1fr);

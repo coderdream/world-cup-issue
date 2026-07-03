@@ -1,17 +1,25 @@
 ﻿# 仓库协作规则
 
-- 每一轮助手对话都必须在开始处理前或处理过程中写入 `docs/daily/YYYY-MM-DD.md` 日报。日报必须记录用户要求、执行动作、结果、验证方式、生成产物和遗留问题，确保下一轮不用用户重复背景。
+- 每一轮助手对话、每收到一条新的用户要求后，都必须在开始处理前或处理过程中立即写入 `docs/daily/YYYY-MM-DD.md` 日报；不能等用户提醒，也不能等任务结束后补写。日报必须记录用户要求、执行动作、结果、验证方式、生成产物和遗留问题，确保下一轮不用用户重复背景。
 - 日报每个事项标题前必须带时间，这是硬性格式要求；格式为 `## HH:mm 标题`，精确到分钟即可，例如 `## 15:33 提交并推送代码`。
 - 每个任务每完成一个步骤就必须立即追加或更新日报，记录该步骤的用户要求、执行动作、结果、验证方式、生成产物和遗留问题；不要等到整个任务完成后再集中补写日报，因为执行任务可能报错，app 也可能意外退出。
 - 每个任务每完成一个步骤就记录到日报中，不要等到整个任务完成后再写日报，因为执行任务可能报错，app 可以意外退出。
 - 每次打包测试前，代码都要上传到 GitHub。
-- 每次代码或打包相关变更后，必须将补丁版本号递增 `0.0.1`，重新构建 Windows 安装包，并保持更新检查元数据与流程同步，方便后续 `检查更新` 能发现新版本。
+- 每次代码或打包相关变更后，必须将补丁版本号递增 `0.0.1`。如果用户没有明确要求生成安装包，则默认只构建桌面快捷方式使用的 release exe（`pnpm -C a-book-in-30-minutes tauri build --ci --target x86_64-pc-windows-gnu --no-bundle`），不要默认生成 Windows 安装包；只有用户明确说要“安装包 / installer / NSIS / setup exe”时才构建安装包，并保持更新检查元数据与流程同步。
 - 每生成一版新版本或新构建产物后，都必须提交代码并推送到 GitHub，确保 GitHub 上保留该版本对应的代码状态。
 - 每一次打包前必须先清理以前打包遗留的历史文件和可重新生成的构建产物，尤其是各子项目的 `src-tauri/target`、`target`、`dist`、`release`、安装包输出和临时打包目录，避免历史产物占满磁盘空间。
 - 实现方式要尽量框架化。能通过配置、领域模块、共享服务或通用组件解决的，不要把页面逻辑写死。
 - `a-book-in-30-minutes` 每次功能、流程、界面、数据结构或打包相关更新后，必须同步更新 `docs/a-book-in-30-minutes-design.md` 详细设计文档。
-- 日志、代码、文档和配置中不得出现乱码；中文必须正常显示，所有新建或修改的文本文件尽可能使用 UTF-8 编码。
+- 日志、代码、注释、文档、配置、界面文案、数据库默认中文文案和运行时输出中都不得出现乱码；中文必须正常显示，所有新建或修改的文本文件尽可能使用 UTF-8 编码。发现 `�`、`锟`、`鐠`、`闁`、连续 `???`、明显 mojibake 或问号替代中文时，必须立即按源语义修复，不能继续扩大或复制乱码。
 - 访问 NAS 时必须先判断本机局域网网段：如果本机 IP 是 `192.168.1.x`，优先使用同网段的 NAS 局域网 IP；如果本机 IP 是 `192.168.3.x`，必须改用 Tailscale IP 访问 NAS，避免跨网段访问异常。
 - 涉及 MacMini4、远程部署或 SSH 免密登录排障时，必须优先参考 `D:\0030_codex\tools\ssh-免密登录排障与复用指南.md`。
+- 本仓库在当前 Windows 机器上构建 Tauri/Rust 时，必须优先使用历史已验证的 GNU 工具链，不要默认走 MSVC，也不要因为 `link.exe not found` 就卡住或要求安装 Visual Studio Build Tools。执行 Rust 检查或 Tauri 打包前，先设置：
+  - `$env:RUSTUP_HOME=(Resolve-Path '.tooling\rustup').Path`
+  - `$env:CARGO_HOME=(Resolve-Path '.tooling\cargo').Path`
+  - `$env:RUSTUP_TOOLCHAIN='stable-x86_64-pc-windows-gnu'`
+  - 将 `C:\Users\Administrator\scoop\apps\mingw\current\bin`、`.tooling\rustup\toolchains\stable-x86_64-pc-windows-gnu\lib\rustlib\x86_64-pc-windows-gnu\bin` 加入当前命令 `PATH`，且 Scoop MinGW 的 `bin` 要排在 Rust `self-contained` linker 前面，避免 `gcc` 找不到 `crt2.o`、`libkernel32.a` 等 MinGW 运行库。
+- `a-book-in-30-minutes` 的 Rust 检查固定使用 `cargo check --manifest-path a-book-in-30-minutes\src-tauri\Cargo.toml --target x86_64-pc-windows-gnu --jobs 1`；如果没有明确要求安装包，Tauri 构建固定使用 `pnpm -C a-book-in-30-minutes tauri build --ci --target x86_64-pc-windows-gnu --no-bundle`，用于更新桌面快捷方式《A Book in 30 Minutes 开发版》使用的 release exe；只有明确要求安装包时才使用 `pnpm -C a-book-in-30-minutes tauri build --ci --target x86_64-pc-windows-gnu`。如果出现 MSVC `link.exe not found`，说明命令没有套用上述 GNU 环境，应先纠正环境再重跑。
+- 更新桌面快捷方式《A Book in 30 Minutes 开发版》使用的 release exe 时，必须使用 `pnpm -C a-book-in-30-minutes tauri build --ci --target x86_64-pc-windows-gnu --no-bundle`。不要裸跑 `cargo build --release`，否则 Tauri 前端资源不会正确嵌入，应用会尝试访问 `http://127.0.0.1:1421` 并显示连接被拒绝。
 - 不要反编译、逆向或修改闭源 CupWatch 应用。只能参考公开页面、截图、可见行为、本机运行时文件布局和公开数据源。
-- 日志、代码、文档里面都不能有乱码，中文要正常显示，文件尽可能用  utf-8 编码。
+- 历史任务状态只允许展示已有结果，不允许在应用启动、页面加载或读取历史列表时自动续跑未完成任务；上次中断留下的 `generating` 状态必须恢复为 `pending` 或明确提示“上次未完成，请手动继续”，后续执行必须由用户点击【素材】【音频】【视频】【发布】等按钮触发。
+- 日志、代码、文档里面都不能有乱码，中文要正常显示，文件尽可能用 utf-8 编码；日志尤其不能出现乱码，因为用户会直接用日志判断问题。
