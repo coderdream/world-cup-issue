@@ -293,8 +293,13 @@ pub async fn run_e2e_materials_cli(epub_path: &str) -> Result<(), CommandError> 
             final_chars, min_chars, max_chars
         )));
     }
-    let subtitles = normalize_ai_subtitles(&payload.subtitles, &payload.narration)
+    let mut subtitles = normalize_ai_subtitles(&payload.subtitles, &payload.narration)
         .unwrap_or_else(|| split_subtitles(&payload.narration));
+    if subtitles_need_ai_rewrite(&subtitles) {
+        if let Some(rewritten) = rewrite_subtitles_with_ai(&settings, &payload.narration, &subtitles).await {
+            subtitles = rewritten;
+        }
+    }
     let materials = BookMaterials {
         video_title: payload.video_title,
         description: payload.description,
@@ -1283,7 +1288,12 @@ pub async fn generate_book_materials(
         3,
         "Splitting narration into subtitles.",
     );
-    let subtitles = split_subtitles(&payload.narration);
+    let mut subtitles = split_subtitles(&payload.narration);
+    if subtitles_need_ai_rewrite(&subtitles) {
+        if let Some(rewritten) = rewrite_subtitles_with_ai(&settings, &payload.narration, &subtitles).await {
+            subtitles = rewritten;
+        }
+    }
     upsert_material_task_step_db(
         &data.db_path,
         &trace_id,
@@ -6403,7 +6413,7 @@ fn build_book_materials_prompt(book: &EpubBook, request: &BookMaterialsRequest) 
     let target_max = request.target_max_chars;
     let source_packet = build_source_packet(book);
     format!(
-        "You are creating a Chinese audiobook video package. Return only valid JSON with keys: videoTitle, description, tags, narration, subtitles. Do not output markdown.\n\nRole:\n- You are a senior short-video subtitle editor and a healing late-night radio copywriter.\n- Your subtitle cuts should guide reading rhythm, emotional rise and fall, and a gentle sense of breathing.\n\nNarration task:\n- Write narration as a continuous Chinese script between {target_min} and {target_max} Chinese characters.\n- The final narration.txt should normally stay under about 8,200 total characters including punctuation.\n- Prefer concise, warm narration. Do not exceed the target by adding repetitive reassurance or filler.\n\nSubtitle task:\n- After writing the final narration, read and understand it as a human subtitle editor.\n- Create subtitles from the final narration, not from the source excerpts.\n- subtitles must be a JSON array of Chinese subtitle lines in exact reading order.\n- subtitles must cover the whole narration. Do not summarize, omit, add, rewrite, or reorder content.\n\nConstraint:\n1. Line length: each subtitle line should be within 20 Chinese characters including punctuation when possible. A meaningful line may be slightly longer only when splitting would damage a title, phrase, or natural rhythm.\n2. Punctuation: preserve natural punctuation such as ，。？！；：、《》…… Do not strip punctuation.\n3. Format: subtitles is a JSON string array. No timestamps. One subtitle line per array item.\n4. Coverage: every sentence in narration must appear in subtitles in order.\n\nSegmentation logic:\n1. Semantic integrity: prefer line breaks at punctuation. If a sentence is too long, split only at a logical pause. Never split a word or fixed phrase, for example “蒲公英”, “完美”, “希望”, “你有我呢”.\n2. Reading rhythm: use natural human breathing. Mix shorter and longer lines to create a slow, healing pace.\n3. Visual beauty: avoid 1-5 character orphan lines unless the short line is an intentional emotional beat.\n4. Phrase protection: keep book titles, names, idioms, number expressions, and short emotional phrases intact, such as 《天会亮的，你有我呢》 and “三十三个四季小故事”.\n5. Soft punctuation: commas may stay inside a line when they make the rhythm better; split after a comma only when both sides are meaningful.\n6. Tiny tails: if the final fragment is too short, merge it with the previous or next line.\n\nWhat to avoid:\n- Do not mechanically cut every 14, 16, 18, or 20 characters.\n- Do not remove punctuation to make lines shorter.\n- Do not split a title into isolated fragments.\n- Do not create orphan lines such as “的书”, “完”, “美”, “三十三”.\n- Do not join unrelated clauses into one long line just to avoid short lines.\n- Do not change wording for subtitle length.\n\nBad examples:\n- “完” / “美”\n- “的书” as a separate line\n- “天会亮的” / “你有我呢” when it is one title\n- “三十三” / “个四季小故事”\n- One very long sentence with no punctuation and no breathing point\n\nOutput example:\n- “今晚要一起读的是，”\n- “一平著绘的《天会亮的，你有我呢》。”\n- “先把灯光调暗一点，”\n- “把白天没有说完的话，”\n- “轻轻放在枕边。”\n- “你不必马上变好，”\n- “也不必立刻回答生活的问题。”\n\nBook title: {title}\nAuthor: {author}\nLanguage: {language}\nExtra direction: {direction}\n\nSource excerpts:\n{source_packet}",
+        "You are creating a Chinese audiobook video package. Return only valid JSON with keys: videoTitle, description, tags, narration, subtitles. Do not output markdown.\n\nRole:\n- You are a senior short-video subtitle editor and a healing late-night radio copywriter.\n- Your subtitle cuts should guide reading rhythm, emotional rise and fall, and a gentle sense of breathing.\n\nNarration task:\n- Write narration as a continuous Chinese script between {target_min} and {target_max} Chinese characters.\n- The final narration.txt should normally stay under about 8,200 total characters including punctuation.\n- Prefer concise, warm narration. Do not exceed the target by adding repetitive reassurance or filler.\n- Control subtitle rhythm at the source: write narration with short sentences or short clauses separated by punctuation.\n- Each narration rhythm unit should normally be within 20 Chinese characters, so subtitles can follow narration directly without mechanical cutting.\n- If an idea is long, rewrite it into two natural short sentences or clauses before it reaches subtitles.\n\nSubtitle task:\n- After writing the final narration, read and understand it as a human subtitle editor.\n- Create subtitles from the final narration, not from the source excerpts.\n- subtitles must be a JSON array of Chinese subtitle lines in exact reading order.\n- subtitles must cover the whole narration. Do not summarize, omit, add, rewrite, or reorder content.\n\nConstraint:\n1. Line length: each subtitle line should be within 20 Chinese characters including punctuation when possible. A meaningful line may be slightly longer only when splitting would damage a title, phrase, or natural rhythm.\n2. Punctuation: every subtitle line must end with punctuation. Preserve natural punctuation such as ，。？！；：、《》…… Do not strip punctuation.\n3. Format: subtitles is a JSON string array. No timestamps. One subtitle line per array item.\n4. Coverage: every sentence in narration must appear in subtitles in order.\n\nSegmentation logic:\n1. Semantic integrity: prefer line breaks at punctuation. If a sentence is too long, rewrite the narration into shorter semantic clauses. Never split a word or fixed phrase, for example “白血病”, “蒲公英”, “完美”, “希望”, “你有我呢”.\n2. Reading rhythm: use natural human breathing. Mix shorter and longer lines to create a slow, healing pace.\n3. Visual beauty: avoid 1-5 character orphan lines unless the short line is an intentional emotional beat.\n4. Phrase protection: keep book titles, names, idioms, number expressions, and short emotional phrases intact, such as 《天会亮的，你有我呢》 and “三十三个四季小故事”.\n5. Soft punctuation: commas may stay inside a line when they make the rhythm better; split after a comma only when both sides are meaningful.\n6. Tiny tails: if the final fragment is too short, merge it with the previous or next line.\n\nWhat to avoid:\n- Do not mechanically cut every 14, 16, 18, or 20 characters.\n- Do not remove punctuation to make lines shorter.\n- Do not split words such as “白血病”, names, or titles into isolated fragments.\n- Do not create orphan lines such as “的书”, “完”, “美”, “三十三”.\n- Do not join unrelated clauses into one long line just to avoid short lines.\n\nBad examples:\n- “白血” / “病不幸夭折”\n- “完” / “美”\n- “的书” as a separate line\n- “天会亮的” / “你有我呢” when it is one title\n- “三十三” / “个四季小故事”\n- One very long sentence with no punctuation and no breathing point\n\nOutput example:\n- “今晚要一起读的是，”\n- “一平著绘的《天会亮的，你有我呢》。”\n- “先把灯光调暗一点，”\n- “把白天没有说完的话，”\n- “轻轻放在枕边。”\n- “你不必马上变好，”\n- “也不必立刻回答生活的问题。”\n\nBook title: {title}\nAuthor: {author}\nLanguage: {language}\nExtra direction: {direction}\n\nSource excerpts:\n{source_packet}",
         title = book.overview.title,
         author = book.overview.creator,
         language = request.language,
@@ -6453,7 +6463,7 @@ fn build_narration_rewrite_prompt(
     max_chars: usize,
 ) -> String {
     format!(
-        "Rewrite the JSON so narration is between {min_chars} and {max_chars} Chinese characters. Current narration Chinese chars: {current_chars}. Return only valid JSON with the same keys: videoTitle, description, tags, narration, subtitles. The final narration.txt should normally stay under about 8,200 total characters including punctuation.\n\nRole:\n- You are a senior short-video subtitle editor and a healing late-night radio copywriter.\n- Rebuild subtitles with rhythm, breathing, and emotional pacing, not mechanical slicing.\n\nSubtitle rebuild task:\n- Rebuild subtitles only after reading and understanding the final rewritten narration.\n- subtitles must cover the whole final narration in exact reading order. Do not summarize, omit, add, rewrite, or reorder content.\n\nConstraint:\n1. Each subtitle line should be within 20 Chinese characters including punctuation when possible.\n2. Preserve punctuation such as ，。？！；：、《》…… Do not strip punctuation.\n3. No timestamps. subtitles must be a JSON string array.\n\nSegmentation logic:\n1. Prefer breaks at punctuation. If a sentence is too long, split only at semantic pauses.\n2. Keep natural human breathing and a slow healing rhythm.\n3. Avoid 1-5 character orphan lines unless they intentionally emphasize emotion.\n4. Keep words, titles, names, idioms, number expressions, and short emotional phrases intact, such as “蒲公英”, “完美”, 《天会亮的，你有我呢》, “三十三个四季小故事”.\n5. If a fragment is too short, merge it with the previous or next line.\n\nDo not:\n- Do not mechanically cut every 14, 16, 18, or 20 characters.\n- Do not remove punctuation.\n- Do not split words or titles into fragments.\n- Do not create orphan lines such as “的书”, “完”, “美”, “三十三”.\n- Do not join unrelated clauses into one long line just to avoid short lines.\n\nOutput example:\n- “今晚要一起读的是，”\n- “一平著绘的《天会亮的，你有我呢》。”\n- “先把灯光调暗一点，”\n- “把白天没有说完的话，”\n- “轻轻放在枕边。”\n\nExisting JSON:\n{}",
+        "Rewrite the JSON so narration is between {min_chars} and {max_chars} Chinese characters. Current narration Chinese chars: {current_chars}. Return only valid JSON with the same keys: videoTitle, description, tags, narration, subtitles. The final narration.txt should normally stay under about 8,200 total characters including punctuation.\n\nRole:\n- You are a senior short-video subtitle editor and a healing late-night radio copywriter.\n- Rebuild narration and subtitles with rhythm, breathing, and emotional pacing, not mechanical slicing.\n\nNarration rewrite task:\n- Rewrite narration itself into short sentences and short semantic clauses.\n- Each narration rhythm unit should normally be within 20 Chinese characters and end with punctuation.\n- If an idea is long, rewrite it into two natural short sentences or clauses before creating subtitles.\n\nSubtitle rebuild task:\n- Rebuild subtitles only after reading and understanding the final rewritten narration.\n- subtitles must cover the whole final narration in exact reading order. Do not summarize, omit, add, rewrite, or reorder content.\n\nConstraint:\n1. Each subtitle line should be within 20 Chinese characters including punctuation when possible.\n2. Every subtitle line must end with punctuation. Preserve punctuation such as ，。？！；：、《》…… Do not strip punctuation.\n3. No timestamps. subtitles must be a JSON string array.\n\nSegmentation logic:\n1. Prefer breaks at punctuation. If a sentence is too long, rewrite the narration into shorter semantic clauses.\n2. Keep natural human breathing and a slow healing rhythm.\n3. Avoid 1-5 character orphan lines unless they intentionally emphasize emotion.\n4. Keep words, titles, names, idioms, number expressions, and short emotional phrases intact, such as “白血病”, “蒲公英”, “完美”, 《天会亮的，你有我呢》, “三十三个四季小故事”.\n5. If a fragment is too short, merge it with the previous or next line.\n\nDo not:\n- Do not mechanically cut every 14, 16, 18, or 20 characters.\n- Do not remove punctuation.\n- Do not split words such as “白血病”, names, or titles into fragments.\n- Do not create orphan lines such as “的书”, “完”, “美”, “三十三”.\n- Do not join unrelated clauses into one long line just to avoid short lines.\n\nOutput example:\n- “今晚要一起读的是，”\n- “一平著绘的《天会亮的，你有我呢》。”\n- “先把灯光调暗一点，”\n- “把白天没有说完的话，”\n- “轻轻放在枕边。”\n\nExisting JSON:\n{}",
         serde_json::to_string(payload).unwrap_or_default()
     )
 }
@@ -6619,15 +6629,14 @@ fn split_subtitles(narration: &str) -> Vec<String> {
     if lines.is_empty() {
         push_subtitle_chunks(&mut lines, narration, MAX_SUBTITLE_CHARS);
     }
-    finalize_subtitle_lines(
-        merge_short_subtitle_tails(lines, MIN_SUBTITLE_TAIL_CHARS, MAX_SUBTITLE_CHARS),
+    finalize_subtitle_lines(merge_short_subtitle_tails(
+        lines,
+        MIN_SUBTITLE_TAIL_CHARS,
         MAX_SUBTITLE_CHARS,
-    )
+    ))
 }
 
 fn normalize_ai_subtitles(subtitles: &[String], narration: &str) -> Option<Vec<String>> {
-    const MAX_SUBTITLE_CHARS: usize = 20;
-    const MIN_SUBTITLE_TAIL_CHARS: usize = 6;
     if subtitles.is_empty() {
         return None;
     }
@@ -6637,12 +6646,9 @@ fn normalize_ai_subtitles(subtitles: &[String], narration: &str) -> Option<Vec<S
         if cleaned.is_empty() {
             continue;
         }
-        push_subtitle_chunks(&mut lines, &cleaned, MAX_SUBTITLE_CHARS);
+        lines.push(cleaned);
     }
-    let lines = finalize_subtitle_lines(
-        merge_short_subtitle_tails(lines, MIN_SUBTITLE_TAIL_CHARS, MAX_SUBTITLE_CHARS),
-        MAX_SUBTITLE_CHARS,
-    );
+    let lines = finalize_subtitle_lines(lines);
     if lines.len() < 8 || count_han_chars(&lines.join("")) < count_han_chars(narration) / 2 {
         return None;
     }
@@ -6665,28 +6671,18 @@ fn clean_subtitle_line(value: &str) -> String {
     value.trim().to_string()
 }
 
-fn finalize_subtitle_lines(lines: Vec<String>, max_chars: usize) -> Vec<String> {
-    let mut normalized = Vec::new();
-    for line in lines {
-        for chunk in split_overlong_subtitle_line(&line, max_chars) {
-            let cleaned = clean_subtitle_line(&chunk);
-            if !cleaned.is_empty() {
-                normalized.push(cleaned);
-            }
-        }
-    }
+fn finalize_subtitle_lines(lines: Vec<String>) -> Vec<String> {
+    let normalized = lines
+        .into_iter()
+        .map(|line| clean_subtitle_line(&line))
+        .filter(|line| !line.is_empty())
+        .collect::<Vec<_>>();
     let total = normalized.len();
     normalized
         .into_iter()
         .enumerate()
         .map(|(index, line)| ensure_subtitle_line_punctuation(&line, index + 1 == total))
         .collect()
-}
-
-fn split_overlong_subtitle_line(line: &str, max_chars: usize) -> Vec<String> {
-    let mut chunks = Vec::new();
-    push_subtitle_chunks(&mut chunks, line, max_chars);
-    chunks
 }
 
 fn ensure_subtitle_line_punctuation(line: &str, is_last: bool) -> String {
@@ -6696,6 +6692,81 @@ fn ensure_subtitle_line_punctuation(line: &str, is_last: bool) -> String {
     }
     let mark = if is_last { '\u{3002}' } else { '\u{FF0C}' };
     format!("{trimmed}{mark}")
+}
+
+fn subtitles_need_ai_rewrite(lines: &[String]) -> bool {
+    lines.iter().any(|line| {
+        count_han_chars(line) > 20
+            || !line
+                .trim()
+                .chars()
+                .last()
+                .is_some_and(is_subtitle_terminal_punctuation)
+    })
+}
+
+async fn rewrite_subtitles_with_ai(
+    settings: &AppSettings,
+    narration: &str,
+    current_lines: &[String],
+) -> Option<Vec<String>> {
+    let prompt = format!(
+        "请把下面的中文旁白重新切分为字幕行。要求：\n\
+1. 只返回 JSON 字符串数组，不要 markdown，不要时间戳。\n\
+2. 必须覆盖完整旁白，不能省略、改写、乱序。\n\
+3. 每一行尽量不超过 20 个中文字符；如果原句太长，请按语义润色成两句或多句，分别放到多行。\n\
+4. 每一行都必须以中文标点或常规标点结尾。\n\
+5. 不要机械硬切词语，不要拆开人名、书名、固定词组，例如不要把“白血病”拆开。\n\n\
+当前字幕仅供参考：\n{}\n\n\
+完整旁白：\n{}",
+        current_lines.join("\n"),
+        narration
+    );
+    let content = call_ai(
+        settings,
+        vec![
+            ChatMessage {
+                role: "system".to_string(),
+                content: "你是中文短视频字幕编辑，只返回 JSON 字符串数组。".to_string(),
+            },
+            ChatMessage {
+                role: "user".to_string(),
+                content: prompt,
+            },
+        ],
+    )
+    .await
+    .ok()?;
+    let json = extract_json_array(&content)?;
+    let parsed = serde_json::from_str::<Vec<String>>(&json).ok()?;
+    let lines = finalize_subtitle_lines(
+        parsed
+            .into_iter()
+            .map(|line| clean_subtitle_line(&line))
+            .filter(|line| !line.is_empty())
+            .collect(),
+    );
+    if lines.len() < 8 || count_han_chars(&lines.join("")) < count_han_chars(narration) / 2 {
+        return None;
+    }
+    if lines.iter().any(|line| count_han_chars(line) > 20) {
+        return None;
+    }
+    Some(lines)
+}
+
+fn extract_json_array(content: &str) -> Option<String> {
+    let trimmed = content.trim();
+    if trimmed.starts_with('[') && trimmed.ends_with(']') {
+        return Some(trimmed.to_string());
+    }
+    let start = trimmed.find('[')?;
+    let end = trimmed.rfind(']')?;
+    if end > start {
+        Some(trimmed[start..=end].to_string())
+    } else {
+        None
+    }
 }
 
 fn merge_short_subtitle_tails(lines: Vec<String>, min_tail_chars: usize, max_chars: usize) -> Vec<String> {

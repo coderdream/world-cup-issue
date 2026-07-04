@@ -1580,3 +1580,9 @@ Subtitle normalization now targets lines within 20 Chinese characters where poss
 ## 2026-07-04 0.1.135 Material Output SQL Cleanup
 
 This version completes the cleanup of historical placeholder SQL in material task persistence. Updating `material_output_dir`, reconciled text/image/audio/subtitle/video state, and moved output references now uses real `UPDATE material_tasks ... WHERE path = ?` statements. This keeps CLI and UI text generation from failing at the final package-save step and lets the Pipeline task list refresh from SQLite after backend work completes.
+
+## 2026-07-04 0.1.136 Narration Source Subtitle Control
+
+Subtitle length control now starts at narration generation. The book-materials prompt and narration rewrite prompt tell the AI to write `narration.txt` with short sentences or short semantic clauses, normally within 20 Chinese characters per rhythm unit and ending with punctuation. Long ideas should be rewritten into natural short clauses before subtitles are produced, so the subtitle file can follow the narration rhythm instead of relying on mechanical local cuts.
+
+Local subtitle normalization no longer hard-splits overlong AI subtitle lines. It cleans blank lines and guarantees line-ending punctuation only. If generated subtitles still contain over-20-Chinese-character lines or missing punctuation, the backend asks the active AI provider to rewrite the subtitle array against the full narration, preserving coverage and avoiding word breaks such as `白血病`. If the AI rewrite cannot produce a complete valid array, the system keeps the prior safe subtitles with punctuation rather than cutting words locally.
