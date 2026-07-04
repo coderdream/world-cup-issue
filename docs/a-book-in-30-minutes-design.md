@@ -1606,3 +1606,7 @@ The CLI `--e2e-materials` path now uses the same AI length-repair behavior as th
 ## 2026-07-04 0.1.140 Near-Complete Subtitle Coverage
 
 Subtitle coverage validation is tightened from 95% to 99.5% of narration Chinese characters. This prevents a final narration paragraph from being omitted while still passing validation.
+
+## 2026-07-04 0.1.141 Disable Local Material Fallback
+
+Initial AI material generation no longer falls back to local template-based material payloads. Empty or failed AI responses now fail the Text stage directly. This prevents repeated local excerpt paragraphs from being written to `narration.txt` and then propagated into `subtitles.txt`.

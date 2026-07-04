@@ -268,14 +268,13 @@ pub async fn run_e2e_materials_cli(epub_path: &str) -> Result<(), CommandError> 
     .await
     .unwrap_or_default();
     let mut payload = if content.trim().is_empty() {
-        logger.warn(
+        logger.error(
             "materials",
-            "ai.local_initial_fallback",
-            "Using local material fallback.",
+            "ai.initial.empty",
+            "AI returned no usable material content.",
             "AI response was empty or failed.",
-            &trace_id,
         );
-        build_local_book_materials_payload(&book, &request)
+        return Err(command_error("AI returned no usable material content."));
     } else {
         parse_book_materials_payload(&content)?
     };
@@ -1039,20 +1038,24 @@ pub async fn generate_book_materials(
     };
 
     let mut payload = if content.trim().is_empty() {
-        let payload = build_local_book_materials_payload(&book, &request);
-        data.logger.warn(
+        data.logger.trace_error(
             "materials",
-            "ai.local_initial_fallback",
-            "AI returned no usable content. Using local material fallback.",
-            format!(
-                "title={} narration_han_chars={} tags={}",
-                payload.video_title,
-                count_han_chars(&payload.narration),
-                payload.tags.len()
-            ),
+            "ai.initial.empty",
+            "AI returned no usable material content.",
+            "AI response was empty or failed.",
             &trace_id,
         );
-        payload
+        upsert_material_task_step_db(
+            &data.db_path,
+            &trace_id,
+            request.epub_path.trim(),
+            "A-02",
+            "文本：标题简介标签",
+            "failed",
+            70,
+            "AI 未返回可用素材内容。",
+        );
+        return Err(command_error("AI returned no usable material content."));
     } else {
         match parse_book_materials_payload(&content) {
             Ok(payload) => {
