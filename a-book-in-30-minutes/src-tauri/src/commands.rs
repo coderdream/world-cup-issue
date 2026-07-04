@@ -5149,35 +5149,45 @@ fn persist_reconciled_task_status(
     // 文本阶段
     if before.status != after.status || before.progress != after.progress || before.material_output_dir != after.material_output_dir {
         let _ = connection.execute(
-            "Output directory operation failed.",
+            "UPDATE material_tasks
+             SET status = ?2, progress = ?3, material_output_dir = ?4, narration_chars = ?5, message = ?6, updated_at = ?7
+             WHERE path = ?1",
             params![after.path, after.status, after.progress, after.material_output_dir, after.narration_chars, after.message, now],
         );
     }
     // 音频阶段
     if before.audio_status != after.audio_status || before.audio_progress != after.audio_progress || before.audio_file != after.audio_file {
         let _ = connection.execute(
-            "Material task path is required.",
+            "UPDATE material_tasks
+             SET audio_status = ?2, audio_progress = ?3, audio_file = ?4, audio_message = ?5, updated_at = ?6
+             WHERE path = ?1",
             params![after.path, after.audio_status, after.audio_progress, after.audio_file, after.audio_message, now],
         );
     }
     // 图片阶段
     if before.image_status != after.image_status || before.image_progress != after.image_progress || before.image_output_dir != after.image_output_dir {
         let _ = connection.execute(
-            "Output directory operation failed.",
+            "UPDATE material_tasks
+             SET image_status = ?2, image_progress = ?3, image_output_dir = ?4, image_message = ?5, updated_at = ?6
+             WHERE path = ?1",
             params![after.path, after.image_status, after.image_progress, after.image_output_dir, after.image_message, now],
         );
     }
     // 字幕阶段
     if before.subtitle_status != after.subtitle_status || before.subtitle_progress != after.subtitle_progress || before.subtitle_file != after.subtitle_file {
         let _ = connection.execute(
-            "Material task path is required.",
+            "UPDATE material_tasks
+             SET subtitle_status = ?2, subtitle_progress = ?3, subtitle_file = ?4, subtitle_message = ?5, updated_at = ?6
+             WHERE path = ?1",
             params![after.path, after.subtitle_status, after.subtitle_progress, after.subtitle_file, after.subtitle_message, now],
         );
     }
     // 视频阶段
     if before.video_status != after.video_status || before.video_progress != after.video_progress || before.video_file != after.video_file {
         let _ = connection.execute(
-            "Material task path is required.",
+            "UPDATE material_tasks
+             SET video_status = ?2, video_progress = ?3, video_file = ?4, video_message = ?5, updated_at = ?6
+             WHERE path = ?1",
             params![after.path, after.video_status, after.video_progress, after.video_file, after.video_message, now],
         );
     }
@@ -5224,7 +5234,9 @@ fn update_material_task_output_dir(
     let now = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
     connection
         .execute(
-            "Output directory operation failed.",
+            "UPDATE material_tasks
+             SET material_output_dir = ?2, status = 'success', progress = 100, message = '素材包已保存', updated_at = ?3
+             WHERE path = ?1",
             params![path, output_dir, now],
         )
         .map_err(|error| {
@@ -5429,7 +5441,9 @@ fn migrate_task_outputs_to_source_output(
     let now = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
     connection
         .execute(
-            "Output directory operation failed.",
+            "UPDATE material_tasks
+             SET material_output_dir = ?2, audio_output_dir = ?3, audio_file = ?4, video_file = ?5, video_file_size = ?6, updated_at = ?7
+             WHERE path = ?1",
             params![
                 file.path,
                 material_output_dir,

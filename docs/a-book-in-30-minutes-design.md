@@ -1576,3 +1576,7 @@ The Pipeline panel adds a `终止任务` control. When clicked, the current fron
 Text progress display now shows the actual backend percentage instead of rounding to 0/25/50/75/100 buckets, so early parsing and AI-request progress is visible immediately.
 
 Subtitle normalization now targets lines within 20 Chinese characters where possible. Overlong AI subtitle lines are re-split locally at semantic punctuation or the best available pause, and every written `subtitles.txt` line is guaranteed to end with punctuation. Mid-sentence forced splits receive a Chinese comma, while the final subtitle receives a full stop when needed.
+
+## 2026-07-04 0.1.135 Material Output SQL Cleanup
+
+This version completes the cleanup of historical placeholder SQL in material task persistence. Updating `material_output_dir`, reconciled text/image/audio/subtitle/video state, and moved output references now uses real `UPDATE material_tasks ... WHERE path = ?` statements. This keeps CLI and UI text generation from failing at the final package-save step and lets the Pipeline task list refresh from SQLite after backend work completes.
