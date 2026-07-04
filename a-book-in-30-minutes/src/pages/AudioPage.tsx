@@ -68,8 +68,9 @@ export function AudioPage() {
         const requestTask = normalizedRequestPath && !categoryResult.files.some((file) => file.path === normalizedRequestPath)
           ? await frameworkApi.getMaterialTask({ path: normalizedRequestPath })
           : null;
-        const result = requestTask
-          ? { ...categoryResult, files: [requestTask, ...categoryResult.files] }
+        const fallbackTask = normalizedRequestPath ? materialFileFromPath(normalizedRequestPath) : null;
+        const result = requestTask || fallbackTask
+          ? { ...categoryResult, files: [requestTask ?? fallbackTask!, ...categoryResult.files] }
           : categoryResult;
         if (!canceled) {
           updateWorkbench({ scanResult: result });
@@ -400,4 +401,44 @@ function formatBytes(value: number) {
   if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KiB`;
   if (value < 1024 * 1024 * 1024) return `${(value / 1024 / 1024).toFixed(1)} MiB`;
   return `${(value / 1024 / 1024 / 1024).toFixed(1)} GiB`;
+}
+
+function materialFileFromPath(path: string): MaterialFile {
+  const normalized = path.trim();
+  const parts = normalized.split(/[\\/]/);
+  const name = parts[parts.length - 1] || normalized;
+  const extension = name.includes(".") ? name.split(".").pop()?.toLowerCase() ?? "" : "";
+  return {
+    path: normalized,
+    name,
+    extension,
+    size: 0,
+    category: "",
+    status: "pending",
+    progress: 0,
+    narrationChars: null,
+    materialOutputDir: null,
+    message: "",
+    audioStatus: "pending",
+    audioProgress: 0,
+    audioOutputDir: null,
+    audioFile: null,
+    audioDurationMs: null,
+    audioChunks: null,
+    audioMessage: "",
+    imageStatus: "pending",
+    imageProgress: 0,
+    imageOutputDir: null,
+    imageMessage: "",
+    subtitleStatus: "pending",
+    subtitleProgress: 0,
+    subtitleFile: null,
+    subtitleMessage: "",
+    videoStatus: "pending",
+    videoProgress: 0,
+    videoFile: null,
+    videoDurationMs: null,
+    videoFileSize: null,
+    videoMessage: ""
+  };
 }

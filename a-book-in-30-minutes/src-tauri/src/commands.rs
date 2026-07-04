@@ -1577,7 +1577,9 @@ pub fn get_material_tasks(
     } else {
         let mut statement = connection
             .prepare(
-                &format!("Operation completed.")
+                &format!(
+                    "SELECT {MATERIAL_TASK_SELECT_COLUMNS} FROM material_tasks WHERE category = ?1 ORDER BY updated_at DESC, name ASC"
+                )
             )
             .map_err(|error| command_error(format!("Operation failed: {error}")))?;
         let rows = statement
@@ -1732,8 +1734,8 @@ pub fn remove_material_task(
     })?;
     ensure_material_tasks_table(&connection)?;
     connection
-        .execute("Material task path is required.", params![path])
-        .map_err(|error| command_error(format!("缁夊娅庣槐鐘虫綏娴犺濮熸径杈Е閿涙{error}")))?;
+        .execute("DELETE FROM material_tasks WHERE path = ?1", params![path])
+        .map_err(|error| command_error(format!("Remove material task failed: {error}")))?;
     data.logger.info(
         "materials",
         "tasks.remove",
@@ -2129,7 +2131,7 @@ pub fn get_speech_voices(
         }
     } else {
         let mut statement = connection
-            .prepare("Operation completed.")
+            .prepare("SELECT locale, language, voice_type, voice_name, gender, styles, roles, source_url FROM speech_voices WHERE locale = ?1 ORDER BY voice_name")
             .map_err(|error| command_error(format!("Prepare speech voices query failed: {error}")))?;
         let rows = statement
             .query_map(params![locale], speech_voice_from_row)
@@ -4995,7 +4997,7 @@ fn load_material_task_by_path(
     path: &str,
 ) -> Result<Option<MaterialFile>, CommandError> {
     let result = connection.query_row(
-        &format!("Material task path is required."),
+        &format!("SELECT {MATERIAL_TASK_SELECT_COLUMNS} FROM material_tasks WHERE path = ?1"),
         params![path],
         material_task_from_row,
     );

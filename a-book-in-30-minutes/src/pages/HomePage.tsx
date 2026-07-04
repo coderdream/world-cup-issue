@@ -100,15 +100,6 @@ export function HomePage() {
   const allTaskPaths = scanResult?.files.map((file) => file.path) ?? [];
   const selectedTaskSet = new Set(selectedTaskPaths);
   const allTasksSelected = allTaskPaths.length > 0 && allTaskPaths.every((path) => selectedTaskSet.has(path));
-  const currentPipelineTask = useMemo(
-    () => pickPipelineProgressTask(scanResult?.files ?? [], request.epubPath, selectedTaskPath),
-    [request.epubPath, scanResult?.files, selectedTaskPath]
-  );
-  const pipelineProgressItems = useMemo(
-    () => buildPipelineProgressItems(currentPipelineTask, activePipelineStage, exportState),
-    [activePipelineStage, currentPipelineTask, exportState]
-  );
-
   return (
     <div className="page material-page" onClick={() => setContextMenu(null)}>
       <Panel className="material-analyze-panel">
@@ -144,20 +135,6 @@ export function HomePage() {
           <span>频道：{settings.materialProfile.channelName}</span>
           <span>目标：{settings.materialProfile.targetMinChars}-{settings.materialProfile.targetMaxChars} 字</span>
           <span>状态：{scanResult ? `${scanResult.files.length} 个任务` : "等待扫描"}</span>
-        </div>
-        <div className="pipeline-progress-strip" aria-label="流水线阶段进度">
-          {pipelineProgressItems.map((item) => (
-            <div className={`pipeline-progress-card ${item.status}`} key={item.key}>
-              <div className="pipeline-progress-head">
-                {item.icon}
-                <b>{item.label}</b>
-              </div>
-              <div className="pipeline-progress-bar">
-                <i style={{ width: `${item.progress}%` }} />
-              </div>
-              <p title={item.message}>{item.message}</p>
-            </div>
-          ))}
         </div>
           {error && <p className="status error">{error}</p>}
           {copyState && <p className="status success">{copyState}</p>}
@@ -753,6 +730,10 @@ export function HomePage() {
       ? files.filter((file) => selectedTaskSet.has(file.path))
       : files.filter((file) => file.path === request.epubPath || file.path === selectedTaskPath);
     const candidates = (selected.length > 0 ? selected : files).filter(canGenerate);
+    if (candidates.length === 0 && request.epubPath.trim()) {
+      const fallback = materialFileFromPath(request.epubPath.trim());
+      return canGenerate(fallback) ? [fallback] : [];
+    }
     return candidates;
   }
 
@@ -761,7 +742,12 @@ export function HomePage() {
     const selected = selectedTaskPaths.length > 0
       ? files.filter((file) => selectedTaskSet.has(file.path))
       : files.filter((file) => file.path === request.epubPath || file.path === selectedTaskPath);
-    return (selected.length > 0 ? selected : files).filter(canGenerate).filter(shouldGenerateAudio);
+    const candidates = (selected.length > 0 ? selected : files).filter(canGenerate).filter(shouldGenerateAudio);
+    if (candidates.length === 0 && request.epubPath.trim()) {
+      const fallback = materialFileFromPath(request.epubPath.trim());
+      return canGenerate(fallback) && shouldGenerateAudio(fallback) ? [fallback] : [];
+    }
+    return candidates;
   }
 
   function hasVideoPipelineTarget() {
@@ -919,27 +905,28 @@ export function HomePage() {
   async function updateTaskStatus(path: string, status: { status: "pending" | "generating" | "success" | "failed"; progress: number; narrationChars?: number | null; message?: string }) {
     const normalized = normalizeGenerationStatus(status);
     const current = useAppStore.getState().materialsWorkbench;
+    const applyStatusToFile = (file: MaterialFile): MaterialFile => ({
+      ...file,
+      status: normalized.status,
+      progress: normalized.progress,
+      narrationChars: normalized.narrationChars,
+      message: normalized.message ?? ""
+    });
+    const hasTask = current.scanResult?.files.some((file) => file.path === path) ?? false;
+    const files = current.scanResult
+      ? current.scanResult.files.map((file) => (file.path === path ? applyStatusToFile(file) : file))
+      : [];
+    const nextFiles = hasTask ? files : [applyStatusToFile(materialFileFromPath(path)), ...files];
     updateWorkbench({
       fileStatuses: {
         ...current.fileStatuses,
         [path]: normalized
       },
-      scanResult: current.scanResult
-        ? {
-            ...current.scanResult,
-            files: current.scanResult.files.map((file) =>
-              file.path === path
-                ? {
-                    ...file,
-                    status: normalized.status,
-                    progress: normalized.progress,
-                    narrationChars: normalized.narrationChars,
-                    message: normalized.message ?? ""
-                  }
-                : file
-            )
-          }
-        : current.scanResult
+      selectedTaskPath: path,
+      scanResult: {
+        directory: current.scanResult?.directory ?? "",
+        files: nextFiles
+      }
     });
     const saved = await frameworkApi.updateMaterialTaskStatus({
       path,
@@ -1067,86 +1054,6 @@ function shouldGenerateVideo(file: MaterialFile) {
 
 function needsMaterialGeneration(file: MaterialFile) {
   return file.status !== "success" || file.progress < 100 || !file.materialOutputDir;
-}
-
-function pickPipelineProgressTask(files: MaterialFile[], requestPath: string, selectedTaskPath: string) {
-  const normalizedRequestPath = requestPath.trim();
-  return (
-    files.find((file) => file.path === selectedTaskPath) ??
-    files.find((file) => file.path === normalizedRequestPath) ??
-    files.find((file) => file.status === "generating" || file.imageStatus === "generating" || file.audioStatus === "generating" || file.subtitleStatus === "generating" || file.videoStatus === "generating") ??
-    files[0] ??
-    null
-  );
-}
-
-function buildPipelineProgressItems(
-  file: MaterialFile | null,
-  activeStage: "materials" | "image" | "audio" | "subtitle" | "video" | "publish" | null,
-  exportState: string
-) {
-  const items = [
-    {
-      key: "materials",
-      label: "文本",
-      icon: <BookOpenText size={15} />,
-      status: file?.status ?? "pending",
-      progress: file?.progress ?? 0,
-      message: file?.message || "等待生成标题、简介、标签、旁白和字幕文本。"
-    },
-    {
-      key: "image",
-      label: "图片",
-      icon: <Image size={15} />,
-      status: file?.imageStatus ?? "pending",
-      progress: file?.imageProgress ?? 0,
-      message: file?.imageMessage || "等待生成封面和分镜图。"
-    },
-    {
-      key: "audio",
-      label: "音频",
-      icon: <Volume2 size={15} />,
-      status: file?.audioStatus ?? "pending",
-      progress: file?.audioProgress ?? 0,
-      message: file?.audioMessage || "等待读取旁白、拆分片段并合成音频。"
-    },
-    {
-      key: "subtitle",
-      label: "字幕",
-      icon: <MessageSquareText size={15} />,
-      status: file?.subtitleStatus ?? "pending",
-      progress: file?.subtitleProgress ?? 0,
-      message: file?.subtitleMessage || "等待生成 SRT/ASS 字幕。"
-    },
-    {
-      key: "video",
-      label: "视频",
-      icon: <Video size={15} />,
-      status: file?.videoStatus ?? "pending",
-      progress: file?.videoProgress ?? 0,
-      message: file?.videoMessage || "等待启动视频流水线。"
-    },
-    {
-      key: "publish",
-      label: "发布",
-      icon: <Send size={15} />,
-      status: file?.videoFile ? "success" : "pending",
-      progress: file?.videoFile ? 100 : 0,
-      message: file?.videoFile ? "视频已就绪，可生成 YouTube 发布资料。" : "等待最终视频产物。"
-    }
-  ] as const;
-
-  return items.map((item) => {
-    const isActive = activeStage === item.key;
-    const status = isActive && item.status === "pending" ? "generating" : item.status;
-    const progress = clampProgress(isActive && item.progress === 0 ? 5 : item.progress);
-    return {
-      ...item,
-      status,
-      progress,
-      message: isActive && exportState ? exportState : item.message
-    };
-  });
 }
 
 function pipelineStageLabel(stage: "image" | "subtitle" | "video") {

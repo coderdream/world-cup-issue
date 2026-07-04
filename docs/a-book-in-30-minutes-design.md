@@ -1543,3 +1543,12 @@ This version adds provider-specific AI configuration in the Settings page.
 ## 2026-07-04 0.1.130 Explicit Pipeline AI Selector
 
 This version adds an explicit `流水线使用 AI` selector to the Settings AI panel. The selector writes `settings.activeAiProvider`, which is the same field used by `generate_book_materials`, `test_ai_profile`, and `generate_ai_text`. The GPT/Gemini segmented control remains the detail editor for each provider, while the selector makes the pipeline choice visible and unambiguous.
+
+## 2026-07-04 0.1.131 Pipeline Task List and Step Tracking Fix
+
+This version removes the top stage-card strip from the Pipeline page so the task list becomes the primary progress surface.
+
+- Selecting or typing a current EPUB and clicking Text must immediately create a visible task row, even before the next SQLite refresh.
+- Backend task queries must use real SQL for category lookup, path lookup, and deletion. Literal status/error text such as `Operation completed.` must never be passed to `prepare`, `query_row`, or `execute` as SQL.
+- Step Tracking must always show the full A-F step template for the current selected/requested task. If the task has not been read from SQLite yet, the page synthesizes a pending task from the current path, then replaces it with persisted task/step state when available.
+- The Speech voices locale query also uses a real parameterized SQL statement, avoiding the same historical string-replacement bug.
