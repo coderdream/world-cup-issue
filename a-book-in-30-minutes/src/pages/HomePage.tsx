@@ -1,4 +1,5 @@
 import {
+  Ban,
   BookOpenText,
   Clipboard,
   Download,
@@ -18,10 +19,10 @@ import {
   Video,
   Volume2
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Panel, SectionTitle } from "@/pages/primitives";
 import { frameworkApi } from "@/services/frameworkApi";
-import { useAppStore } from "@/store/useAppStore";
+import { useAppStore, type MaterialGenerationStatus } from "@/store/useAppStore";
 import type { MaterialFile, MaterialTaskProgressEvent, MaterialsOutputTab } from "@/types";
 
 const outputTabs: Array<{ key: MaterialsOutputTab; label: string; icon: React.ReactNode }> = [
@@ -42,6 +43,7 @@ export function HomePage() {
   const { request, materials, scanResult, fileStatuses, selectedTaskPath, selectedTaskPaths, outputDir, error, copyState, exportState, activeTab, currentTraceId, busy, scanning, exporting } = workbench;
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; file: MaterialFile } | null>(null);
   const [activePipelineStage, setActivePipelineStage] = useState<"materials" | "image" | "audio" | "subtitle" | "video" | "publish" | null>(null);
+  const terminatedTraceIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     void loadStoredTasks(settings.materialProfile.categoryName);
@@ -55,6 +57,7 @@ export function HomePage() {
         listen<MaterialTaskProgressEvent>("material-task-progress", (event) => {
           const current = useAppStore.getState().materialsWorkbench;
           if (event.payload.traceId !== current.currentTraceId) return;
+          if (terminatedTraceIdsRef.current.has(event.payload.traceId)) return;
           if (event.payload.path !== current.request.epubPath) return;
           const status = event.payload.progress >= 100 ? "success" : event.payload.status;
           void updateTaskStatus(event.payload.path, {
@@ -135,6 +138,11 @@ export function HomePage() {
           <span>频道：{settings.materialProfile.channelName}</span>
           <span>目标：{settings.materialProfile.targetMinChars}-{settings.materialProfile.targetMaxChars} 字</span>
           <span>状态：{scanResult ? `${scanResult.files.length} 个任务` : "等待扫描"}</span>
+        </div>
+        <div className="pipeline-stop-row">
+          <button className="terminate-task-btn" disabled={!busy && !currentTraceId} type="button" onClick={() => void terminateCurrentTask()}>
+            <Ban size={16} /> 终止任务
+          </button>
         </div>
           {error && <p className="status error">{error}</p>}
           {copyState && <p className="status success">{copyState}</p>}
@@ -390,7 +398,7 @@ export function HomePage() {
     updateWorkbench({ scanning: true, error: "", copyState: "", exportState: "" });
     try {
       const result = await frameworkApi.scanMaterialFiles({ path });
-      updateWorkbench({ scanResult: result, fileStatuses: statusesFromFiles(result.files) });
+      updateWorkbench({ scanResult: result, fileStatuses: mergeStatusesFromFiles(result.files, useAppStore.getState().materialsWorkbench.fileStatuses) });
       updateSelectedTaskPaths((current) => current.filter((taskPath) => result.files.some((file) => file.path === taskPath)));
       if (result.files.some((file) => file.path === path)) {
         updateWorkbench({ selectedTaskPath: path });
@@ -647,6 +655,7 @@ export function HomePage() {
 
   async function generateMaterials(path = request.epubPath) {
     const traceId = createTraceId();
+    terminatedTraceIdsRef.current.delete(traceId);
     const latestSettings = await refreshSettingsForPipeline();
     const requestWithTrace = {
       ...request,
@@ -659,10 +668,11 @@ export function HomePage() {
       traceId
     };
     updateWorkbench({ busy: true, error: "", copyState: "", exportState: "", currentTraceId: traceId });
-    await updateTaskStatus(path, { status: "generating", progress: 0, message: "等待后端开始处理" });
+    await updateTaskStatus(path, { status: "generating", progress: 10, message: "等待后端开始处理" });
     updateRequest({ traceId });
     try {
       const result = await frameworkApi.generateBookMaterials(requestWithTrace);
+      if (isTraceTerminated(traceId)) return;
       const narrationChars = countHanChars(result.narration);
       updateWorkbench({
         materials: result,
@@ -670,12 +680,39 @@ export function HomePage() {
       });
       await updateTaskStatus(path, { status: "success", progress: 100, narrationChars, message: "已完成" });
     } catch (caught) {
+      if (isTraceTerminated(traceId)) return;
       const message = caught instanceof Error ? caught.message : String(caught);
       updateWorkbench({ error: message });
       await updateTaskStatus(path, { status: "failed", progress: 0, message });
     } finally {
-      updateWorkbench({ busy: false });
+      if (!isTraceTerminated(traceId)) {
+        updateWorkbench({ busy: false });
+      }
     }
+  }
+
+  async function terminateCurrentTask() {
+    const current = useAppStore.getState().materialsWorkbench;
+    const traceId = current.currentTraceId || current.request.traceId || "";
+    const path = current.selectedTaskPath || current.request.epubPath.trim();
+    if (traceId) {
+      terminatedTraceIdsRef.current.add(traceId);
+    }
+    updateWorkbench({
+      busy: false,
+      exporting: false,
+      error: "",
+      exportState: "当前任务已终止。",
+      currentTraceId: traceId
+    });
+    if (path) {
+      await updateTaskStatus(path, { status: "failed", progress: 0, message: "用户已终止任务" });
+    }
+    setActivePipelineStage(null);
+  }
+
+  function isTraceTerminated(traceId: string) {
+    return terminatedTraceIdsRef.current.has(traceId);
   }
 
   async function copyText(value: string) {
@@ -903,7 +940,7 @@ export function HomePage() {
       const selectedPatch = requestPath && result.files.some((file) => file.path === requestPath)
         ? { selectedTaskPath: requestPath }
         : {};
-      updateWorkbench({ scanResult: result, fileStatuses: statusesFromFiles(result.files), ...selectedPatch });
+      updateWorkbench({ scanResult: result, fileStatuses: mergeStatusesFromFiles(result.files, useAppStore.getState().materialsWorkbench.fileStatuses), ...selectedPatch });
       updateSelectedTaskPaths((current) => current.filter((taskPath) => result.files.some((file) => file.path === taskPath)));
     } catch (caught) {
       updateWorkbench({ error: caught instanceof Error ? caught.message : String(caught) });
@@ -1084,8 +1121,19 @@ function statusFromFile(file: MaterialFile) {
   });
 }
 
-function statusesFromFiles(files: MaterialFile[]) {
+function statusesFromFiles(files: MaterialFile[]): Record<string, MaterialGenerationStatus> {
   return Object.fromEntries(files.map((file) => [file.path, statusFromFile(file)]));
+}
+
+function mergeStatusesFromFiles(files: MaterialFile[], current: Record<string, MaterialGenerationStatus>) {
+  const next = statusesFromFiles(files);
+  for (const file of files) {
+    const local = current[file.path];
+    if (local?.status === "generating" && next[file.path]?.status === "pending") {
+      next[file.path] = local;
+    }
+  }
+  return next;
 }
 
 function normalizeGenerationStatus(status: { status: "pending" | "generating" | "success" | "failed"; progress: number; narrationChars?: number | null; message?: string }) {
@@ -1098,11 +1146,8 @@ function normalizeGenerationStatus(status: { status: "pending" | "generating" | 
 }
 
 function clampProgress(value: number) {
-  if (value >= 100) return 100;
-  if (value >= 75) return 75;
-  if (value >= 50) return 50;
-  if (value >= 25) return 25;
-  return 0;
+  if (typeof value !== "number" || Number.isNaN(value)) return 0;
+  return Math.max(0, Math.min(100, Math.round(value)));
 }
 
 function countHanChars(value: string) {

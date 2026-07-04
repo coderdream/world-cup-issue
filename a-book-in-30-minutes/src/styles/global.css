@@ -547,6 +547,37 @@ button {
   overflow-x: auto;
 }
 
+.pipeline-stop-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.terminate-task-btn {
+  display: inline-flex;
+  min-width: 132px;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid #ff5d4e;
+  border-radius: 8px;
+  padding: 0 14px;
+  color: #ff7b6f;
+  background: rgba(80, 20, 16, 0.32);
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.terminate-task-btn:hover:not(:disabled) {
+  background: rgba(255, 93, 78, 0.16);
+}
+
+.terminate-task-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .pipeline-stage-btn {
   display: inline-flex;
   width: 92px;

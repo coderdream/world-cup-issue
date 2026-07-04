@@ -1566,3 +1566,13 @@ The step table includes a task column so repeated A-01 through F-01 rows remain 
 Settings updates are saved through an asynchronous frontend queue. The Pipeline page now waits for that queue with `flushSettings()` before starting Text, Audio, Image, Subtitle, or Video work, then reloads settings from the Tauri backend before invoking AI-dependent commands.
 
 This prevents the Settings page from visually showing Gemini while the backend still has the previous GPT snapshot. The Text stage also builds its request from the refreshed settings, so channel, language, target length, and active AI provider stay aligned with the persisted SQLite configuration.
+
+## 2026-07-04 0.1.134 Step Persistence and Stop Task Control
+
+This version fixes the SQLite writes that drive the Pipeline task list and Step Tracking page. Material task progress updates now execute real SQL again, and Step Tracking can query the latest trace for a path from `material_task_steps`. The generated material model and AI request log now use the active provider profile, so Gemini runs no longer display GPT model/base URL in material-generation logs.
+
+The Pipeline panel adds a `终止任务` control. When clicked, the current frontend trace is marked as terminated, the selected/requested task is written as failed with a user-terminated message, spinner/highlight state is cleared, and late frontend responses for that trace are ignored.
+
+Text progress display now shows the actual backend percentage instead of rounding to 0/25/50/75/100 buckets, so early parsing and AI-request progress is visible immediately.
+
+Subtitle normalization now targets lines within 20 Chinese characters where possible. Overlong AI subtitle lines are re-split locally at semantic punctuation or the best available pause, and every written `subtitles.txt` line is guaranteed to end with punctuation. Mid-sentence forced splits receive a Chinese comma, while the final subtitle receives a full stop when needed.

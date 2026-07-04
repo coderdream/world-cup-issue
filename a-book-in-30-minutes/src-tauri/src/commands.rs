@@ -1,4 +1,4 @@
-use crate::epub::{count_han_chars, read_epub, truncate_chars};
+﻿use crate::epub::{count_han_chars, read_epub, truncate_chars};
 use crate::models::{
     AiBookMaterialsPayload, AiGenerateRequest, AiGenerateResult, AiTestResult, AppSettings,
     AppStatePayload, AudioManifest, AudioManifestPart, BookMaterials, BookMaterialsRequest,
@@ -246,8 +246,8 @@ pub async fn run_e2e_materials_cli(epub_path: &str) -> Result<(), CommandError> 
         "Requesting AI material generation JSON.",
         format!(
             "model={} base_url={} prompt_chars={}",
-            settings.ai_profile.model,
-            settings.ai_profile.base_url,
+            current_ai_model(&settings),
+            current_ai_base_url(&settings),
             prompt.chars().count()
         ),
         &trace_id,
@@ -302,7 +302,7 @@ pub async fn run_e2e_materials_cli(epub_path: &str) -> Result<(), CommandError> 
         narration: payload.narration,
         subtitles,
         prompt,
-        model: settings.ai_profile.model.clone(),
+        model: current_ai_model(&settings),
         overview: book.overview,
     };
     let output_dir = source_output_dir(&epub)?.to_string_lossy().into_owned();
@@ -923,10 +923,10 @@ pub async fn generate_book_materials(
         "Requesting AI material generation JSON.",
         format!(
             "model={} messages=2 system_prompt_chars={} user_prompt_chars={} base_url={}",
-            settings.ai_profile.model,
+            current_ai_model(&settings),
             system_prompt.chars().count(),
             prompt.chars().count(),
-            settings.ai_profile.base_url
+            current_ai_base_url(&settings)
         ),
         &trace_id,
     );
@@ -1324,7 +1324,7 @@ pub async fn generate_book_materials(
         narration: payload.narration,
         subtitles,
         prompt,
-        model: settings.ai_profile.model.clone(),
+        model: current_ai_model(&settings),
         overview: book.overview,
     };
     data.logger.trace_info(
@@ -2373,19 +2373,19 @@ pub fn generate_book_video_pipeline(
     match pipeline_stage.as_str() {
         "image" => {
             let _ = connection.execute(
-                "Material task path is required.",
+                "UPDATE material_tasks SET image_status = 'generating', image_progress = 20, image_message = '正在生成图片素材', updated_at = ?2 WHERE path = ?1",
                 params![epub_path, now],
             );
         }
         "subtitle" => {
             let _ = connection.execute(
-                "Material task path is required.",
+                "UPDATE material_tasks SET subtitle_status = 'generating', subtitle_progress = 20, subtitle_message = '正在生成字幕文件', updated_at = ?2 WHERE path = ?1",
                 params![epub_path, now],
             );
         }
         _ => {
             let _ = connection.execute(
-                "Material task path is required.",
+                "UPDATE material_tasks SET video_status = 'generating', video_progress = 20, video_message = '正在生成视频', updated_at = ?2 WHERE path = ?1",
                 params![epub_path, now],
             );
         }
@@ -4818,7 +4818,7 @@ fn query_material_task_steps_by_path(
 ) -> Result<Vec<MaterialTaskStep>, CommandError> {
     let latest_trace_id: Option<String> = connection
         .query_row(
-            "Material task path is required.",
+            "SELECT trace_id FROM material_task_steps WHERE path = ?1 ORDER BY updated_at DESC LIMIT 1",
             params![path],
             |row| row.get(0),
         )
@@ -5629,14 +5629,23 @@ fn update_material_task_progress_db(
     message: &str,
 ) {
     if let Ok(connection) = Connection::open(db_path) {
+        if ensure_material_tasks_table(&connection).is_err() {
+            return;
+        }
+        if let Ok(file) = material_file_from_path(path, DEFAULT_MATERIAL_CATEGORY) {
+            let _ = upsert_material_task(&connection, &file);
+        }
+        let now = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
         let _ = connection.execute(
-            "Material task path is required.",
+            "UPDATE material_tasks
+             SET status = ?2, progress = ?3, message = ?4, updated_at = ?5
+             WHERE path = ?1",
             params![
                 path,
                 normalize_task_status(status),
                 clamp_task_progress(progress),
                 message,
-                chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string()
+                now
             ],
         );
     }
@@ -5661,7 +5670,7 @@ fn upsert_material_task_step_db(
         let normalized_progress = clamp_task_progress(progress);
         let existing_started_at = connection
             .query_row(
-                "Operation completed.",
+                "SELECT started_at FROM material_task_steps WHERE trace_id = ?1 AND step_code = ?2",
                 params![trace_id, step_code],
                 |row| row.get::<_, Option<String>>(0),
             )
@@ -5671,7 +5680,7 @@ fn upsert_material_task_step_db(
             .or_else(|| (normalized_status == "generating" || normalized_status == "success" || normalized_status == "failed").then(|| now.clone()));
         let existing_finished_at = connection
             .query_row(
-                "Operation completed.",
+                "SELECT finished_at FROM material_task_steps WHERE trace_id = ?1 AND step_code = ?2",
                 params![trace_id, step_code],
                 |row| row.get::<_, Option<String>>(0),
             )
@@ -6167,6 +6176,14 @@ fn current_ai_model(settings: &AppSettings) -> String {
     }
 }
 
+fn current_ai_base_url(settings: &AppSettings) -> String {
+    if settings.active_ai_provider.trim() == "gemini" {
+        settings.gemini_profile.base_url.clone()
+    } else {
+        settings.ai_profile.base_url.clone()
+    }
+}
+
 fn source_file_detail(path: &Path) -> String {
     let extension = path
         .extension()
@@ -6372,7 +6389,7 @@ fn build_book_materials_prompt(book: &EpubBook, request: &BookMaterialsRequest) 
     let target_max = request.target_max_chars;
     let source_packet = build_source_packet(book);
     format!(
-        "You are creating a Chinese audiobook video package. Return only valid JSON with keys: videoTitle, description, tags, narration, subtitles. Do not output markdown.\n\nRole:\n- You are a senior short-video subtitle editor and a healing late-night radio copywriter.\n- Your subtitle cuts should guide reading rhythm, emotional rise and fall, and a gentle sense of breathing.\n\nNarration task:\n- Write narration as a continuous Chinese script between {target_min} and {target_max} Chinese characters.\n- The final narration.txt should normally stay under about 8,200 total characters including punctuation.\n- Prefer concise, warm narration. Do not exceed the target by adding repetitive reassurance or filler.\n\nSubtitle task:\n- After writing the final narration, read and understand it as a human subtitle editor.\n- Create subtitles from the final narration, not from the source excerpts.\n- subtitles must be a JSON array of Chinese subtitle lines in exact reading order.\n- subtitles must cover the whole narration. Do not summarize, omit, add, rewrite, or reorder content.\n\nConstraint:\n1. Line length: each subtitle line should be within 18 Chinese characters including punctuation when possible. A meaningful line may be slightly longer only when splitting would damage a title, phrase, or natural rhythm.\n2. Punctuation: preserve natural punctuation such as ，。？！；：、《》…… Do not strip punctuation.\n3. Format: subtitles is a JSON string array. No timestamps. One subtitle line per array item.\n4. Coverage: every sentence in narration must appear in subtitles in order.\n\nSegmentation logic:\n1. Semantic integrity: prefer line breaks at punctuation. If a sentence is too long, split only at a logical pause. Never split a word or fixed phrase, for example “蒲公英”, “完美”, “希望”, “你有我呢”.\n2. Reading rhythm: use natural human breathing. Mix shorter and longer lines to create a slow, healing pace.\n3. Visual beauty: avoid 1-5 character orphan lines unless the short line is an intentional emotional beat.\n4. Phrase protection: keep book titles, names, idioms, number expressions, and short emotional phrases intact, such as 《天会亮的，你有我呢》 and “三十三个四季小故事”.\n5. Soft punctuation: commas may stay inside a line when they make the rhythm better; split after a comma only when both sides are meaningful.\n6. Tiny tails: if the final fragment is too short, merge it with the previous or next line.\n\nWhat to avoid:\n- Do not mechanically cut every 14, 16, 18, or 20 characters.\n- Do not remove punctuation to make lines shorter.\n- Do not split a title into isolated fragments.\n- Do not create orphan lines such as “的书”, “完”, “美”, “三十三”.\n- Do not join unrelated clauses into one long line just to avoid short lines.\n- Do not change wording for subtitle length.\n\nBad examples:\n- “完” / “美”\n- “的书” as a separate line\n- “天会亮的” / “你有我呢” when it is one title\n- “三十三” / “个四季小故事”\n- One very long sentence with no punctuation and no breathing point\n\nOutput example:\n- “今晚要一起读的是，”\n- “一平著绘的《天会亮的，你有我呢》。”\n- “先把灯光调暗一点，”\n- “把白天没有说完的话，”\n- “轻轻放在枕边。”\n- “你不必马上变好，”\n- “也不必立刻回答生活的问题。”\n\nBook title: {title}\nAuthor: {author}\nLanguage: {language}\nExtra direction: {direction}\n\nSource excerpts:\n{source_packet}",
+        "You are creating a Chinese audiobook video package. Return only valid JSON with keys: videoTitle, description, tags, narration, subtitles. Do not output markdown.\n\nRole:\n- You are a senior short-video subtitle editor and a healing late-night radio copywriter.\n- Your subtitle cuts should guide reading rhythm, emotional rise and fall, and a gentle sense of breathing.\n\nNarration task:\n- Write narration as a continuous Chinese script between {target_min} and {target_max} Chinese characters.\n- The final narration.txt should normally stay under about 8,200 total characters including punctuation.\n- Prefer concise, warm narration. Do not exceed the target by adding repetitive reassurance or filler.\n\nSubtitle task:\n- After writing the final narration, read and understand it as a human subtitle editor.\n- Create subtitles from the final narration, not from the source excerpts.\n- subtitles must be a JSON array of Chinese subtitle lines in exact reading order.\n- subtitles must cover the whole narration. Do not summarize, omit, add, rewrite, or reorder content.\n\nConstraint:\n1. Line length: each subtitle line should be within 20 Chinese characters including punctuation when possible. A meaningful line may be slightly longer only when splitting would damage a title, phrase, or natural rhythm.\n2. Punctuation: preserve natural punctuation such as ，。？！；：、《》…… Do not strip punctuation.\n3. Format: subtitles is a JSON string array. No timestamps. One subtitle line per array item.\n4. Coverage: every sentence in narration must appear in subtitles in order.\n\nSegmentation logic:\n1. Semantic integrity: prefer line breaks at punctuation. If a sentence is too long, split only at a logical pause. Never split a word or fixed phrase, for example “蒲公英”, “完美”, “希望”, “你有我呢”.\n2. Reading rhythm: use natural human breathing. Mix shorter and longer lines to create a slow, healing pace.\n3. Visual beauty: avoid 1-5 character orphan lines unless the short line is an intentional emotional beat.\n4. Phrase protection: keep book titles, names, idioms, number expressions, and short emotional phrases intact, such as 《天会亮的，你有我呢》 and “三十三个四季小故事”.\n5. Soft punctuation: commas may stay inside a line when they make the rhythm better; split after a comma only when both sides are meaningful.\n6. Tiny tails: if the final fragment is too short, merge it with the previous or next line.\n\nWhat to avoid:\n- Do not mechanically cut every 14, 16, 18, or 20 characters.\n- Do not remove punctuation to make lines shorter.\n- Do not split a title into isolated fragments.\n- Do not create orphan lines such as “的书”, “完”, “美”, “三十三”.\n- Do not join unrelated clauses into one long line just to avoid short lines.\n- Do not change wording for subtitle length.\n\nBad examples:\n- “完” / “美”\n- “的书” as a separate line\n- “天会亮的” / “你有我呢” when it is one title\n- “三十三” / “个四季小故事”\n- One very long sentence with no punctuation and no breathing point\n\nOutput example:\n- “今晚要一起读的是，”\n- “一平著绘的《天会亮的，你有我呢》。”\n- “先把灯光调暗一点，”\n- “把白天没有说完的话，”\n- “轻轻放在枕边。”\n- “你不必马上变好，”\n- “也不必立刻回答生活的问题。”\n\nBook title: {title}\nAuthor: {author}\nLanguage: {language}\nExtra direction: {direction}\n\nSource excerpts:\n{source_packet}",
         title = book.overview.title,
         author = book.overview.creator,
         language = request.language,
@@ -6422,7 +6439,7 @@ fn build_narration_rewrite_prompt(
     max_chars: usize,
 ) -> String {
     format!(
-        "Rewrite the JSON so narration is between {min_chars} and {max_chars} Chinese characters. Current narration Chinese chars: {current_chars}. Return only valid JSON with the same keys: videoTitle, description, tags, narration, subtitles. The final narration.txt should normally stay under about 8,200 total characters including punctuation.\n\nRole:\n- You are a senior short-video subtitle editor and a healing late-night radio copywriter.\n- Rebuild subtitles with rhythm, breathing, and emotional pacing, not mechanical slicing.\n\nSubtitle rebuild task:\n- Rebuild subtitles only after reading and understanding the final rewritten narration.\n- subtitles must cover the whole final narration in exact reading order. Do not summarize, omit, add, rewrite, or reorder content.\n\nConstraint:\n1. Each subtitle line should be within 18 Chinese characters including punctuation when possible.\n2. Preserve punctuation such as ，。？！；：、《》…… Do not strip punctuation.\n3. No timestamps. subtitles must be a JSON string array.\n\nSegmentation logic:\n1. Prefer breaks at punctuation. If a sentence is too long, split only at semantic pauses.\n2. Keep natural human breathing and a slow healing rhythm.\n3. Avoid 1-5 character orphan lines unless they intentionally emphasize emotion.\n4. Keep words, titles, names, idioms, number expressions, and short emotional phrases intact, such as “蒲公英”, “完美”, 《天会亮的，你有我呢》, “三十三个四季小故事”.\n5. If a fragment is too short, merge it with the previous or next line.\n\nDo not:\n- Do not mechanically cut every 14, 16, 18, or 20 characters.\n- Do not remove punctuation.\n- Do not split words or titles into fragments.\n- Do not create orphan lines such as “的书”, “完”, “美”, “三十三”.\n- Do not join unrelated clauses into one long line just to avoid short lines.\n\nOutput example:\n- “今晚要一起读的是，”\n- “一平著绘的《天会亮的，你有我呢》。”\n- “先把灯光调暗一点，”\n- “把白天没有说完的话，”\n- “轻轻放在枕边。”\n\nExisting JSON:\n{}",
+        "Rewrite the JSON so narration is between {min_chars} and {max_chars} Chinese characters. Current narration Chinese chars: {current_chars}. Return only valid JSON with the same keys: videoTitle, description, tags, narration, subtitles. The final narration.txt should normally stay under about 8,200 total characters including punctuation.\n\nRole:\n- You are a senior short-video subtitle editor and a healing late-night radio copywriter.\n- Rebuild subtitles with rhythm, breathing, and emotional pacing, not mechanical slicing.\n\nSubtitle rebuild task:\n- Rebuild subtitles only after reading and understanding the final rewritten narration.\n- subtitles must cover the whole final narration in exact reading order. Do not summarize, omit, add, rewrite, or reorder content.\n\nConstraint:\n1. Each subtitle line should be within 20 Chinese characters including punctuation when possible.\n2. Preserve punctuation such as ，。？！；：、《》…… Do not strip punctuation.\n3. No timestamps. subtitles must be a JSON string array.\n\nSegmentation logic:\n1. Prefer breaks at punctuation. If a sentence is too long, split only at semantic pauses.\n2. Keep natural human breathing and a slow healing rhythm.\n3. Avoid 1-5 character orphan lines unless they intentionally emphasize emotion.\n4. Keep words, titles, names, idioms, number expressions, and short emotional phrases intact, such as “蒲公英”, “完美”, 《天会亮的，你有我呢》, “三十三个四季小故事”.\n5. If a fragment is too short, merge it with the previous or next line.\n\nDo not:\n- Do not mechanically cut every 14, 16, 18, or 20 characters.\n- Do not remove punctuation.\n- Do not split words or titles into fragments.\n- Do not create orphan lines such as “的书”, “完”, “美”, “三十三”.\n- Do not join unrelated clauses into one long line just to avoid short lines.\n\nOutput example:\n- “今晚要一起读的是，”\n- “一平著绘的《天会亮的，你有我呢》。”\n- “先把灯光调暗一点，”\n- “把白天没有说完的话，”\n- “轻轻放在枕边。”\n\nExisting JSON:\n{}",
         serde_json::to_string(payload).unwrap_or_default()
     )
 }
@@ -6566,7 +6583,7 @@ fn extract_json_object(content: &str) -> Option<String> {
 }
 
 fn split_subtitles(narration: &str) -> Vec<String> {
-    const MAX_SUBTITLE_CHARS: usize = 24;
+    const MAX_SUBTITLE_CHARS: usize = 20;
     const SOFT_SUBTITLE_CHARS: usize = 14;
     const MIN_SUBTITLE_TAIL_CHARS: usize = 6;
     let mut lines = Vec::new();
@@ -6588,11 +6605,14 @@ fn split_subtitles(narration: &str) -> Vec<String> {
     if lines.is_empty() {
         push_subtitle_chunks(&mut lines, narration, MAX_SUBTITLE_CHARS);
     }
-    merge_short_subtitle_tails(lines, MIN_SUBTITLE_TAIL_CHARS, MAX_SUBTITLE_CHARS)
+    finalize_subtitle_lines(
+        merge_short_subtitle_tails(lines, MIN_SUBTITLE_TAIL_CHARS, MAX_SUBTITLE_CHARS),
+        MAX_SUBTITLE_CHARS,
+    )
 }
 
 fn normalize_ai_subtitles(subtitles: &[String], narration: &str) -> Option<Vec<String>> {
-    const MAX_SUBTITLE_CHARS: usize = 24;
+    const MAX_SUBTITLE_CHARS: usize = 20;
     const MIN_SUBTITLE_TAIL_CHARS: usize = 6;
     if subtitles.is_empty() {
         return None;
@@ -6605,7 +6625,10 @@ fn normalize_ai_subtitles(subtitles: &[String], narration: &str) -> Option<Vec<S
         }
         push_subtitle_chunks(&mut lines, &cleaned, MAX_SUBTITLE_CHARS);
     }
-    let lines = merge_short_subtitle_tails(lines, MIN_SUBTITLE_TAIL_CHARS, MAX_SUBTITLE_CHARS);
+    let lines = finalize_subtitle_lines(
+        merge_short_subtitle_tails(lines, MIN_SUBTITLE_TAIL_CHARS, MAX_SUBTITLE_CHARS),
+        MAX_SUBTITLE_CHARS,
+    );
     if lines.len() < 8 || count_han_chars(&lines.join("")) < count_han_chars(narration) / 2 {
         return None;
     }
@@ -6626,6 +6649,39 @@ fn push_clean_subtitle(lines: &mut Vec<String>, cleaned: &str, max_chars: usize)
 
 fn clean_subtitle_line(value: &str) -> String {
     value.trim().to_string()
+}
+
+fn finalize_subtitle_lines(lines: Vec<String>, max_chars: usize) -> Vec<String> {
+    let mut normalized = Vec::new();
+    for line in lines {
+        for chunk in split_overlong_subtitle_line(&line, max_chars) {
+            let cleaned = clean_subtitle_line(&chunk);
+            if !cleaned.is_empty() {
+                normalized.push(cleaned);
+            }
+        }
+    }
+    let total = normalized.len();
+    normalized
+        .into_iter()
+        .enumerate()
+        .map(|(index, line)| ensure_subtitle_line_punctuation(&line, index + 1 == total))
+        .collect()
+}
+
+fn split_overlong_subtitle_line(line: &str, max_chars: usize) -> Vec<String> {
+    let mut chunks = Vec::new();
+    push_subtitle_chunks(&mut chunks, line, max_chars);
+    chunks
+}
+
+fn ensure_subtitle_line_punctuation(line: &str, is_last: bool) -> String {
+    let trimmed = line.trim();
+    if trimmed.is_empty() || trimmed.chars().last().is_some_and(is_subtitle_terminal_punctuation) {
+        return trimmed.to_string();
+    }
+    let mark = if is_last { '\u{3002}' } else { '\u{FF0C}' };
+    format!("{trimmed}{mark}")
 }
 
 fn merge_short_subtitle_tails(lines: Vec<String>, min_tail_chars: usize, max_chars: usize) -> Vec<String> {
@@ -6656,6 +6712,26 @@ fn is_soft_subtitle_break(ch: char) -> bool {
 
 fn is_subtitle_split_punctuation(ch: char) -> bool {
     is_hard_subtitle_break(ch) || is_soft_subtitle_break(ch)
+}
+
+fn is_subtitle_terminal_punctuation(ch: char) -> bool {
+    matches!(
+        ch,
+        '\u{3002}'
+            | '\u{FF0C}'
+            | '\u{3001}'
+            | '\u{FF01}'
+            | '\u{FF1F}'
+            | '\u{FF1B}'
+            | '\u{FF1A}'
+            | '\u{2026}'
+            | '.'
+            | ','
+            | '!'
+            | '?'
+            | ';'
+            | ':'
+    )
 }
 
 fn punctuation_count(value: &str) -> usize {
