@@ -195,6 +195,13 @@ export function SettingsPage() {
 
       <Panel>
         <SectionTitle icon={<Bot size={16} />} title="AI 模型配置" inline />
+        <label className="field">
+          <span>流水线使用 AI</span>
+          <select value={activeAiProvider} onChange={(event) => void changeAiProvider(event.target.value as AiProvider)}>
+            <option value="gpt">GPT</option>
+            <option value="gemini">Gemini</option>
+          </select>
+        </label>
         <div className="segmented-control" role="tablist" aria-label="AI 模型提供商">
           <button className={activeAiProvider === "gpt" ? "active" : undefined} type="button" onClick={() => void changeAiProvider("gpt")}>
             GPT

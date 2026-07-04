@@ -65,7 +65,7 @@
 
 右上角显示当前选中 AI 的模型名，格式为 `【模型名】`。AI 测试连接前会先保存当前输入，测试成功后再次写入 SQLite 中的 `app_settings.settings`，确保 API Key 和代理配置被保存。
 
-AI 模型配置保存在 `settings.activeAiProvider`、`settings.aiProfile` 和 `settings.geminiProfile`。配置页使用 GPT/Gemini 分段控件切换当前 AI；GPT 默认 provider 为 `openai_compatible`，默认不启用代理；Gemini 默认 provider 为 `gemini`，Base URL 为 `https://generativelanguage.googleapis.com/v1beta`，模型为 `gemini-flash-latest`，默认启用代理 `http://127.0.0.1:1080`。每个 AI profile 都独立保存 `name`、`baseURL`、`model`、`apiKey`、`proxyEnabled` 和 `proxyUrl`，后端只按当前选中 AI 的 profile 决定是否走代理，避免 Gemini 的 VPN 要求影响 GPT。
+AI 模型配置保存在 `settings.activeAiProvider`、`settings.aiProfile` 和 `settings.geminiProfile`。配置页顶部“流水线使用 AI”下拉框明确控制素材流水线、测试连接和 AI 文本测试实际使用 GPT 还是 Gemini；GPT/Gemini 分段控件用于编辑对应 provider 的详细配置。GPT 默认 provider 为 `openai_compatible`，默认不启用代理；Gemini 默认 provider 为 `gemini`，Base URL 为 `https://generativelanguage.googleapis.com/v1beta`，模型为 `gemini-flash-latest`，默认启用代理 `http://127.0.0.1:1080`。每个 AI profile 都独立保存 `name`、`baseURL`、`model`、`apiKey`、`proxyEnabled` 和 `proxyUrl`，后端只按当前选中 AI 的 profile 决定是否走代理，避免 Gemini 的 VPN 要求影响 GPT。
 
 ## 后端命令
 
@@ -1539,3 +1539,7 @@ This version adds provider-specific AI configuration in the Settings page.
 - GPT defaults to no proxy. Gemini defaults to `proxyEnabled=true` and `proxyUrl=http://127.0.0.1:1080`, matching the local VPN requirement.
 - The backend dispatches by `activeAiProvider`: GPT uses Chat Completions with Bearer Auth; Gemini uses Google Generative Language `generateContent` with the `X-goog-api-key` header and `contents[].parts[].text` request body.
 - The top model pill, AI connection test, AI text generation test, and browser preview all read the currently selected provider profile.
+
+## 2026-07-04 0.1.130 Explicit Pipeline AI Selector
+
+This version adds an explicit `流水线使用 AI` selector to the Settings AI panel. The selector writes `settings.activeAiProvider`, which is the same field used by `generate_book_materials`, `test_ai_profile`, and `generate_ai_text`. The GPT/Gemini segmented control remains the detail editor for each provider, while the selector makes the pipeline choice visible and unambiguous.
