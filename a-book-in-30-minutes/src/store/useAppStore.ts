@@ -18,6 +18,7 @@ export interface MaterialsWorkbenchState {
   scanResult: ScanMaterialFilesResult | null;
   fileStatuses: Record<string, MaterialGenerationStatus>;
   selectedTaskPath: string;
+  selectedTaskPaths: string[];
   outputDir: string;
   error: string;
   copyState: string;
@@ -134,6 +135,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     scanResult: null,
     fileStatuses: {},
     selectedTaskPath: "",
+    selectedTaskPaths: [],
     outputDir: "",
     error: "",
     copyState: "",

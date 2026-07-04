@@ -1,6 +1,6 @@
 [package]
 name = "a_book_in_30_minutes"
-version = "0.1.131"
+version = "0.1.132"
 description = "YouTube book video material generator"
 authors = ["A Book in 30 Minutes"]
 license = "MIT"

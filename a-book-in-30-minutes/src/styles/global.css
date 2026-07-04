@@ -1029,7 +1029,7 @@ button {
   min-height: 38px;
   align-items: center;
   border-bottom: 1px solid var(--border-soft);
-  grid-template-columns: 70px 130px 160px 110px 90px 110px minmax(0, 1fr);
+  grid-template-columns: 64px minmax(120px, 1.2fr) 110px 160px 100px 80px 100px minmax(0, 1fr);
   font-size: var(--content-font-size);
 }
 

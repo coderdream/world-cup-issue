@@ -1552,3 +1552,11 @@ This version removes the top stage-card strip from the Pipeline page so the task
 - Backend task queries must use real SQL for category lookup, path lookup, and deletion. Literal status/error text such as `Operation completed.` must never be passed to `prepare`, `query_row`, or `execute` as SQL.
 - Step Tracking must always show the full A-F step template for the current selected/requested task. If the task has not been read from SQLite yet, the page synthesizes a pending task from the current path, then replaces it with persisted task/step state when available.
 - The Speech voices locale query also uses a real parameterized SQL statement, avoiding the same historical string-replacement bug.
+
+## 2026-07-04 0.1.132 Persisted Selection and Multi Task Step Tracking
+
+The Pipeline task checkbox selection is now part of the shared materials workbench state instead of local page state. Switching from the Pipeline page to Step Tracking keeps the checked task set; rescanning or removing tasks filters out paths that no longer exist.
+
+Step Tracking now expands the full 17-step A-F template for every checked task. One checked task renders 17 rows, and N checked tasks render 17*N rows. When nothing is checked, the page keeps the previous single-task fallback based on the selected task, request path, running task, or first available task.
+
+The step table includes a task column so repeated A-01 through F-01 rows remain distinguishable. Step duration display is normalized to `MM分SS.SSS秒`, including running steps calculated from `startedAt` and completed steps using persisted `elapsedMs`.

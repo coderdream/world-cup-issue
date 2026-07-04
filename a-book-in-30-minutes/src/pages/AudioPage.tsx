@@ -11,6 +11,7 @@ type TaskStatus = MaterialFile["status"];
 
 interface StepRow {
   order: number;
+  taskName: string;
   code: string;
   name: string;
   status: StepStatus;
@@ -54,9 +55,10 @@ export function AudioPage() {
   const currentTraceId = useAppStore((state) => state.materialsWorkbench.currentTraceId);
   const requestPath = useAppStore((state) => state.materialsWorkbench.request.epubPath);
   const selectedTaskPath = useAppStore((state) => state.materialsWorkbench.selectedTaskPath);
+  const selectedTaskPaths = useAppStore((state) => state.materialsWorkbench.selectedTaskPaths);
   const scanResult = useAppStore((state) => state.materialsWorkbench.scanResult);
   const updateWorkbench = useAppStore((state) => state.updateMaterialsWorkbench);
-  const [persistedSteps, setPersistedSteps] = useState<MaterialTaskStep[]>([]);
+  const [persistedStepsByPath, setPersistedStepsByPath] = useState<Record<string, MaterialTaskStep[]>>({});
   const [nowMs, setNowMs] = useState(() => Date.now());
 
   useEffect(() => {
@@ -88,7 +90,10 @@ export function AudioPage() {
     };
   }, [settings.materialProfile.categoryName, updateWorkbench]);
 
-  const currentTask = useMemo(() => pickCurrentTask(scanResult?.files ?? [], requestPath, selectedTaskPath), [scanResult?.files, requestPath, selectedTaskPath]);
+  const trackedTasks = useMemo(
+    () => pickTrackedTasks(scanResult?.files ?? [], requestPath, selectedTaskPath, selectedTaskPaths),
+    [scanResult?.files, requestPath, selectedTaskPath, selectedTaskPaths]
+  );
 
   useEffect(() => {
     const timer = window.setInterval(() => setNowMs(Date.now()), 1000);
@@ -98,15 +103,20 @@ export function AudioPage() {
   useEffect(() => {
     let canceled = false;
     async function loadSteps() {
-      if (!currentTraceId && !currentTask?.path) {
-        setPersistedSteps([]);
+      if (trackedTasks.length === 0) {
+        setPersistedStepsByPath({});
         return;
       }
       try {
-        const result = await frameworkApi.getMaterialTaskSteps({ traceId: currentTraceId || undefined, path: currentTask?.path });
-        if (!canceled) setPersistedSteps(result.steps);
+        const pairs = await Promise.all(
+          trackedTasks.map(async (task) => {
+            const result = await frameworkApi.getMaterialTaskSteps({ path: task.path });
+            return [task.path, result.steps] as const;
+          })
+        );
+        if (!canceled) setPersistedStepsByPath(Object.fromEntries(pairs));
       } catch {
-        if (!canceled) setPersistedSteps([]);
+        if (!canceled) setPersistedStepsByPath({});
       }
     }
 
@@ -116,25 +126,29 @@ export function AudioPage() {
       canceled = true;
       window.clearInterval(timer);
     };
-  }, [currentTask?.path, currentTraceId]);
+  }, [trackedTasks]);
 
-  const steps = useMemo(() => buildStepRows(currentTask, persistedSteps, nowMs), [currentTask, nowMs, persistedSteps]);
+  const steps = useMemo(
+    () => trackedTasks.flatMap((task, taskIndex) => buildStepRows(task, persistedStepsByPath[task.path] ?? [], nowMs, taskIndex)),
+    [nowMs, persistedStepsByPath, trackedTasks]
+  );
   const successCount = steps.filter((step) => step.status === "SUCCESS").length;
   const failedCount = steps.filter((step) => step.status === "FAILED").length;
   const runningCount = steps.filter((step) => step.status === "RUNNING").length;
-  const summary = currentTask ? buildSummary(currentTask) : text("\u6682\u65e0\u4efb\u52a1");
+  const summary = trackedTasks.length === 1 ? buildSummary(trackedTasks[0]) : trackedTasks.length > 1 ? text("按勾选任务展开步骤") : text("\u6682\u65e0\u4efb\u52a1");
+  const taskLabel = selectedTaskPaths.length > 0 ? `已勾选 ${trackedTasks.length} 个任务` : trackedTasks[0] ? formatTaskTitle(trackedTasks[0].name) : "-";
 
   return (
     <div className="page steps-page">
       <Panel className="steps-panel">
         <SectionTitle icon={<ListChecks size={16} />} title={text("\u6b65\u9aa4\u7edf\u8ba1")} inline />
         <div className="step-summary-grid">
-          <SummaryItem label={text("\u5f53\u524d\u4efb\u52a1")} value={currentTask ? formatTaskTitle(currentTask.name) : "-"} />
+          <SummaryItem label={text("\u5f53\u524d\u4efb\u52a1")} value={taskLabel} />
           <SummaryItem label={text("\u603b\u6b65\u9aa4")} value={String(steps.length)} />
           <SummaryItem label={text("\u6b65\u9aa4\u8fdb\u5ea6")} value={`${successCount} ${text("\u6210\u529f")} / ${failedCount} ${text("\u5931\u8d25")} / ${runningCount} ${text("\u8fdb\u884c\u4e2d")}`} />
           <SummaryItem label={text("\u4efb\u52a1\u6458\u8981")} value={summary} />
           <SummaryItem label={text("\u4efb\u52a1 ID")} value={currentTraceId || "-"} />
-          <SummaryItem label={text("\u6574\u4f53\u8fdb\u5ea6")} value={currentTask ? `${estimateOverallProgress(steps)}%` : "-"} />
+          <SummaryItem label={text("\u6574\u4f53\u8fdb\u5ea6")} value={trackedTasks.length > 0 ? `${estimateOverallProgress(steps)}%` : "-"} />
         </div>
       </Panel>
 
@@ -143,6 +157,7 @@ export function AudioPage() {
         <div className="steps-table">
           <div className="steps-row header">
             <span>{text("\u5e8f\u53f7")}</span>
+            <span>{text("任务")}</span>
             <span>{text("\u6b65\u9aa4\u7f16\u7801")}</span>
             <span>{text("\u6b65\u9aa4\u540d\u79f0")}</span>
             <span>{text("\u72b6\u6001")}</span>
@@ -152,8 +167,9 @@ export function AudioPage() {
           </div>
           {steps.length > 0 ? (
             steps.map((step) => (
-              <div className="steps-row" key={step.code}>
+              <div className="steps-row" key={`${step.taskName}-${step.code}-${step.order}`}>
                 <span>{step.order}</span>
+                <span title={step.taskName}>{formatTaskTitle(step.taskName)}</span>
                 <span>{step.code}</span>
                 <span>{step.name}</span>
                 <span className={`step-status ${step.status.toLowerCase()}`}>{formatStepStatus(step.status)}</span>
@@ -184,26 +200,29 @@ function SummaryItem({ label, value }: { label: string; value: string }) {
   );
 }
 
-function pickCurrentTask(files: MaterialFile[], requestPath: string, selectedTaskPath: string) {
+function pickTrackedTasks(files: MaterialFile[], requestPath: string, selectedTaskPath: string, selectedTaskPaths: string[]) {
   const normalizedRequestPath = requestPath.trim();
-  return (
+  if (selectedTaskPaths.length > 0) {
+    return selectedTaskPaths.map((path) => files.find((file) => file.path === path) ?? materialFileFromPath(path));
+  }
+  const current =
     files.find((file) => file.path === selectedTaskPath) ??
     files.find((file) => file.path === normalizedRequestPath) ??
     files.find((file) => file.status === "generating" || file.audioStatus === "generating" || file.videoStatus === "generating") ??
     files[0] ??
-    null
-  );
+    (normalizedRequestPath ? materialFileFromPath(normalizedRequestPath) : null);
+  return current ? [current] : [];
 }
 
-function buildStepRows(file: MaterialFile | null, persistedSteps: MaterialTaskStep[], nowMs: number): StepRow[] {
-  if (!file) return [];
+function buildStepRows(file: MaterialFile, persistedSteps: MaterialTaskStep[], nowMs: number, taskIndex: number): StepRow[] {
   const persistedByCode = new Map(persistedSteps.map((step) => [step.stepCode, step]));
   return STEP_SPECS.map((spec, index) => {
     const persisted = persistedByCode.get(spec.code);
     if (persisted) {
       const status = mapPersistedStepStatus(persisted.status);
       return {
-        order: index + 1,
+        order: taskIndex * STEP_SPECS.length + index + 1,
+        taskName: file.name,
         code: spec.code,
         name: persisted.stepName || spec.name,
         status,
@@ -215,7 +234,8 @@ function buildStepRows(file: MaterialFile | null, persistedSteps: MaterialTaskSt
     const stage = getStage(file, spec.stage);
     const status = mapSubStepStatus(stage.status, stage.progress, spec.threshold, spec.stage, file);
     return {
-      order: index + 1,
+      order: taskIndex * STEP_SPECS.length + index + 1,
+      taskName: file.name,
       code: spec.code,
       name: spec.name,
       status,
@@ -291,13 +311,11 @@ function parseSqliteDateTime(value: string) {
 }
 
 function formatDurationMs(value: number) {
-  const totalSeconds = Math.max(0, Math.round(value / 1000));
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  if (hours > 0) return `${hours}时${minutes.toString().padStart(2, "0")}分${seconds.toString().padStart(2, "0")}秒`;
-  if (minutes > 0) return `${minutes}分${seconds.toString().padStart(2, "0")}秒`;
-  return `${seconds}秒`;
+  const totalMs = Math.max(0, Math.round(value));
+  const minutes = Math.floor(totalMs / 60000);
+  const seconds = Math.floor((totalMs % 60000) / 1000);
+  const millis = totalMs % 1000;
+  return `${minutes.toString().padStart(2, "0")}分${seconds.toString().padStart(2, "0")}.${millis.toString().padStart(3, "0")}秒`;
 }
 
 function formatStepStatus(status: StepStatus) {

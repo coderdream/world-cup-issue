@@ -38,9 +38,8 @@ export function HomePage() {
   const workbench = useAppStore((state) => state.materialsWorkbench);
   const updateWorkbench = useAppStore((state) => state.updateMaterialsWorkbench);
   const updateRequest = useAppStore((state) => state.updateBookMaterialsRequest);
-  const { request, materials, scanResult, fileStatuses, selectedTaskPath, outputDir, error, copyState, exportState, activeTab, currentTraceId, busy, scanning, exporting } = workbench;
+  const { request, materials, scanResult, fileStatuses, selectedTaskPath, selectedTaskPaths, outputDir, error, copyState, exportState, activeTab, currentTraceId, busy, scanning, exporting } = workbench;
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; file: MaterialFile } | null>(null);
-  const [selectedTaskPaths, setSelectedTaskPaths] = useState<string[]>([]);
   const [activePipelineStage, setActivePipelineStage] = useState<"materials" | "image" | "audio" | "subtitle" | "video" | "publish" | null>(null);
 
   useEffect(() => {
@@ -343,11 +342,11 @@ export function HomePage() {
   }
 
   function toggleTask(path: string, checked: boolean) {
-    setSelectedTaskPaths((current) => checked ? Array.from(new Set([...current, path])) : current.filter((value) => value !== path));
+    updateSelectedTaskPaths((current) => checked ? Array.from(new Set([...current, path])) : current.filter((value) => value !== path));
   }
 
   function toggleAllTasks(checked: boolean) {
-    setSelectedTaskPaths(checked ? allTaskPaths : []);
+    updateWorkbench({ selectedTaskPaths: checked ? allTaskPaths : [] });
   }
 
   async function chooseFile() {
@@ -391,7 +390,7 @@ export function HomePage() {
     try {
       const result = await frameworkApi.scanMaterialFiles({ path });
       updateWorkbench({ scanResult: result, fileStatuses: statusesFromFiles(result.files) });
-      setSelectedTaskPaths((current) => current.filter((taskPath) => result.files.some((file) => file.path === taskPath)));
+      updateSelectedTaskPaths((current) => current.filter((taskPath) => result.files.some((file) => file.path === taskPath)));
       if (result.files.some((file) => file.path === path)) {
         updateWorkbench({ selectedTaskPath: path });
       }
@@ -716,8 +715,14 @@ export function HomePage() {
     updateRequest({ epubPath: path });
     updateWorkbench({ selectedTaskPath: path });
     if (!keepChecked) {
-      setSelectedTaskPaths([]);
+      updateWorkbench({ selectedTaskPaths: [] });
     }
+  }
+
+  function updateSelectedTaskPaths(next: string[] | ((current: string[]) => string[])) {
+    const current = useAppStore.getState().materialsWorkbench.selectedTaskPaths;
+    const value = typeof next === "function" ? next(current) : next;
+    updateWorkbench({ selectedTaskPaths: Array.from(new Set(value.filter(Boolean))) });
   }
 
   function firstParsablePath() {
@@ -896,7 +901,7 @@ export function HomePage() {
         ? { selectedTaskPath: requestPath }
         : {};
       updateWorkbench({ scanResult: result, fileStatuses: statusesFromFiles(result.files), ...selectedPatch });
-      setSelectedTaskPaths((current) => current.filter((taskPath) => result.files.some((file) => file.path === taskPath)));
+      updateSelectedTaskPaths((current) => current.filter((taskPath) => result.files.some((file) => file.path === taskPath)));
     } catch (caught) {
       updateWorkbench({ error: caught instanceof Error ? caught.message : String(caught) });
     }
@@ -1021,7 +1026,7 @@ export function HomePage() {
       },
       selectedTaskPath: selectedTaskPath === path ? "" : selectedTaskPath
     });
-    setSelectedTaskPaths((currentPaths) => currentPaths.filter((taskPath) => taskPath !== path));
+    updateSelectedTaskPaths((currentPaths) => currentPaths.filter((taskPath) => taskPath !== path));
   }
 }
 
