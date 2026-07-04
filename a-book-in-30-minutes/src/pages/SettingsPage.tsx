@@ -322,7 +322,7 @@ export function SettingsPage() {
         <p className="settings-help">分类会写入素材任务数据库，对应后续 YouTube 播放列表名称；没有选择时使用默认分类。</p>
         <div className="field-grid">
           <label className="field">
-            <span>最少字数</span>
+            <span>最少字数（30~35分钟）</span>
             <input
               min={1000}
               type="number"
@@ -331,7 +331,7 @@ export function SettingsPage() {
             />
           </label>
           <label className="field">
-            <span>最多字数</span>
+            <span>最多字数（30~35分钟）</span>
             <input
               min={1001}
               type="number"
@@ -340,6 +340,7 @@ export function SettingsPage() {
             />
           </label>
         </div>
+        <p className="settings-help">这组字数会写入 SQLite，流水线生成文本时直接读取；默认 7500~7800，用来匹配 30~35 分钟语音。</p>
         <label className="field">
           <span>生成方向</span>
           <textarea

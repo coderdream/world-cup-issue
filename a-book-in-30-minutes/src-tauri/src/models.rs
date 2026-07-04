@@ -242,9 +242,9 @@ impl Default for MaterialProfile {
                 "A Book in 30 Minutes".to_string(),
             ],
             language: "zh-CN".to_string(),
-            target_min_chars: 7000,
-            target_max_chars: 8300,
-            extra_direction: "睡前听书风格，温柔、克制、有陪伴感。旁白目标为 30-35 分钟，匹配 90% 原速语音，最佳约 7600 个中文字；标题和简介服务于 YouTube 中文频道。".to_string(),
+            target_min_chars: 7500,
+            target_max_chars: 7800,
+            extra_direction: "睡前听书风格，温柔、克制、有陪伴感。旁白目标为 30-35 分钟语音，最佳落在 7500~7800 个中文字；标题和简介服务于 YouTube 中文频道。".to_string(),
         }
     }
 }

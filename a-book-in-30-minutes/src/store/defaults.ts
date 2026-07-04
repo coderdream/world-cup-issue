@@ -35,9 +35,9 @@ export const defaultSettings: AppSettings = {
     categoryName: "半小时听完一本书",
     categories: ["半小时听完一本书", "睡前听完一本书", "A Book in 30 Minutes"],
     language: "zh-CN",
-    targetMinChars: 6200,
-    targetMaxChars: 7600,
-    extraDirection: "睡前听书风格，温柔、克制、有陪伴感。旁白目标为 25-30 分钟，配合 0% 原速语音，最佳约 6800 个中文字；标题和简介服务于 YouTube 中文频道。"
+    targetMinChars: 7500,
+    targetMaxChars: 7800,
+    extraDirection: "睡前听书风格，温柔、克制、有陪伴感。旁白目标为 30-35 分钟语音，最佳落在 7500~7800 个中文字；标题和简介服务于 YouTube 中文频道。"
   },
   speechProfile: {
     provider: "azure_microsoft",
