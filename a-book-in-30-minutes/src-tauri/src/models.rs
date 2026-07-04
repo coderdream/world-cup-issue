@@ -10,7 +10,9 @@ pub struct AppSettings {
     pub notifications_enabled: bool,
     pub api_base_url: String,
     pub api_key: String,
+    pub active_ai_provider: String,
     pub ai_profile: AiProfile,
+    pub gemini_profile: GeminiProfile,
     pub feishu_profile: FeishuProfile,
     pub material_profile: MaterialProfile,
     pub speech_profile: SpeechProfile,
@@ -27,7 +29,9 @@ impl Default for AppSettings {
             notifications_enabled: true,
             api_base_url: "https://api.example.com".to_string(),
             api_key: String::new(),
+            active_ai_provider: "gpt".to_string(),
             ai_profile: AiProfile::default(),
+            gemini_profile: GeminiProfile::default(),
             feishu_profile: FeishuProfile::default(),
             material_profile: MaterialProfile::default(),
             speech_profile: SpeechProfile::default(),
@@ -114,6 +118,8 @@ pub struct AiProfile {
     pub model: String,
     #[serde(rename = "apiKey")]
     pub api_key: String,
+    pub proxy_enabled: bool,
+    pub proxy_url: String,
 }
 
 impl Default for AiProfile {
@@ -124,6 +130,37 @@ impl Default for AiProfile {
             base_url: "http://81.68.73.15:3000/openai/v1".to_string(),
             model: "gpt-5.5".to_string(),
             api_key: String::new(),
+            proxy_enabled: false,
+            proxy_url: String::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+#[serde(rename_all = "camelCase")]
+pub struct GeminiProfile {
+    pub provider: String,
+    pub name: String,
+    #[serde(rename = "baseURL")]
+    pub base_url: String,
+    pub model: String,
+    #[serde(rename = "apiKey")]
+    pub api_key: String,
+    pub proxy_enabled: bool,
+    pub proxy_url: String,
+}
+
+impl Default for GeminiProfile {
+    fn default() -> Self {
+        Self {
+            provider: "gemini".to_string(),
+            name: "Gemini".to_string(),
+            base_url: "https://generativelanguage.googleapis.com/v1beta".to_string(),
+            model: "gemini-flash-latest".to_string(),
+            api_key: String::new(),
+            proxy_enabled: true,
+            proxy_url: "http://127.0.0.1:1080".to_string(),
         }
     }
 }
@@ -514,6 +551,31 @@ pub struct ChatCompletionResponse {
 #[derive(Debug, Deserialize)]
 pub struct ChatChoice {
     pub message: ChatMessage,
+}
+
+#[derive(Debug, Serialize)]
+pub struct GeminiGenerateRequest {
+    pub contents: Vec<GeminiContent>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GeminiContent {
+    pub parts: Vec<GeminiPart>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GeminiPart {
+    pub text: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct GeminiGenerateResponse {
+    pub candidates: Option<Vec<GeminiCandidate>>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct GeminiCandidate {
+    pub content: Option<GeminiContent>,
 }
 
 #[derive(Debug, Deserialize)]

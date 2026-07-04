@@ -127,6 +127,10 @@ function readSettings(): AppSettings {
         ...defaultSettings.aiProfile,
         ...(parsed.aiProfile ?? {})
       },
+      geminiProfile: {
+        ...defaultSettings.geminiProfile,
+        ...(parsed.geminiProfile ?? {})
+      },
       feishuProfile: {
         ...defaultSettings.feishuProfile,
         ...(parsed.feishuProfile ?? {})
@@ -183,6 +187,10 @@ async function localCommand<T>(command: string, args?: Record<string, unknown>):
           ...settings.aiProfile,
           ...((args?.settings as Partial<AppSettings> | undefined)?.aiProfile ?? {})
         },
+        geminiProfile: {
+          ...settings.geminiProfile,
+          ...((args?.settings as Partial<AppSettings> | undefined)?.geminiProfile ?? {})
+        },
         feishuProfile: {
           ...settings.feishuProfile,
           ...((args?.settings as Partial<AppSettings> | undefined)?.feishuProfile ?? {})
@@ -222,16 +230,21 @@ async function localCommand<T>(command: string, args?: Record<string, unknown>):
         notes: "当前已经是最新版本。"
       } satisfies UpdateInfo as T;
     case "test_ai_profile":
-      return {
-        ok: Boolean(settings.aiProfile.apiKey),
-        message: settings.aiProfile.apiKey ? "AI 配置可用，本地预览模式已通过。" : "请先填写 AI API Key。",
-        content: settings.aiProfile.apiKey ? "ok" : undefined
-      } satisfies AiTestResult as T;
+      {
+        const activeProfile = settings.activeAiProvider === "gemini" ? settings.geminiProfile : settings.aiProfile;
+        const label = settings.activeAiProvider === "gemini" ? "Gemini" : "AI";
+        return {
+          ok: Boolean(activeProfile.apiKey),
+          message: activeProfile.apiKey ? `${label} 配置可用，本地预览模式已通过。` : `请先填写 ${label} API Key。`,
+          content: activeProfile.apiKey ? "ok" : undefined
+        } satisfies AiTestResult as T;
+      }
     case "generate_ai_text": {
       const request = args?.request as { prompt?: string } | undefined;
+      const activeProfile = settings.activeAiProvider === "gemini" ? settings.geminiProfile : settings.aiProfile;
       return {
         content: `本地预览结果：\n\n${request?.prompt || "请填写 Prompt 后再生成。"}`,
-        model: settings.aiProfile.model
+        model: activeProfile.model
       } satisfies AiGenerateResult as T;
     }
     case "test_feishu_profile":
@@ -347,7 +360,7 @@ async function localCommand<T>(command: string, args?: Record<string, unknown>):
         narration,
         subtitles: narration.split(/[。！？\n]+/).filter(Boolean),
         prompt: "安装版会在这里返回实际使用的生成提示词。",
-        model: settings.aiProfile.model,
+        model: (settings.activeAiProvider === "gemini" ? settings.geminiProfile : settings.aiProfile).model,
         overview: {
           title: request?.epubPath || "浏览器预览",
           creator: "",
@@ -430,7 +443,7 @@ async function localCommand<T>(command: string, args?: Record<string, unknown>):
               module: "materials",
               action: "settings.snapshot",
               message: "读取本次生成使用的 AI 配置",
-              detail: `model=${settings.aiProfile.model} base_url=${settings.aiProfile.baseURL} api_key_present=${Boolean(settings.aiProfile.apiKey)}`,
+              detail: `provider=${settings.activeAiProvider} model=${(settings.activeAiProvider === "gemini" ? settings.geminiProfile : settings.aiProfile).model} api_key_present=${Boolean((settings.activeAiProvider === "gemini" ? settings.geminiProfile : settings.aiProfile).apiKey)}`,
               traceId
             },
             {

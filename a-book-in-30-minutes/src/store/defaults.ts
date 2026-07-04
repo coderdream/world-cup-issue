@@ -6,12 +6,24 @@ export const defaultSettings: AppSettings = {
   notificationsEnabled: true,
   apiBaseUrl: "https://api.example.com",
   apiKey: "",
+  activeAiProvider: "gpt",
   aiProfile: {
     provider: "openai_compatible",
     name: "A Book in 30 Minutes",
     baseURL: "http://81.68.73.15:3000/openai/v1",
     model: "gpt-5.5",
-    apiKey: ""
+    apiKey: "",
+    proxyEnabled: false,
+    proxyUrl: ""
+  },
+  geminiProfile: {
+    provider: "gemini",
+    name: "Gemini",
+    baseURL: "https://generativelanguage.googleapis.com/v1beta",
+    model: "gemini-flash-latest",
+    apiKey: "",
+    proxyEnabled: true,
+    proxyUrl: "http://127.0.0.1:1080"
   },
   feishuProfile: {
     webhookUrl: "",

@@ -48,7 +48,7 @@
 - `流水线`：任务列表优先的工作台。顶部是流水线分析入口和三个阶段按钮：`素材`、`音频`、`视频`。三个阶段按钮位于“流水线分析面板”标题行右侧，不占用素材路径输入行。其中 `素材` 运行文本素材生成；`音频` 作为批量 TTS 流水线入口预留；`视频` 作为视频流水线入口预留，当前不接真实逻辑。主体是流水线任务列表，最近生成结果在任务列表下方展示。
 - `生成音频`：把素材旁白或手动文本合成为 mp3，展示输出目录、最终音频、SSML、分段数量和耗时。
 - `操作日志`：以 IDEA 控制台风格展示后台日志，默认查看本次或最近一次生成任务日志。
-- `配置`：管理素材生成默认参数、AI 模型、API Key、Base URL、飞书 Webhook、微软语音、外部工具路径、基础开关和更新检查入口。
+- `配置`：管理素材生成默认参数、AI 模型、API Key、Base URL、每个 AI 独立代理、飞书 Webhook、微软语音、外部工具路径、基础开关和更新检查入口。
 - `关于`：展示应用版本和基础信息。
 
 `materialsWorkbench` 状态保存在 Zustand 全局 store 中，包含请求参数、扫描结果、生成结果、导出目录、错误提示、复制状态、当前结果标签页、当前 `trace_id` 和忙碌状态。切换菜单后不丢失素材页状态。
@@ -63,7 +63,9 @@
 
 `audioWorkbench` 状态保存在 Zustand 全局 store 中，包含旁白文本、输出目录、文件名、当前 `trace_id`、忙碌状态、错误提示和生成结果摘要。切换菜单后不丢失音频页状态。
 
-右上角显示当前模型名，格式为 `【模型名】`。AI 测试连接前会先保存当前输入，测试成功后再次写入后端 `settings.json`，确保 API Key 被保存。
+右上角显示当前选中 AI 的模型名，格式为 `【模型名】`。AI 测试连接前会先保存当前输入，测试成功后再次写入 SQLite 中的 `app_settings.settings`，确保 API Key 和代理配置被保存。
+
+AI 模型配置保存在 `settings.activeAiProvider`、`settings.aiProfile` 和 `settings.geminiProfile`。配置页使用 GPT/Gemini 分段控件切换当前 AI；GPT 默认 provider 为 `openai_compatible`，默认不启用代理；Gemini 默认 provider 为 `gemini`，Base URL 为 `https://generativelanguage.googleapis.com/v1beta`，模型为 `gemini-flash-latest`，默认启用代理 `http://127.0.0.1:1080`。每个 AI profile 都独立保存 `name`、`baseURL`、`model`、`apiKey`、`proxyEnabled` 和 `proxyUrl`，后端只按当前选中 AI 的 profile 决定是否走代理，避免 Gemini 的 VPN 要求影响 GPT。
 
 ## 后端命令
 
@@ -108,7 +110,7 @@ Tauri 后端命令集中在 `src-tauri/src/commands.rs`：
 
 后端在 `generate_book_materials` 中通过 Tauri 事件 `material-task-progress` 推送素材任务进度，事件字段包括 `traceId`、`path`、`status`、`progress`、`step`、`totalSteps` 和 `message`。前端按当前 `traceId` 和文件路径匹配任务行，实时刷新任务列表并同步 SQLite 状态；最终生成结果返回后再写入“已完成 / 100% / 成稿字数”。
 
-AI 请求层统一使用最多 3 次退避重试。HTTP 403、429 和 5xx 视为网关或服务端临时失败，分别等待 20 秒、40 秒后重试。兼容性验证发现当前网关会拒绝 `max_tokens` 和 `max_completion_tokens`，因此不得在本项目请求体中携带这两个字段。长旁白目标通过“AI 初稿 + 多轮小段追加 + 本地源书解读补足”实现：AI 初稿不可用时，后端会直接基于源书代表章节生成本地素材初稿；AI 初稿可用但连续追加被网关拦截或仍不足时，后端会从源书代表章节抽取片段，生成原创解读型补充旁白，并裁剪到 `targetMinChars-targetMaxChars` 范围内。
+AI 请求层统一使用最多 3 次退避重试。HTTP 403、429 和 5xx 视为网关或服务端临时失败，分别等待 20 秒、40 秒后重试。GPT/OpenAI-compatible 分支请求 `{baseURL}/chat/completions`，使用 Bearer Auth 并支持 SSE/JSON 解析；Gemini 分支请求 `{baseURL}/models/{model}:generateContent`，使用 `X-goog-api-key` header，正文采用 Google `contents[].parts[].text` 结构，并解析 `candidates[].content.parts[].text`。兼容性验证发现当前 GPT 网关会拒绝 `max_tokens` 和 `max_completion_tokens`，因此不得在本项目 GPT 请求体中携带这两个字段。长旁白目标通过“AI 初稿 + 多轮小段追加 + 本地源书解读补足”实现：AI 初稿不可用时，后端会直接基于源书代表章节生成本地素材初稿；AI 初稿可用但连续追加被网关拦截或仍不足时，后端会从源书代表章节抽取片段，生成原创解读型补充旁白，并裁剪到 `targetMinChars-targetMaxChars` 范围内。
 
 ## 数据存储
 
@@ -1527,3 +1529,13 @@ Changes in this pass:
 - AI text generation, Feishu message sending, material scanning, and Microsoft TTS voice-region labels no longer use garbled strings.
 - Mojibake detection samples in Rust are represented with Unicode escapes or descriptive wording, so the detection rules do not themselves pollute scans.
 - Historical docs and daily reports avoid embedding literal garbled samples and instead describe them as replacement-character, mojibake, or continuous-question-mark markers.
+
+## 2026-07-04 0.1.129 GPT/Gemini 双 AI 配置
+
+This version adds provider-specific AI configuration in the Settings page.
+
+- The AI panel now has GPT and Gemini tabs. Existing OpenAI-compatible settings are treated as GPT; Gemini has its own name, Base URL, model, API Key, proxy switch, and proxy URL.
+- `AppSettings` adds `activeAiProvider` and `geminiProfile`. Both GPT and Gemini profiles include `proxyEnabled` and `proxyUrl`; the full settings JSON is persisted in SQLite `app_settings.settings`.
+- GPT defaults to no proxy. Gemini defaults to `proxyEnabled=true` and `proxyUrl=http://127.0.0.1:1080`, matching the local VPN requirement.
+- The backend dispatches by `activeAiProvider`: GPT uses Chat Completions with Bearer Auth; Gemini uses Google Generative Language `generateContent` with the `X-goog-api-key` header and `contents[].parts[].text` request body.
+- The top model pill, AI connection test, AI text generation test, and browser preview all read the currently selected provider profile.

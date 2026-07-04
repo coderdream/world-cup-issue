@@ -6,7 +6,9 @@ export interface AppSettings {
   notificationsEnabled: boolean;
   apiBaseUrl: string;
   apiKey: string;
+  activeAiProvider: AiProvider;
   aiProfile: AiProfile;
+  geminiProfile: GeminiProfile;
   feishuProfile: FeishuProfile;
   materialProfile: MaterialProfile;
   speechProfile: SpeechProfile;
@@ -50,10 +52,24 @@ export interface AiProfile {
   baseURL: string;
   model: string;
   apiKey: string;
+  proxyEnabled: boolean;
+  proxyUrl: string;
+}
+
+export type AiProvider = "gpt" | "gemini";
+
+export interface GeminiProfile {
+  provider: "gemini";
+  name: string;
+  baseURL: string;
+  model: string;
+  apiKey: string;
+  proxyEnabled: boolean;
+  proxyUrl: string;
 }
 
 export interface AiProfileShare {
-  data: AiProfile;
+  data: AiProfile | GeminiProfile;
   kind: "ai.profile";
   v: 1;
 }

@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Panel, SectionTitle, Switch } from "@/pages/primitives";
 import { frameworkApi } from "@/services/frameworkApi";
 import { useAppStore } from "@/store/useAppStore";
-import type { AiGenerateResult, AiProfileShare, AiTestResult, FeishuSendResult, SpeechTestResult, SpeechVoice, ToolTestResult, UpdateInfo } from "@/types";
+import type { AiGenerateResult, AiProfileShare, AiProvider, AiTestResult, FeishuSendResult, SpeechTestResult, SpeechVoice, ToolTestResult, UpdateInfo } from "@/types";
 
 const defaultPrompt = "请用三句话说明“半小时听完一本书”频道适合做什么内容。";
 const defaultSpeechPreviewText = "夜深了，我们用半小时，慢慢听完一本书。愿故事里的光，也照进你今晚的梦里。";
@@ -42,15 +42,17 @@ export function SettingsPage() {
   const [speechPreviewText, setSpeechPreviewText] = useState(defaultSpeechPreviewText);
   const [newMaterialCategory, setNewMaterialCategory] = useState("");
   const [busyAction, setBusyAction] = useState<"test" | "generate" | "copy" | "feishu" | "speech" | "speechPreview" | "speechSave" | "ffmpeg" | null>(null);
+  const activeAiProvider = settings.activeAiProvider === "gemini" ? "gemini" : "gpt";
+  const activeAiProfile = activeAiProvider === "gemini" ? settings.geminiProfile : settings.aiProfile;
 
   const shareText = useMemo(() => {
     const payload: AiProfileShare = {
-      data: settings.aiProfile,
+      data: activeAiProfile,
       kind: "ai.profile",
       v: 1
     };
     return JSON.stringify(payload, null, 2);
-  }, [settings.aiProfile]);
+  }, [activeAiProfile]);
 
   useEffect(() => {
     let cancelled = false;
@@ -193,24 +195,48 @@ export function SettingsPage() {
 
       <Panel>
         <SectionTitle icon={<Bot size={16} />} title="AI 模型配置" inline />
+        <div className="segmented-control" role="tablist" aria-label="AI 模型提供商">
+          <button className={activeAiProvider === "gpt" ? "active" : undefined} type="button" onClick={() => void changeAiProvider("gpt")}>
+            GPT
+          </button>
+          <button className={activeAiProvider === "gemini" ? "active" : undefined} type="button" onClick={() => void changeAiProvider("gemini")}>
+            Gemini
+          </button>
+        </div>
         <div className="field-grid">
           <label className="field">
             <span>配置名称</span>
-            <input value={settings.aiProfile.name} onChange={(event) => void updateAiProfile({ name: event.target.value })} />
+            <input value={activeAiProfile.name} onChange={(event) => void updateActiveAiProfile({ name: event.target.value })} />
           </label>
           <label className="field">
             <span>模型名称</span>
-            <input value={settings.aiProfile.model} onChange={(event) => void updateAiProfile({ model: event.target.value })} />
+            <input value={activeAiProfile.model} onChange={(event) => void updateActiveAiProfile({ model: event.target.value })} />
           </label>
         </div>
         <label className="field">
-          <span>AI Base URL</span>
-          <input value={settings.aiProfile.baseURL} onChange={(event) => void updateAiProfile({ baseURL: event.target.value })} />
+          <span>{activeAiProvider === "gemini" ? "Gemini Base URL" : "AI Base URL"}</span>
+          <input value={activeAiProfile.baseURL} onChange={(event) => void updateActiveAiProfile({ baseURL: event.target.value })} />
         </label>
         <label className="field">
-          <span>AI API Key</span>
-          <input type="password" value={settings.aiProfile.apiKey} onChange={(event) => void updateAiProfile({ apiKey: event.target.value })} />
+          <span>{activeAiProvider === "gemini" ? "Gemini API Key" : "AI API Key"}</span>
+          <input type="password" value={activeAiProfile.apiKey} onChange={(event) => void updateActiveAiProfile({ apiKey: event.target.value })} />
         </label>
+        <label className="field">
+          <span>启用代理</span>
+          <select
+            value={activeAiProfile.proxyEnabled ? "yes" : "no"}
+            onChange={(event) => void updateActiveAiProfile({ proxyEnabled: event.target.value === "yes" })}
+          >
+            <option value="no">否</option>
+            <option value="yes">是</option>
+          </select>
+        </label>
+        {activeAiProfile.proxyEnabled && (
+          <label className="field">
+            <span>代理地址</span>
+            <input value={activeAiProfile.proxyUrl} onChange={(event) => void updateActiveAiProfile({ proxyUrl: event.target.value })} />
+          </label>
+        )}
         <div className="button-row">
           <button className="outline-btn" disabled={busyAction === "test"} type="button" onClick={() => void testAi()}>
             <RefreshCw className={busyAction === "test" ? "spin" : undefined} size={15} /> 测试连接
@@ -518,6 +544,29 @@ export function SettingsPage() {
     });
   }
 
+  function updateGeminiProfile(profile: Partial<typeof settings.geminiProfile>) {
+    void updateSettings({
+      geminiProfile: {
+        ...settings.geminiProfile,
+        ...profile
+      }
+    });
+  }
+
+  function updateActiveAiProfile(profile: Partial<typeof settings.aiProfile> | Partial<typeof settings.geminiProfile>) {
+    if (activeAiProvider === "gemini") {
+      updateGeminiProfile(profile as Partial<typeof settings.geminiProfile>);
+      return;
+    }
+    updateAiProfile(profile as Partial<typeof settings.aiProfile>);
+  }
+
+  function changeAiProvider(provider: AiProvider) {
+    void updateSettings({ activeAiProvider: provider });
+    setAiTest(null);
+    setAiResult(null);
+  }
+
   function updateFeishuProfile(profile: Partial<typeof settings.feishuProfile>) {
     void updateSettings({
       feishuProfile: {
@@ -647,10 +696,10 @@ export function SettingsPage() {
   async function testAi() {
     setBusyAction("test");
     try {
-      await updateSettings({ aiProfile: settings.aiProfile });
+      await updateSettings(activeAiProvider === "gemini" ? { geminiProfile: settings.geminiProfile } : { aiProfile: settings.aiProfile });
       const result = await frameworkApi.testAiProfile();
       if (result.ok) {
-        await updateSettings({ aiProfile: settings.aiProfile });
+        await updateSettings(activeAiProvider === "gemini" ? { geminiProfile: settings.geminiProfile } : { aiProfile: settings.aiProfile });
         setAiTest({
           ...result,
           message: result.message.includes("已保存") ? result.message : `${result.message} API Key 已保存。`

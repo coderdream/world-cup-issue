@@ -12,7 +12,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const settings = useAppStore((state) => state.settings);
   const current = routeMeta[route];
   const time = useBeijingTime();
-  const modelName = settings.aiProfile.model.trim() || "未配置模型";
+  const activeAiProfile = settings.activeAiProvider === "gemini" ? settings.geminiProfile : settings.aiProfile;
+  const modelName = activeAiProfile.model.trim() || "未配置模型";
   const [isMaximized, setIsMaximized] = useState(false);
   const fontStyle = useMemo(
     () =>

@@ -77,6 +77,10 @@ function mergeSettings(current: AppSettings, patch: Partial<AppSettings>): AppSe
       ...current.aiProfile,
       ...(patch.aiProfile ?? {})
     },
+    geminiProfile: {
+      ...current.geminiProfile,
+      ...(patch.geminiProfile ?? {})
+    },
     feishuProfile: {
       ...current.feishuProfile,
       ...(patch.feishuProfile ?? {})

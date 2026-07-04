@@ -6,6 +6,7 @@ use crate::models::{
     EpubChapterSummary, EpubOverview, ExportBookMaterialsRequest, ExportBookMaterialsResult,
     FeishuSendRequest, FeishuSendResult, FeishuWebhookResponse, GenerateAudioRequest,
     GenerateAudioResult, GenerateBookVideoRequest, GenerateBookVideoResult,
+    GeminiContent, GeminiGenerateRequest, GeminiGenerateResponse, GeminiPart,
     GenerateMaterialTaskAudioRequest, GeneratePublishMaterialsRequest,
     GeneratePublishMaterialsResult, GetMaterialTaskStepsRequest, GetMaterialTaskStepsResult,
     GetMaterialTasksRequest, GetOperationLogsRequest, GetOperationLogsResult,
@@ -583,9 +584,10 @@ pub async fn generate_ai_text(
     };
     data.logger
         .info("ai", "generate_text", "AI 文本生成成功。");
+    let model = current_ai_model(&settings);
     Ok(AiGenerateResult {
         content,
-        model: settings.ai_profile.model,
+        model,
     })
 }
 
@@ -3587,6 +3589,16 @@ async fn call_ai(
     settings: &AppSettings,
     messages: Vec<ChatMessage>,
 ) -> Result<String, CommandError> {
+    if settings.active_ai_provider.trim() == "gemini" {
+        return call_gemini_ai(settings, messages).await;
+    }
+    call_openai_compatible_ai(settings, messages).await
+}
+
+async fn call_openai_compatible_ai(
+    settings: &AppSettings,
+    messages: Vec<ChatMessage>,
+) -> Result<String, CommandError> {
     let profile = &settings.ai_profile;
     if profile.api_key.trim().is_empty() {
         return Err(command_error("请先填写 AI API Key。"));
@@ -3605,9 +3617,15 @@ async fn call_ai(
         format!("{base}/chat/completions")
     };
 
-    let client = reqwest::Client::builder()
+    let mut client_builder = reqwest::Client::builder()
         .timeout(Duration::from_secs(AI_REQUEST_TIMEOUT_SECONDS))
-        .connect_timeout(Duration::from_secs(30))
+        .connect_timeout(Duration::from_secs(30));
+    if profile.proxy_enabled && !profile.proxy_url.trim().is_empty() {
+        let proxy = reqwest::Proxy::all(profile.proxy_url.trim())
+            .map_err(|error| command_error(format!("AI 代理配置无效：{error}")))?;
+        client_builder = client_builder.proxy(proxy);
+    }
+    let client = client_builder
         .build()
         .map_err(|error| command_error(format!("Build AI HTTP client failed: {error}")))?;
 
@@ -3688,6 +3706,139 @@ async fn call_ai(
 
     if content.trim().is_empty() {
         Err(command_error("AI returned empty content."))
+    } else {
+        Ok(content)
+    }
+}
+
+async fn call_gemini_ai(
+    settings: &AppSettings,
+    messages: Vec<ChatMessage>,
+) -> Result<String, CommandError> {
+    let profile = &settings.gemini_profile;
+    if profile.api_key.trim().is_empty() {
+        return Err(command_error("请先填写 Gemini API Key。"));
+    }
+    if profile.base_url.trim().is_empty() {
+        return Err(command_error("请先填写 Gemini Base URL。"));
+    }
+    if profile.model.trim().is_empty() {
+        return Err(command_error("请先填写 Gemini 模型名称。"));
+    }
+
+    let base = profile.base_url.trim().trim_end_matches('/');
+    let url = if base.ends_with(":generateContent") {
+        base.to_string()
+    } else {
+        format!("{base}/models/{}:generateContent", profile.model.trim())
+    };
+
+    let mut client_builder = reqwest::Client::builder()
+        .timeout(Duration::from_secs(AI_REQUEST_TIMEOUT_SECONDS))
+        .connect_timeout(Duration::from_secs(30));
+    let proxy_url = profile.proxy_url.trim();
+    if profile.proxy_enabled && !proxy_url.is_empty() {
+        let proxy = reqwest::Proxy::all(proxy_url)
+            .map_err(|error| command_error(format!("Gemini 代理配置无效：{error}")))?;
+        client_builder = client_builder.proxy(proxy);
+    }
+    let client = client_builder
+        .build()
+        .map_err(|error| command_error(format!("Build Gemini HTTP client failed: {error}")))?;
+
+    let prompt = messages_to_gemini_prompt(messages);
+    let request_body = GeminiGenerateRequest {
+        contents: vec![GeminiContent {
+            parts: vec![GeminiPart { text: prompt }],
+        }],
+    };
+    let mut last_error = None;
+    let response = 'attempts: loop {
+        for attempt in 1..=AI_REQUEST_MAX_ATTEMPTS {
+            let result = client
+                .post(&url)
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json")
+                .header(
+                    reqwest::header::USER_AGENT,
+                    "A-Book-in-30-Minutes/0.1 Gemini-Client",
+                )
+                .header("X-goog-api-key", profile.api_key.trim())
+                .json(&request_body)
+                .send()
+                .await;
+
+            match result {
+                Ok(response) if response.status().is_success() => break 'attempts response,
+                Ok(response) => {
+                    let status = response.status();
+                    let detail = response.text().await.unwrap_or_default();
+                    let message = if detail.trim().is_empty() {
+                        format!("Gemini 请求失败，HTTP {status}")
+                    } else {
+                        format!(
+                            "Gemini 请求失败，HTTP {status}：{}",
+                            text_preview(&detail, 500)
+                        )
+                    };
+                    if !should_retry_ai_status(status) || attempt == AI_REQUEST_MAX_ATTEMPTS {
+                        return Err(command_error(message));
+                    }
+                    last_error = Some(message);
+                }
+                Err(error) => {
+                    let message = format!("Gemini 请求发送失败：{error}");
+                    if attempt == AI_REQUEST_MAX_ATTEMPTS {
+                        return Err(command_error(message));
+                    }
+                    last_error = Some(message);
+                }
+            }
+
+            let delay_seconds = 20 * attempt as u64;
+            sleep_before_ai_retry(delay_seconds).await;
+        }
+        return Err(command_error(
+            last_error.unwrap_or_else(|| "Gemini request failed.".to_string()),
+        ));
+    };
+
+    let body = response
+        .text()
+        .await
+        .map_err(|error| command_error(format!("Read Gemini response body failed: {error}")))?;
+    parse_gemini_content(&body)
+}
+
+fn messages_to_gemini_prompt(messages: Vec<ChatMessage>) -> String {
+    messages
+        .into_iter()
+        .map(|message| {
+            let role = match message.role.as_str() {
+                "system" => "System",
+                "assistant" => "Assistant",
+                _ => "User",
+            };
+            format!("{role}: {}", message.content)
+        })
+        .collect::<Vec<_>>()
+        .join("\n\n")
+}
+
+fn parse_gemini_content(body: &str) -> Result<String, CommandError> {
+    let response = serde_json::from_str::<GeminiGenerateResponse>(body)
+        .map_err(|error| command_error(format!("Gemini 响应解析失败：{error}")))?;
+    let content = response
+        .candidates
+        .unwrap_or_default()
+        .into_iter()
+        .filter_map(|candidate| candidate.content)
+        .flat_map(|content| content.parts)
+        .map(|part| part.text)
+        .collect::<Vec<_>>()
+        .join("");
+    if content.trim().is_empty() {
+        Err(command_error("Gemini 返回内容为空。"))
     } else {
         Ok(content)
     }
@@ -5991,17 +6142,27 @@ fn sanitize_trace_id(value: &str) -> String {
 }
 
 fn ai_profile_debug_detail(settings: &AppSettings) -> String {
-    let key_length = settings.ai_profile.api_key.trim().chars().count();
+    let key_length = if settings.active_ai_provider.trim() == "gemini" {
+        settings.gemini_profile.api_key.trim().chars().count()
+    } else {
+        settings.ai_profile.api_key.trim().chars().count()
+    };
     format!(
-        "profile={} provider={} model={} base_url={} api_key_present={} api_key_length={} notifications_enabled={}",
-        settings.ai_profile.name,
-        settings.ai_profile.provider,
-        settings.ai_profile.model,
-        settings.ai_profile.base_url,
+        "active_provider={} model={} api_key_present={} api_key_length={} notifications_enabled={}",
+        settings.active_ai_provider,
+        current_ai_model(settings),
         key_length > 0,
         key_length,
         settings.notifications_enabled
     )
+}
+
+fn current_ai_model(settings: &AppSettings) -> String {
+    if settings.active_ai_provider.trim() == "gemini" {
+        settings.gemini_profile.model.clone()
+    } else {
+        settings.ai_profile.model.clone()
+    }
 }
 
 fn source_file_detail(path: &Path) -> String {
