@@ -60,6 +60,7 @@ interface AppStore {
   updateBookMaterialsRequest: (request: Partial<BookMaterialsRequest>) => void;
   hydrate: () => Promise<void>;
   updateSettings: (settings: Partial<AppSettings>) => Promise<void>;
+  flushSettings: () => Promise<void>;
 }
 
 let settingsSaveQueue = Promise.resolve();
@@ -196,6 +197,9 @@ export const useAppStore = create<AppStore>((set, get) => ({
           set({ settings: saved });
         }
       });
+    await settingsSaveQueue;
+  },
+  flushSettings: async () => {
     await settingsSaveQueue;
   }
 }));

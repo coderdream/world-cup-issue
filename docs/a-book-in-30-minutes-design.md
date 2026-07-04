@@ -1560,3 +1560,9 @@ The Pipeline task checkbox selection is now part of the shared materials workben
 Step Tracking now expands the full 17-step A-F template for every checked task. One checked task renders 17 rows, and N checked tasks render 17*N rows. When nothing is checked, the page keeps the previous single-task fallback based on the selected task, request path, running task, or first available task.
 
 The step table includes a task column so repeated A-01 through F-01 rows remain distinguishable. Step duration display is normalized to `MM分SS.SSS秒`, including running steps calculated from `startedAt` and completed steps using persisted `elapsedMs`.
+
+## 2026-07-04 0.1.133 Pipeline AI Save Barrier
+
+Settings updates are saved through an asynchronous frontend queue. The Pipeline page now waits for that queue with `flushSettings()` before starting Text, Audio, Image, Subtitle, or Video work, then reloads settings from the Tauri backend before invoking AI-dependent commands.
+
+This prevents the Settings page from visually showing Gemini while the backend still has the previous GPT snapshot. The Text stage also builds its request from the refreshed settings, so channel, language, target length, and active AI provider stay aligned with the persisted SQLite configuration.

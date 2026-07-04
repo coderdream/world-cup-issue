@@ -38,6 +38,7 @@ export function HomePage() {
   const workbench = useAppStore((state) => state.materialsWorkbench);
   const updateWorkbench = useAppStore((state) => state.updateMaterialsWorkbench);
   const updateRequest = useAppStore((state) => state.updateBookMaterialsRequest);
+  const flushSettings = useAppStore((state) => state.flushSettings);
   const { request, materials, scanResult, fileStatuses, selectedTaskPath, selectedTaskPaths, outputDir, error, copyState, exportState, activeTab, currentTraceId, busy, scanning, exporting } = workbench;
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; file: MaterialFile } | null>(null);
   const [activePipelineStage, setActivePipelineStage] = useState<"materials" | "image" | "audio" | "subtitle" | "video" | "publish" | null>(null);
@@ -556,6 +557,7 @@ export function HomePage() {
   }
 
   async function refreshSettingsForPipeline() {
+    await flushSettings();
     const latest = await frameworkApi.getSettings();
     useAppStore.setState({ settings: latest });
     return latest;
@@ -645,14 +647,15 @@ export function HomePage() {
 
   async function generateMaterials(path = request.epubPath) {
     const traceId = createTraceId();
+    const latestSettings = await refreshSettingsForPipeline();
     const requestWithTrace = {
       ...request,
       epubPath: path,
-      channelName: settings.materialProfile.channelName,
-      language: settings.materialProfile.language,
-      targetMinChars: settings.materialProfile.targetMinChars,
-      targetMaxChars: settings.materialProfile.targetMaxChars,
-      extraDirection: settings.materialProfile.extraDirection,
+      channelName: latestSettings.materialProfile.channelName,
+      language: latestSettings.materialProfile.language,
+      targetMinChars: latestSettings.materialProfile.targetMinChars,
+      targetMaxChars: latestSettings.materialProfile.targetMaxChars,
+      extraDirection: latestSettings.materialProfile.extraDirection,
       traceId
     };
     updateWorkbench({ busy: true, error: "", copyState: "", exportState: "", currentTraceId: traceId });

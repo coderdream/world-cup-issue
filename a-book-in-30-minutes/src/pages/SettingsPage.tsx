@@ -568,8 +568,8 @@ export function SettingsPage() {
     updateAiProfile(profile as Partial<typeof settings.aiProfile>);
   }
 
-  function changeAiProvider(provider: AiProvider) {
-    void updateSettings({ activeAiProvider: provider });
+  async function changeAiProvider(provider: AiProvider) {
+    await updateSettings({ activeAiProvider: provider });
     setAiTest(null);
     setAiResult(null);
   }
