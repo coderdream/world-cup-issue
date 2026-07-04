@@ -1602,3 +1602,7 @@ Subtitle line validation now requires each line to be one sentence or half sente
 ## 2026-07-04 0.1.139 CLI Length Repair Parity
 
 The CLI `--e2e-materials` path now uses the same AI length-repair behavior as the UI generation path. If narration is shorter than the configured range, it asks AI for a non-repetitive extension; if narration is longer than the configured range, it asks AI to rewrite the full material JSON into the configured target. This keeps end-to-end validation from failing immediately on overlong AI drafts while still avoiding local repetitive padding.
+
+## 2026-07-04 0.1.140 Near-Complete Subtitle Coverage
+
+Subtitle coverage validation is tightened from 95% to 99.5% of narration Chinese characters. This prevents a final narration paragraph from being omitted while still passing validation.

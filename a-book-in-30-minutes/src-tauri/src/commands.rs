@@ -6796,7 +6796,7 @@ fn subtitle_coverage_ok(lines: &[String], narration: &str) -> bool {
         return false;
     }
     let subtitle_han = count_han_chars(&lines.join(""));
-    subtitle_han.saturating_mul(100) >= narration_han.saturating_mul(95)
+    subtitle_han.saturating_mul(1000) >= narration_han.saturating_mul(995)
 }
 
 fn extract_json_array(content: &str) -> Option<String> {
