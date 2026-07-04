@@ -1592,3 +1592,9 @@ Local subtitle normalization no longer hard-splits overlong AI subtitle lines. I
 The material-generation target remains configurable in Settings and persisted in SQLite through `materialProfile.targetMinChars` and `materialProfile.targetMaxChars`. The default target is now `7500~7800` Chinese characters, matching the desired 30-35 minute listening length. The Settings page labels these fields as the 30-35 minute text target, and the Pipeline page continues to read the latest persisted settings before Text generation.
 
 Subtitle acceptance is stricter: AI-provided subtitle arrays must cover at least 95% of the narration's Chinese-character count. Incomplete subtitle arrays are rejected and rebuilt from the full narration, preventing `narration.txt` from meeting the target while `subtitles.txt` is thousands of characters short. The final total-character trim was also relaxed so punctuation and short subtitle rhythm do not force the 7500-7800 target back below the configured range.
+
+## 2026-07-04 0.1.138 No Repetitive Padding and Single-Clause Subtitles
+
+The text generator no longer pads short narration with local template paragraphs. If AI generation is below the configured target, the app asks the active AI provider for additional narration and rejects empty or repetitive extensions; if the result still misses the target, generation fails instead of producing repeated filler. This prevents the end of `narration.txt` and `subtitles.txt` from being filled with repeated generic lines.
+
+Subtitle line validation now requires each line to be one sentence or half sentence: no more than 20 Chinese characters, ending with punctuation, and without sentence-ending punctuation such as `。？！；` in the middle of the line. Invalid AI subtitle arrays are rebuilt from the full narration, and rebuilt arrays are rejected if they still contain overlong or multi-sentence lines.

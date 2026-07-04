@@ -281,10 +281,33 @@ pub async fn run_e2e_materials_cli(epub_path: &str) -> Result<(), CommandError> 
     };
     let min_chars = request.target_min_chars.max(1000);
     let max_chars = request.target_max_chars.max(min_chars + 1);
-    let before_chars = count_han_chars(&payload.narration);
-    if before_chars < min_chars {
-        let fallback = build_local_narration_extension(&payload, before_chars, min_chars, max_chars);
-        payload.narration = merge_narration_extension(&payload.narration, &fallback);
+    for _ in 0..=3 {
+        let before_chars = count_han_chars(&payload.narration);
+        if before_chars >= min_chars {
+            break;
+        }
+        let repair_prompt = build_narration_extension_prompt(&payload, before_chars, min_chars, max_chars);
+        let Ok(extension_response) = call_ai(
+            &settings,
+            vec![
+                ChatMessage {
+                    role: "system".to_string(),
+                    content: "You are a Chinese audiobook writer. Return only the additional narration text.".to_string(),
+                },
+                ChatMessage {
+                    role: "user".to_string(),
+                    content: repair_prompt,
+                },
+            ],
+        )
+        .await else {
+            break;
+        };
+        let extension = clean_narration_extension(&extension_response);
+        if extension.trim().is_empty() || narration_extension_is_repetitive(&payload.narration, &extension) {
+            break;
+        }
+        payload.narration = merge_narration_extension(&payload.narration, &extension);
     }
     let final_chars = count_han_chars(&payload.narration);
     if final_chars < min_chars || final_chars > max_chars {
@@ -1218,25 +1241,16 @@ pub async fn generate_book_materials(
     }
     let before_fallback_chars = count_han_chars(&payload.narration);
     if before_fallback_chars < min_chars {
-        let fallback =
-            build_local_narration_extension(&payload, before_fallback_chars, min_chars, max_chars);
-        if !fallback.trim().is_empty() {
-            payload.narration = merge_narration_extension(&payload.narration, &fallback);
-            data.logger.warn(
-                "materials",
-                "ai.repair.local_fallback",
-                "Using local narration repair fallback.",
-                format!(
-                    "before_han_chars={} fallback_han_chars={} after_han_chars={} target={}..{}",
-                    before_fallback_chars,
-                    count_han_chars(&fallback),
-                    count_han_chars(&payload.narration),
-                    min_chars,
-                    max_chars
-                ),
-                &trace_id,
-            );
-        }
+        data.logger.warn(
+            "materials",
+            "ai.repair.local_fallback_disabled",
+            "Local narration padding is disabled to avoid repetitive filler.",
+            format!(
+                "before_han_chars={} target={}..{}",
+                before_fallback_chars, min_chars, max_chars
+            ),
+            &trace_id,
+        );
     }
     let max_total_chars = max_chars.saturating_add(1800).min(10000);
     if payload.narration.chars().count() > max_total_chars {
@@ -6488,6 +6502,30 @@ fn clean_narration_extension(value: &str) -> String {
     trimmed.trim_matches('`').trim().to_string()
 }
 
+fn narration_extension_is_repetitive(base: &str, extension: &str) -> bool {
+    let extension_lines = extension
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .collect::<Vec<_>>();
+    if extension_lines.is_empty() {
+        return true;
+    }
+    let unique_count = extension_lines
+        .iter()
+        .collect::<std::collections::HashSet<_>>()
+        .len();
+    if extension_lines.len() >= 4 && unique_count * 2 <= extension_lines.len() {
+        return true;
+    }
+    let base_tail = tail_chars(base, 1400);
+    extension_lines
+        .iter()
+        .filter(|line| count_han_chars(line) >= 20 && base_tail.contains(**line))
+        .count()
+        >= 2
+}
+
 fn merge_narration_extension(base: &str, extension: &str) -> String {
     let base = base.trim();
     let extension = extension.trim();
@@ -6498,31 +6536,6 @@ fn merge_narration_extension(base: &str, extension: &str) -> String {
     } else {
         format!("{base}\n\n{extension}")
     }
-}
-
-fn build_local_narration_extension(
-    payload: &AiBookMaterialsPayload,
-    _current_chars: usize,
-    min_chars: usize,
-    max_chars: usize,
-) -> String {
-    let mut output = String::new();
-    let seed = if payload.description.trim().is_empty() {
-        payload.video_title.trim()
-    } else {
-        payload.description.trim()
-    };
-    while count_han_chars(&output) + count_han_chars(&payload.narration) < min_chars {
-        if !output.is_empty() {
-            output.push_str("\n\n");
-        }
-        output.push_str(seed);
-        output.push_str(" 这一段可以作为旁白的延展：从人物处境进入主题，再回到读者自身的经验，让内容更完整，也更适合三十分钟听书视频的节奏。");
-        if count_han_chars(&output) + count_han_chars(&payload.narration) > max_chars {
-            break;
-        }
-    }
-    output
 }
 
 fn fallback_excerpt(text: &str, seed: usize) -> String {
@@ -6576,7 +6589,7 @@ fn parse_book_materials_payload(content: &str) -> Result<AiBookMaterialsPayload,
     let json = extract_json_object(content)
         .ok_or_else(|| command_error("AI response did not contain valid JSON."))?;
     let payload = serde_json::from_str::<AiBookMaterialsPayload>(&json)
-        .map_err(|error| command_error(format!("AI JSON 鐟欙絾鐎芥径杈Е閿涙{error}")))?;
+        .map_err(|error| command_error(format!("AI JSON 解析失败：{error}")))?;
     if payload.video_title.trim().is_empty() {
         return Err(command_error(
             "AI operation failed.",
@@ -6592,10 +6605,6 @@ fn extract_json_object(content: &str) -> Option<String> {
     let trimmed = content.trim();
     if trimmed.starts_with('{') && trimmed.ends_with('}') {
         return Some(trimmed.to_string());
-    }
-    let fence_re = Regex::new(r#"Operation completed."#).ok()?;
-    if let Some(captures) = fence_re.captures(trimmed) {
-        return captures.get(1).map(|value| value.as_str().to_string());
     }
     let start = trimmed.find('{')?;
     let end = trimmed.rfind('}')?;
@@ -6698,14 +6707,7 @@ fn subtitles_need_ai_rewrite(lines: &[String], narration: &str) -> bool {
     if !subtitle_coverage_ok(lines, narration) {
         return true;
     }
-    lines.iter().any(|line| {
-        count_han_chars(line) > 20
-            || !line
-                .trim()
-                .chars()
-                .last()
-                .is_some_and(is_subtitle_terminal_punctuation)
-    })
+    lines.iter().any(|line| !subtitle_line_format_ok(line))
 }
 
 async fn rewrite_subtitles_with_ai(
@@ -6717,9 +6719,11 @@ async fn rewrite_subtitles_with_ai(
         "请把下面的中文旁白重新切分为字幕行。要求：\n\
 1. 只返回 JSON 字符串数组，不要 markdown，不要时间戳。\n\
 2. 必须覆盖完整旁白，不能省略、改写、乱序。\n\
-3. 每一行尽量不超过 20 个中文字符；如果原句太长，请按语义润色成两句或多句，分别放到多行。\n\
-4. 每一行都必须以中文标点或常规标点结尾。\n\
-5. 不要机械硬切词语，不要拆开人名、书名、固定词组，例如不要把“白血病”拆开。\n\n\
+3. 每一行必须是一句或半句，不能把多句放到同一行。\n\
+4. 每一行不得超过 20 个中文字符；如果原句太长，请按语义润色成两句或多句，分别放到多行。\n\
+5. 句号、问号、感叹号、分号只能出现在行尾，不能出现在一行中间。\n\
+6. 每一行都必须以中文标点或常规标点结尾。\n\
+7. 不要机械硬切词语，不要拆开人名、书名、固定词组，例如不要把“白血病”拆开。\n\n\
 当前字幕仅供参考：\n{}\n\n\
 完整旁白：\n{}",
         current_lines.join("\n"),
@@ -6752,10 +6756,28 @@ async fn rewrite_subtitles_with_ai(
     if lines.len() < 8 || !subtitle_coverage_ok(&lines, narration) {
         return None;
     }
-    if lines.iter().any(|line| count_han_chars(line) > 20) {
+    if lines.iter().any(|line| !subtitle_line_format_ok(line)) {
         return None;
     }
     Some(lines)
+}
+
+fn subtitle_line_format_ok(line: &str) -> bool {
+    let trimmed = line.trim();
+    if trimmed.is_empty() || count_han_chars(trimmed) > 20 {
+        return false;
+    }
+    let chars = trimmed.chars().collect::<Vec<_>>();
+    let Some(last) = chars.last().copied() else {
+        return false;
+    };
+    if !is_subtitle_terminal_punctuation(last) {
+        return false;
+    }
+    chars
+        .iter()
+        .take(chars.len().saturating_sub(1))
+        .all(|ch| !is_sentence_terminal_punctuation(*ch))
 }
 
 fn subtitle_coverage_ok(lines: &[String], narration: &str) -> bool {
@@ -6828,6 +6850,13 @@ fn is_subtitle_terminal_punctuation(ch: char) -> bool {
             | '?'
             | ';'
             | ':'
+    )
+}
+
+fn is_sentence_terminal_punctuation(ch: char) -> bool {
+    matches!(
+        ch,
+        '\u{3002}' | '\u{FF01}' | '\u{FF1F}' | '\u{FF1B}' | '.' | '!' | '?' | ';'
     )
 }
 
