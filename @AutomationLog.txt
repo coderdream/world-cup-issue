@@ -1,1 +1,1 @@
-2026-06-20 20:11:45.265 <stdin>[3] <module> -> Find Control Timeout(10s): {Name: '?????', ControlType: WindowControl}
+2026-06-20 20:11:45.265 <stdin>[3] <module> -> Find Control Timeout(10s): {Name: '[窗口标题不可读]', ControlType: WindowControl}

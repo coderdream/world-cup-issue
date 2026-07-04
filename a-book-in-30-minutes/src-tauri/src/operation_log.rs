@@ -216,7 +216,10 @@ fn clean_log_text(value: &str, module: &str, action: &str) -> String {
 }
 
 fn looks_like_mojibake(value: &str) -> bool {
-    if value.contains('�') || value.contains("锟") || value.contains("???") {
+    if value.contains('\u{fffd}')
+        || value.contains("\u{951f}\u{fffd}")
+        || value.contains("\u{003f}\u{003f}\u{003f}")
+    {
         return true;
     }
     let suspicious = value
@@ -224,8 +227,9 @@ fn looks_like_mojibake(value: &str) -> bool {
         .filter(|ch| {
             matches!(
                 *ch,
-                '闁' | '闂' | '閻' | '閺' | '閿' | '婵' | '濞' | '缂' | '鐎'
-                    | '鐠' | '鈧' | '鏉' | '绋' | '€'
+                '\u{95c1}' | '\u{95c2}' | '\u{95bb}' | '\u{95ba}' | '\u{95bf}'
+                    | '\u{5a75}' | '\u{6fde}' | '\u{7f02}' | '\u{940e}'
+                    | '\u{9420}' | '\u{9207}' | '\u{93c9}' | '\u{7d8b}' | '\u{20ac}'
             ) || ('\u{e000}'..='\u{f8ff}').contains(ch)
         })
         .count();

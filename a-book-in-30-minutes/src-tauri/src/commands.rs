@@ -39,52 +39,52 @@ const SPEECH_CHUNK_MAX_CHARS: usize = 900;
 const SPEECH_CHUNK_MAX_SENTENCES: usize = 100;
 const SPEECH_CHUNK_MAX_ESTIMATED_MS: u64 = 8 * 60 * 1000;
 const MICROSOFT_TTS_LANGUAGE_SUPPORT_URL: &str =
-    "https://learn.microsoft.com/zh-cn/azure/ai-services/speech-service/language-support?tabs=tts";
+    "Operation completed.";
 const DEFAULT_MATERIAL_CATEGORY: &str = "半小时听完一本书";
 const MATERIAL_TASK_SELECT_COLUMNS: &str = "path, name, extension, size, category, status, progress, narration_chars, material_output_dir, message, audio_status, audio_progress, audio_output_dir, audio_file, audio_duration_ms, audio_chunks, audio_message, image_status, image_progress, image_output_dir, image_message, subtitle_status, subtitle_progress, subtitle_file, subtitle_message, video_status, video_progress, video_file, video_duration_ms, video_file_size, video_message";
 const MATERIAL_PROGRESS_STEPS: usize = 4;
 
 const SPEECH_VOICE_SEEDS: &[(&str, &str, &str, &str, &str, &str, &str)] = &[
-    ("zh-CN", "娑擃厽鏋冮敍鍫熸珮闁俺鐦介敍宀€鐣濇担鎿勭礆", "Neural", "zh-CN-XiaoxiaoNeural", "Female", "assistant, chat, customerservice, newscast, affectionate, angry, calm, cheerful, disgruntled, fearful, gentle, lyrical, sad, serious", "Girl, YoungAdult"),
-    ("zh-CN", "娑擃厽鏋冮敍鍫熸珮闁俺鐦介敍宀€鐣濇担鎿勭礆", "Neural", "zh-CN-YunxiNeural", "Male", "assistant, chat, narration-relaxed, angry, cheerful, depressed, disgruntled, embarrassed, fearful, sad, serious", "YoungAdult"),
-    ("zh-CN", "娑擃厽鏋冮敍鍫熸珮闁俺鐦介敍宀€鐣濇担鎿勭礆", "Neural", "zh-CN-YunjianNeural", "Male", "narration-relaxed, sports-commentary, sports-commentary-excited", "YoungAdult"),
-    ("zh-CN", "娑擃厽鏋冮敍鍫熸珮闁俺鐦介敍宀€鐣濇担鎿勭礆", "Neural", "zh-CN-XiaoyiNeural", "Female", "affectionate, angry, cheerful, disgruntled, embarrassed, fearful, gentle, sad, serious", "YoungAdult"),
-    ("zh-CN", "娑擃厽鏋冮敍鍫熸珮闁俺鐦介敍宀€鐣濇担鎿勭礆", "Neural", "zh-CN-YunyangNeural", "Male", "customerservice, narration-professional, newscast-casual", "YoungAdult"),
-    ("zh-CN", "娑擃厽鏋冮敍鍫熸珮闁俺鐦介敍宀€鐣濇担鎿勭礆", "Neural", "zh-CN-XiaochenNeural", "Female", "general", "YoungAdult"),
-    ("zh-CN", "娑擃厽鏋冮敍鍫熸珮闁俺鐦介敍宀€鐣濇担鎿勭礆", "MultilingualNeural", "zh-CN-XiaochenMultilingualNeural", "Female", "multilingual", "YoungAdult"),
-    ("zh-CN", "娑擃厽鏋冮敍鍫熸珮闁俺鐦介敍宀€鐣濇担鎿勭礆", "Neural", "zh-CN-XiaohanNeural", "Female", "calm, fearful, cheerful, disgruntled, serious, angry, sad, gentle, affectionate, embarrassed", "YoungAdult"),
-    ("zh-CN", "娑擃厽鏋冮敍鍫熸珮闁俺鐦介敍宀€鐣濇担鎿勭礆", "Neural", "zh-CN-XiaomengNeural", "Female", "general", "YoungAdult"),
-    ("zh-CN", "娑擃厽鏋冮敍鍫熸珮闁俺鐦介敍宀€鐣濇担鎿勭礆", "Neural", "zh-CN-XiaomoNeural", "Female", "affectionate, angry, calm, cheerful, depressed, disgruntled, embarrassed, envious, fearful, gentle, sad, serious", "YoungAdult"),
-    ("zh-CN", "娑擃厽鏋冮敍鍫熸珮闁俺鐦介敍宀€鐣濇担鎿勭礆", "Neural", "zh-CN-XiaoqiuNeural", "Female", "general", "YoungAdult"),
-    ("zh-CN", "娑擃厽鏋冮敍鍫熸珮闁俺鐦介敍宀€鐣濇担鎿勭礆", "Neural", "zh-CN-XiaorouNeural", "Female", "general", "YoungAdult"),
-    ("zh-CN", "娑擃厽鏋冮敍鍫熸珮闁俺鐦介敍宀€鐣濇担鎿勭礆", "Neural", "zh-CN-XiaoruiNeural", "Female", "angry, calm, fearful, sad", "Senior"),
-    ("zh-CN", "娑擃厽鏋冮敍鍫熸珮闁俺鐦介敍宀€鐣濇担鎿勭礆", "Neural", "zh-CN-XiaoshuangNeural", "Female", "chat", "Child"),
-    ("zh-CN", "娑擃厽鏋冮敍鍫熸珮闁俺鐦介敍宀€鐣濇担鎿勭礆", "Neural", "zh-CN-XiaoxiaoDialectsNeural", "Female", "dialect", "YoungAdult"),
-    ("zh-CN", "娑擃厽鏋冮敍鍫熸珮闁俺鐦介敍宀€鐣濇担鎿勭礆", "MultilingualNeural", "zh-CN-XiaoxiaoMultilingualNeural", "Female", "multilingual", "YoungAdult"),
-    ("zh-CN", "娑擃厽鏋冮敍鍫熸珮闁俺鐦介敍宀€鐣濇担鎿勭礆", "Neural", "zh-CN-XiaoyanNeural", "Female", "general", "YoungAdult"),
-    ("zh-CN", "娑擃厽鏋冮敍鍫熸珮闁俺鐦介敍宀€鐣濇担鎿勭礆", "Neural", "zh-CN-XiaoyouNeural", "Female", "general", "Child"),
-    ("zh-CN", "娑擃厽鏋冮敍鍫熸珮闁俺鐦介敍宀€鐣濇担鎿勭礆", "MultilingualNeural", "zh-CN-XiaoyuMultilingualNeural", "Female", "multilingual", "YoungAdult"),
-    ("zh-CN", "娑擃厽鏋冮敍鍫熸珮闁俺鐦介敍宀€鐣濇担鎿勭礆", "Neural", "zh-CN-XiaozhenNeural", "Female", "angry, cheerful, disgruntled, fearful, sad, serious", "YoungAdult"),
-    ("zh-CN", "娑擃厽鏋冮敍鍫熸珮闁俺鐦介敍宀€鐣濇担鎿勭礆", "Neural", "zh-CN-YunfengNeural", "Male", "angry, cheerful, depressed, disgruntled, fearful, sad, serious", "YoungAdult"),
-    ("zh-CN", "娑擃厽鏋冮敍鍫熸珮闁俺鐦介敍宀€鐣濇担鎿勭礆", "Neural", "zh-CN-YunhaoNeural", "Male", "advertisement-upbeat", "YoungAdult"),
-    ("zh-CN", "娑擃厽鏋冮敍鍫熸珮闁俺鐦介敍宀€鐣濇担鎿勭礆", "Neural", "zh-CN-YunjieNeural", "Male", "angry, cheerful, depressed, disgruntled, documentary-narration, fearful, sad, serious", "YoungAdult"),
-    ("zh-CN", "娑擃厽鏋冮敍鍫熸珮闁俺鐦介敍宀€鐣濇担鎿勭礆", "Neural", "zh-CN-YunxiaNeural", "Male", "angry, calm, cheerful, fearful, sad", "Child"),
-    ("zh-CN", "娑擃厽鏋冮敍鍫熸珮闁俺鐦介敍宀€鐣濇担鎿勭礆", "Neural", "zh-CN-YunyeNeural", "Male", "general", "YoungAdult"),
-    ("zh-CN", "娑擃厽鏋冮敍鍫熸珮闁俺鐦介敍宀€鐣濇担鎿勭礆", "MultilingualNeural", "zh-CN-YunyiMultilingualNeural", "Male", "multilingual", "YoungAdult"),
-    ("zh-CN", "娑擃厽鏋冮敍鍫熸珮闁俺鐦介敍宀€鐣濇担鎿勭礆", "Neural", "zh-CN-YunzeNeural", "Male", "calm, cheerful, depressed, disgruntled, documentary-narration, fearful, sad, serious", "OlderAdult"),
-    ("zh-CN", "娑擃厽鏋冮敍鍫熸珮闁俺鐦介敍宀€鐣濇担鎿勭礆", "MultilingualNeural", "zh-CN-YunfanMultilingualNeural", "Male", "multilingual", "YoungAdult"),
-    ("zh-CN", "娑擃厽鏋冮敍鍫熸珮闁俺鐦介敍宀€鐣濇担鎿勭礆", "MultilingualNeural", "zh-CN-YunxiaoMultilingualNeural", "Male", "multilingual", "YoungAdult"),
-    ("en-US", "閼昏精顕㈤敍鍫㈢法閸ユ枻绱?", "Neural", "en-US-JennyNeural", "Female", "assistant, chat, customerservice, newscast", "YoungAdult"),
-    ("en-US", "閼昏精顕㈤敍鍫㈢法閸ユ枻绱?", "Neural", "en-US-GuyNeural", "Male", "newscast", "YoungAdult"),
-    ("en-US", "閼昏精顕㈤敍鍫㈢法閸ユ枻绱?", "Neural", "en-US-AriaNeural", "Female", "chat, customerservice, newscast", "YoungAdult"),
-    ("en-US", "閼昏精顕㈤敍鍫㈢法閸ユ枻绱?", "Neural", "en-US-DavisNeural", "Male", "chat", "YoungAdult"),
-    ("en-US", "閼昏精顕㈤敍鍫㈢法閸ユ枻绱?", "Neural", "en-US-JaneNeural", "Female", "general", "YoungAdult"),
-    ("en-US", "閼昏精顕㈤敍鍫㈢法閸ユ枻绱?", "Neural", "en-US-JasonNeural", "Male", "general", "YoungAdult"),
-    ("en-US", "閼昏精顕㈤敍鍫㈢法閸ユ枻绱?", "Neural", "en-US-NancyNeural", "Female", "general", "YoungAdult"),
-    ("en-US", "閼昏精顕㈤敍鍫㈢法閸ユ枻绱?", "Neural", "en-US-TonyNeural", "Male", "general", "YoungAdult"),
-    ("en-GB", "閼昏精顕㈤敍鍫ｅ閸ユ枻绱?", "Neural", "en-GB-SoniaNeural", "Female", "general", "YoungAdult"),
-    ("en-GB", "閼昏精顕㈤敍鍫ｅ閸ユ枻绱?", "Neural", "en-GB-RyanNeural", "Male", "general", "YoungAdult"),
-    ("en-GB", "閼昏精顕㈤敍鍫ｅ閸ユ枻绱?", "Neural", "en-GB-LibbyNeural", "Female", "general", "YoungAdult"),
+    ("zh-CN", "中文（普通话，简体）", "Neural", "zh-CN-XiaoxiaoNeural", "Female", "assistant, chat, customerservice, newscast, affectionate, angry, calm, cheerful, disgruntled, fearful, gentle, lyrical, sad, serious", "Girl, YoungAdult"),
+    ("zh-CN", "中文（普通话，简体）", "Neural", "zh-CN-YunxiNeural", "Male", "assistant, chat, narration-relaxed, angry, cheerful, depressed, disgruntled, embarrassed, fearful, sad, serious", "YoungAdult"),
+    ("zh-CN", "中文（普通话，简体）", "Neural", "zh-CN-YunjianNeural", "Male", "narration-relaxed, sports-commentary, sports-commentary-excited", "YoungAdult"),
+    ("zh-CN", "中文（普通话，简体）", "Neural", "zh-CN-XiaoyiNeural", "Female", "affectionate, angry, cheerful, disgruntled, embarrassed, fearful, gentle, sad, serious", "YoungAdult"),
+    ("zh-CN", "中文（普通话，简体）", "Neural", "zh-CN-YunyangNeural", "Male", "customerservice, narration-professional, newscast-casual", "YoungAdult"),
+    ("zh-CN", "中文（普通话，简体）", "Neural", "zh-CN-XiaochenNeural", "Female", "general", "YoungAdult"),
+    ("zh-CN", "中文（普通话，简体）", "MultilingualNeural", "zh-CN-XiaochenMultilingualNeural", "Female", "multilingual", "YoungAdult"),
+    ("zh-CN", "中文（普通话，简体）", "Neural", "zh-CN-XiaohanNeural", "Female", "calm, fearful, cheerful, disgruntled, serious, angry, sad, gentle, affectionate, embarrassed", "YoungAdult"),
+    ("zh-CN", "中文（普通话，简体）", "Neural", "zh-CN-XiaomengNeural", "Female", "general", "YoungAdult"),
+    ("zh-CN", "中文（普通话，简体）", "Neural", "zh-CN-XiaomoNeural", "Female", "affectionate, angry, calm, cheerful, depressed, disgruntled, embarrassed, envious, fearful, gentle, sad, serious", "YoungAdult"),
+    ("zh-CN", "中文（普通话，简体）", "Neural", "zh-CN-XiaoqiuNeural", "Female", "general", "YoungAdult"),
+    ("zh-CN", "中文（普通话，简体）", "Neural", "zh-CN-XiaorouNeural", "Female", "general", "YoungAdult"),
+    ("zh-CN", "中文（普通话，简体）", "Neural", "zh-CN-XiaoruiNeural", "Female", "angry, calm, fearful, sad", "Senior"),
+    ("zh-CN", "中文（普通话，简体）", "Neural", "zh-CN-XiaoshuangNeural", "Female", "chat", "Child"),
+    ("zh-CN", "中文（普通话，简体）", "Neural", "zh-CN-XiaoxiaoDialectsNeural", "Female", "dialect", "YoungAdult"),
+    ("zh-CN", "中文（普通话，简体）", "MultilingualNeural", "zh-CN-XiaoxiaoMultilingualNeural", "Female", "multilingual", "YoungAdult"),
+    ("zh-CN", "中文（普通话，简体）", "Neural", "zh-CN-XiaoyanNeural", "Female", "general", "YoungAdult"),
+    ("zh-CN", "中文（普通话，简体）", "Neural", "zh-CN-XiaoyouNeural", "Female", "general", "Child"),
+    ("zh-CN", "中文（普通话，简体）", "MultilingualNeural", "zh-CN-XiaoyuMultilingualNeural", "Female", "multilingual", "YoungAdult"),
+    ("zh-CN", "中文（普通话，简体）", "Neural", "zh-CN-XiaozhenNeural", "Female", "angry, cheerful, disgruntled, fearful, sad, serious", "YoungAdult"),
+    ("zh-CN", "中文（普通话，简体）", "Neural", "zh-CN-YunfengNeural", "Male", "angry, cheerful, depressed, disgruntled, fearful, sad, serious", "YoungAdult"),
+    ("zh-CN", "中文（普通话，简体）", "Neural", "zh-CN-YunhaoNeural", "Male", "advertisement-upbeat", "YoungAdult"),
+    ("zh-CN", "中文（普通话，简体）", "Neural", "zh-CN-YunjieNeural", "Male", "angry, cheerful, depressed, disgruntled, documentary-narration, fearful, sad, serious", "YoungAdult"),
+    ("zh-CN", "中文（普通话，简体）", "Neural", "zh-CN-YunxiaNeural", "Male", "angry, calm, cheerful, fearful, sad", "Child"),
+    ("zh-CN", "中文（普通话，简体）", "Neural", "zh-CN-YunyeNeural", "Male", "general", "YoungAdult"),
+    ("zh-CN", "中文（普通话，简体）", "MultilingualNeural", "zh-CN-YunyiMultilingualNeural", "Male", "multilingual", "YoungAdult"),
+    ("zh-CN", "中文（普通话，简体）", "Neural", "zh-CN-YunzeNeural", "Male", "calm, cheerful, depressed, disgruntled, documentary-narration, fearful, sad, serious", "OlderAdult"),
+    ("zh-CN", "中文（普通话，简体）", "MultilingualNeural", "zh-CN-YunfanMultilingualNeural", "Male", "multilingual", "YoungAdult"),
+    ("zh-CN", "中文（普通话，简体）", "MultilingualNeural", "zh-CN-YunxiaoMultilingualNeural", "Male", "multilingual", "YoungAdult"),
+    ("en-US", "英语（美国）", "Neural", "en-US-JennyNeural", "Female", "assistant, chat, customerservice, newscast", "YoungAdult"),
+    ("en-US", "英语（美国）", "Neural", "en-US-GuyNeural", "Male", "newscast", "YoungAdult"),
+    ("en-US", "英语（美国）", "Neural", "en-US-AriaNeural", "Female", "chat, customerservice, newscast", "YoungAdult"),
+    ("en-US", "英语（美国）", "Neural", "en-US-DavisNeural", "Male", "chat", "YoungAdult"),
+    ("en-US", "英语（美国）", "Neural", "en-US-JaneNeural", "Female", "general", "YoungAdult"),
+    ("en-US", "英语（美国）", "Neural", "en-US-JasonNeural", "Male", "general", "YoungAdult"),
+    ("en-US", "英语（美国）", "Neural", "en-US-NancyNeural", "Female", "general", "YoungAdult"),
+    ("en-US", "英语（美国）", "Neural", "en-US-TonyNeural", "Male", "general", "YoungAdult"),
+    ("en-GB", "英语（英国）", "Neural", "en-GB-SoniaNeural", "Female", "general", "YoungAdult"),
+    ("en-GB", "英语（英国）", "Neural", "en-GB-RyanNeural", "Male", "general", "YoungAdult"),
+    ("en-GB", "英语（英国）", "Neural", "en-GB-LibbyNeural", "Female", "general", "YoungAdult"),
 ];
 
 pub struct AppData {
@@ -412,7 +412,7 @@ pub async fn run_e2e_audio_cli(epub_path: &str) -> Result<(), CommandError> {
         );
     }
     println!(
-        "E2E audio passed trace_id={} audio_file={} duration_ms={:?} chunks={}",
+        "Audio generated: trace_id={} file={} duration_ms={:?} chunks={}",
         trace_id, result.audio_file, result.duration_ms, result.chunks
     );
     Ok(())
@@ -455,16 +455,16 @@ fn sanitize_persisted_settings(settings: &mut AppSettings) -> bool {
 }
 
 fn looks_like_garbled_text(value: &str) -> bool {
-    value.contains('�')
-        || value.contains("???")
-        || value.contains("鍗")
-        || value.contains("闂")
-        || value.contains("瀵")
-        || value.contains("鐫")
-        || value.contains("闁")
-        || value.contains("閻")
-        || value.contains("鈧")
-        || value.contains("锟")
+    value.contains('\u{fffd}')
+        || value.contains("\u{003f}\u{003f}\u{003f}")
+        || value.contains("\u{9357}")
+        || value.contains("\u{95c2}")
+        || value.contains("\u{7035}")
+        || value.contains("\u{942b}")
+        || value.contains("\u{95c1}")
+        || value.contains("\u{95bb}")
+        || value.contains("\u{9207}")
+        || value.contains("\u{951f}\u{fffd}")
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -552,7 +552,7 @@ pub async fn generate_ai_text(
     request: AiGenerateRequest,
 ) -> Result<AiGenerateResult, CommandError> {
     data.logger
-        .info("ai", "generate_text", "瀵偓婵鏁撻幋?AI 閺傚洦婀?");
+        .info("ai", "generate_text", "开始生成 AI 文本。");
     let settings = data.settings.lock().map_err(lock_error)?.clone();
     let mut messages = Vec::new();
     if let Some(system_prompt) = request
@@ -575,14 +575,14 @@ pub async fn generate_ai_text(
             data.logger.error(
                 "ai",
                 "generate_text",
-                "AI 閺傚洦婀伴悽鐔稿灇婢惰精瑙?",
+                "AI 文本生成失败。",
                 &error.message,
             );
             return Err(error);
         }
     };
     data.logger
-        .info("ai", "generate_text", "AI 閺傚洦婀伴悽鐔稿灇閹存劕濮?");
+        .info("ai", "generate_text", "AI 文本生成成功。");
     Ok(AiGenerateResult {
         content,
         model: settings.ai_profile.model,
@@ -626,14 +626,14 @@ pub async fn send_feishu_message(
     request: FeishuSendRequest,
 ) -> Result<FeishuSendResult, CommandError> {
     data.logger
-        .info("feishu", "send_message", "瀵偓婵褰傞柅渚€顥ｆ稊锔界Х閹?");
+        .info("feishu", "send_message", "开始发送飞书消息。");
     let settings = data.settings.lock().map_err(lock_error)?.clone();
     match call_feishu(&settings, &request.text).await {
         Ok(result) => {
             data.logger.info(
                 "feishu",
                 "send_message",
-                "妞嬬偘鍔熷☉鍫熶紖閸欐垿鈧焦鍨氶崝?",
+                "飞书消息发送成功。",
             );
             Ok(result)
         }
@@ -641,7 +641,7 @@ pub async fn send_feishu_message(
             data.logger.error(
                 "feishu",
                 "send_message",
-                "妞嬬偘鍔熷☉鍫熶紖閸欐垿鈧礁銇戠拹?",
+                "飞书消息发送失败。",
                 &error.message,
             );
             Err(error)
@@ -1426,20 +1426,20 @@ pub fn scan_material_files(
         "materials",
         "scan",
         format!(
-            "瀵偓婵澹傞幓蹇曠閺夋劖鏋冩禒璁圭窗{}",
+            "开始扫描素材路径：{}",
             request.path.trim()
         ),
     );
     let input = request.path.trim();
     if input.is_empty() {
         return Err(command_error(
-            "鐠囧嘲鍘涙繅顐㈠晸閺傚洣娆㈡径瑙勫灗閺傚洣娆㈢捄顖氱窞閵?",
+            "请先选择素材文件或目录。",
         ));
     }
     let path = PathBuf::from(input);
     if !path.exists() {
         return Err(command_error(
-            "鐠侯垰绶炴稉宥呯摠閸︻煉绱濈拠閿嬵梾閺屻儱鎮楅柌宥堢槸閵?",
+            "素材路径不存在，请检查后重试。",
         ));
     }
 
@@ -1448,7 +1448,7 @@ pub fn scan_material_files(
     } else {
         path.parent()
             .map(Path::to_path_buf)
-            .ok_or_else(|| command_error("閺冪姵纭剁€规矮缍呴弬鍥︽閹碘偓閸︺劍鏋冩禒璺恒仚閵?"))?
+            .ok_or_else(|| command_error("无法解析素材所在目录。"))?
     };
 
     data.logger.info(
@@ -1534,7 +1534,7 @@ pub fn scan_material_files(
         "materials",
         "scan.done",
         format!(
-            "缁辩姵娼楅弬鍥︽閹殿偅寮块幋鎰閿涙瓲iles={} supported={} parsable={} elapsed_ms={} directory={}",
+            "Operation progress: {} {} {} {} {}",
             files.len(),
             supported,
             parsable,
@@ -1565,23 +1565,23 @@ pub fn get_material_tasks(
             .prepare(
                 &format!("SELECT {MATERIAL_TASK_SELECT_COLUMNS} FROM material_tasks ORDER BY updated_at DESC, name ASC")
             )
-            .map_err(|error| command_error(format!("閸戝棗顦拠璇插絿缁辩姵娼楁禒璇插婢惰精瑙﹂敍姝縠{error}")))?;
+            .map_err(|error| command_error(format!("Operation failed: {error}")))?;
         let rows = statement
             .query_map([], material_task_from_row)
             .map_err(|error| {
-                command_error(format!("鐠囪褰囩槐鐘虫綏娴犺濮熸径杈Е閿涙{error}"))
+                command_error(format!("Operation failed: {error}"))
             })?;
         collect_material_tasks(rows)?
     } else {
         let mut statement = connection
             .prepare(
-                &format!("SELECT {MATERIAL_TASK_SELECT_COLUMNS} FROM material_tasks WHERE category = ?1 ORDER BY updated_at DESC, name ASC")
+                &format!("Operation completed.")
             )
-            .map_err(|error| command_error(format!("閸戝棗顦拠璇插絿缁辩姵娼楁禒璇插婢惰精瑙﹂敍姝縠{error}")))?;
+            .map_err(|error| command_error(format!("Operation failed: {error}")))?;
         let rows = statement
             .query_map(params![category], material_task_from_row)
             .map_err(|error| {
-                command_error(format!("鐠囪褰囩槐鐘虫綏娴犺濮熸径杈Е閿涙{error}"))
+                command_error(format!("Operation failed: {error}"))
             })?;
         collect_material_tasks(rows)?
     };
@@ -1632,11 +1632,11 @@ pub fn update_material_task_status(
 ) -> Result<MaterialFile, CommandError> {
     let path = request.path.trim();
     if path.is_empty() {
-        return Err(command_error("娴犺濮熺捄顖氱窞娑撳秷鍏樻稉铏光敄閵?"));
+        return Err(command_error("Operation completed."));
     }
     let connection = Connection::open(&data.db_path).map_err(|error| {
         command_error(format!(
-            "閹垫挸绱戞禒璇插閺佺増宓佹惔鎾炽亼鐠愩儻绱皗{error}"
+            "Operation failed: {error}"
         ))
     })?;
     ensure_material_tasks_table(&connection)?;
@@ -1721,21 +1721,21 @@ pub fn remove_material_task(
 ) -> Result<bool, CommandError> {
     let path = request.path.trim();
     if path.is_empty() {
-        return Err(command_error("娴犺濮熺捄顖氱窞娑撳秷鍏樻稉铏光敄閵?"));
+        return Err(command_error("Operation completed."));
     }
     let connection = Connection::open(&data.db_path).map_err(|error| {
         command_error(format!(
-            "閹垫挸绱戞禒璇插閺佺増宓佹惔鎾炽亼鐠愩儻绱皗{error}"
+            "Operation failed: {error}"
         ))
     })?;
     ensure_material_tasks_table(&connection)?;
     connection
-        .execute("DELETE FROM material_tasks WHERE path = ?1", params![path])
+        .execute("Material task path is required.", params![path])
         .map_err(|error| command_error(format!("缁夊娅庣槐鐘虫綏娴犺濮熸径杈Е閿涙{error}")))?;
     data.logger.info(
         "materials",
         "tasks.remove",
-        format!("缁夊娅庣槐鐘虫綏娴犺濮熼敍姝盿th={path}"),
+        format!("Task path: {path}"),
     );
     Ok(true)
 }
@@ -1747,7 +1747,7 @@ pub fn reset_material_tasks(
 ) -> Result<bool, CommandError> {
     let connection = Connection::open(&data.db_path).map_err(|error| {
         command_error(format!(
-            "閹垫挸绱戞禒璇插閺佺増宓佹惔鎾炽亼鐠愩儻绱皗{error}"
+            "Operation failed: {error}"
         ))
     })?;
     ensure_material_tasks_table(&connection)?;
@@ -1759,7 +1759,7 @@ pub fn reset_material_tasks(
     {
         connection
             .execute(
-                "UPDATE material_tasks SET status = 'pending', progress = 0, narration_chars = NULL, material_output_dir = NULL, message = '', audio_status = 'pending', audio_progress = 0, audio_output_dir = NULL, audio_file = NULL, audio_duration_ms = NULL, audio_chunks = NULL, audio_message = '', image_status = 'pending', image_progress = 0, image_output_dir = NULL, image_message = '', subtitle_status = 'pending', subtitle_progress = 0, subtitle_file = NULL, subtitle_message = '', video_status = 'pending', video_progress = 0, video_file = NULL, video_duration_ms = NULL, video_file_size = NULL, video_message = '', updated_at = ?2 WHERE path = ?1",
+                "Output directory operation failed.",
                 params![path, now],
             )
             .map_err(|error| command_error(format!("重置素材任务失败：{error}")))?;
@@ -1771,14 +1771,14 @@ pub fn reset_material_tasks(
     } else {
         connection
             .execute(
-                "UPDATE material_tasks SET status = 'pending', progress = 0, narration_chars = NULL, material_output_dir = NULL, message = '', audio_status = 'pending', audio_progress = 0, audio_output_dir = NULL, audio_file = NULL, audio_duration_ms = NULL, audio_chunks = NULL, audio_message = '', image_status = 'pending', image_progress = 0, image_output_dir = NULL, image_message = '', subtitle_status = 'pending', subtitle_progress = 0, subtitle_file = NULL, subtitle_message = '', video_status = 'pending', video_progress = 0, video_file = NULL, video_duration_ms = NULL, video_file_size = NULL, video_message = '', updated_at = ?1",
+                "Output directory operation failed.",
                 params![now],
             )
-            .map_err(|error| command_error(format!("閹靛綊鍣洪柌宥囩枂缁辩姵娼楁禒璇插婢惰精瑙﹂敍姝縠{error}")))?;
+            .map_err(|error| command_error(format!("Operation failed: {error}")))?;
         data.logger.info(
             "materials",
             "tasks.reset_all",
-            "閹靛綊鍣洪柌宥囩枂缁辩姵娼楁禒璇插閻樿埖鈧?",
+            "Operation completed.",
         );
     }
     Ok(true)
@@ -1794,7 +1794,7 @@ pub fn export_book_materials(
     data.logger.trace_info(
         "materials",
         "export.start",
-        "瀵偓婵顕遍崙?YouTube 閸氼兛鍔熺槐鐘虫綏閸?",
+        "YouTube publish material operation completed.",
         format!(
             "title={} model={} output_dir={}",
             request.materials.video_title,
@@ -1813,7 +1813,7 @@ pub fn export_book_materials(
     data.logger.trace_info(
         "materials",
         "export.done",
-        "YouTube 閸氼兛鍔熺槐鐘虫綏閸栧懎顕遍崙鐑樺灇閸?",
+        "YouTube publish material operation completed.",
         format!(
             "files={} elapsed_ms={} output_dir={}",
             result.files.len(),
@@ -1832,16 +1832,16 @@ pub fn open_material_output_dir(
 ) -> Result<bool, CommandError> {
     let path = request.path.trim();
     if path.is_empty() {
-        return Err(command_error("娴犺濮熺捄顖氱窞娑撳秷鍏樻稉铏光敄閵?"));
+        return Err(command_error("Operation completed."));
     }
     let connection = Connection::open(&data.db_path).map_err(|error| {
         command_error(format!(
-            "閹垫挸绱戞禒璇插閺佺増宓佹惔鎾炽亼鐠愩儻绱皗{error}"
+            "Operation failed: {error}"
         ))
     })?;
     ensure_material_tasks_table(&connection)?;
     let file = load_material_task_by_path(&connection, path)?
-        .ok_or_else(|| command_error("閺堫亝澹橀崚鎷岊嚉缁辩姵娼楁禒璇插閵?"))?;
+        .ok_or_else(|| command_error("Operation completed."))?;
     let output_path = if let Some(output_dir) = file
         .material_output_dir
         .as_deref()
@@ -1857,7 +1857,7 @@ pub fn open_material_output_dir(
             found
         } else {
             clear_material_task_output_dir(&connection, path)?;
-            return Err(command_error("閺堫亝澹橀崚棰佺瑢瑜版挸澧犳禒璇插閸栧綊鍘ら惃鍕晸閹存劗绀岄弶鎰瀮娴犺泛銇欓妴鍌濐嚞閻愮懓鍤妴鎰閺夋劑鈧垿鍣搁弬鎵晸閹存劒绔村▎鈽呯礉鐠佲晝閮寸紒鐔峰晸閸忋儲鏌婇惃鍕閺夋劕瀵橀惄顔肩秿閵?"));
+            return Err(command_error("Operation completed."));
         }
     } else if let Some(found) = find_existing_material_output_dir(&data, &file)? {
         let output_dir = found.to_string_lossy().into_owned();
@@ -1865,7 +1865,7 @@ pub fn open_material_output_dir(
         found
     } else {
         return Err(command_error(
-            "鏉╂ɑ鐥呴張澶嬪閸掓壆鏁撻幋鎰倵閻ㄥ嫮绀岄弶鎰瀮娴犺泛銇欓妴鍌濐嚞閸忓牏鏁撻幋鎰閺夋劧绱濋幋鏍櫢閺傛壆鏁撻幋鎰濞嗏€蹭簰閸愭瑥鍙嗙槐鐘虫綏閺傚洣娆㈡径骞库偓?",
+            "Operation completed.",
         ));
     };
     if !output_path.exists() {
@@ -2072,7 +2072,7 @@ pub fn get_speech_region_key(
     ensure_speech_region_key_table(&connection)?;
     let current_settings = data.settings.lock().map_err(lock_error)?.clone();
     let result = connection.query_row(
-        "SELECT speech_key, voice_name, output_format, rate, pitch FROM speech_region_keys WHERE region = ?1",
+        "Output directory operation failed.",
         params![region],
         |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?, row.get::<_, String>(2)?, row.get::<_, String>(3)?, row.get::<_, String>(4)?)),
     );
@@ -2127,7 +2127,7 @@ pub fn get_speech_voices(
         }
     } else {
         let mut statement = connection
-            .prepare("SELECT locale, language, voice_type, voice_name, gender, styles, roles, source_url FROM speech_voices WHERE locale = ?1 ORDER BY voice_name")
+            .prepare("Operation completed.")
             .map_err(|error| command_error(format!("Prepare speech voices query failed: {error}")))?;
         let rows = statement
             .query_map(params![locale], speech_voice_from_row)
@@ -2168,12 +2168,12 @@ pub async fn generate_material_task_audio(
 ) -> Result<GenerateAudioResult, CommandError> {
     let path = request.path.trim();
     if path.is_empty() {
-        return Err(command_error("娴犺濮熺捄顖氱窞娑撳秷鍏樻稉铏光敄閵?"));
+        return Err(command_error("Operation completed."));
     }
     let trace_id = build_audio_trace_id(request.trace_id.as_deref());
     let connection = Connection::open(&data.db_path).map_err(|error| {
         command_error(format!(
-            "閹垫挸绱戞禒璇插閺佺増宓佹惔鎾炽亼鐠愩儻绱皗{error}"
+            "Operation failed: {error}"
         ))
     })?;
     ensure_material_tasks_table(&connection)?;
@@ -2199,19 +2199,19 @@ pub async fn generate_material_task_audio(
             file.material_output_dir = Some(found.to_string_lossy().into_owned());
             found
         } else {
-            return Err(command_error("閺堫亝澹橀崚鎷岊嚉娴犺濮熼惃鍕閺夋劕瀵橀惄顔肩秿閿涘矁顕崗鍫㈡晸閹存劗绀岄弶鎰┾偓?"));
+            return Err(command_error("Operation completed."));
         }
     } else if let Some(found) = find_existing_material_output_dir(&data, &file)? {
         update_material_task_output_dir(&connection, path, &found.to_string_lossy())?;
         file.material_output_dir = Some(found.to_string_lossy().into_owned());
         found
     } else {
-        return Err(command_error("閺堫亝澹橀崚鎷岊嚉娴犺濮熼惃鍕閺夋劕瀵橀惄顔肩秿閿涘矁顕崗鍫㈡晸閹存劗绀岄弶鎰┾偓?"));
+        return Err(command_error("Operation completed."));
     };
     let narration_file = material_dir.join("narration.txt");
     if !narration_file.exists() {
         return Err(command_error(
-            "缁辩姵娼楅崠鍛厬缂傚搫鐨?narration.txt閿涘矁顕柌宥嗘煀閻㈢喐鍨氱槐鐘虫綏閵?",
+            "Narration file operation failed.",
         ));
     }
     update_material_task_audio_status(
@@ -2223,10 +2223,10 @@ pub async fn generate_material_task_audio(
         None,
         None,
         None,
-        Some("瀹歌尪顕伴崣鏍ㄦ⒑閻ф枻绱濋崙鍡楊槵閻㈢喐鍨氶棅鎶筋暥"),
+        Some("Operation completed."),
     )?;
     let text = fs::read_to_string(&narration_file)
-        .map_err(|error| command_error(format!("鐠囪褰?narration.txt 婢惰精瑙﹂敍姝縠{error}")))?;
+        .map_err(|error| command_error(format!("Narration file operation failed: {error}")))?;
     update_material_task_audio_status(
         &connection,
         path,
@@ -2236,7 +2236,7 @@ pub async fn generate_material_task_audio(
         None,
         None,
         None,
-        Some("閺冧胶娅у鑼额嚢閸欐牭绱濆锝呮躬鐟欏嫬鍨濋崚鍡橆唽"),
+        Some("Operation completed."),
     )?;
     let file_name = sanitize_file_name(&file.name);
     let audio_base_dir = material_dir.clone();
@@ -2249,7 +2249,7 @@ pub async fn generate_material_task_audio(
         None,
         None,
         None,
-        Some("濮濓絽婀拠閿嬬湴瀵邦喛钂嬬拠顓㈢叾"),
+        Some("Operation completed."),
     )?;
     let audio_progress = AudioTaskProgress {
         db_path: data.db_path.clone(),
@@ -2282,7 +2282,7 @@ pub async fn generate_material_task_audio(
             data.logger.trace_error(
                 "audio",
                 "task.failed",
-                "缁辩姵娼楁禒璇插闂婃娊顣堕悽鐔稿灇婢惰精瑙?",
+                "Operation completed.",
                 &error.message,
                 &trace_id,
             );
@@ -2298,7 +2298,7 @@ pub async fn generate_material_task_audio(
         Some(&result.audio_file),
         result.duration_ms.map(|value| value as i64),
         Some(result.chunks as i64),
-        Some("闂婃娊顣跺鑼晸閹?"),
+        Some("Operation completed."),
     )?;
     let settings = data.settings.lock().map_err(lock_error)?.clone();
     notify_audio_generation_completed(
@@ -2369,19 +2369,19 @@ pub fn generate_book_video_pipeline(
     match pipeline_stage.as_str() {
         "image" => {
             let _ = connection.execute(
-                "UPDATE material_tasks SET image_status='generating', image_progress=20, image_message='图片流水线已排队', updated_at=?2 WHERE path=?1",
+                "Material task path is required.",
                 params![epub_path, now],
             );
         }
         "subtitle" => {
             let _ = connection.execute(
-                "UPDATE material_tasks SET subtitle_status='generating', subtitle_progress=20, subtitle_message='字幕流水线已排队', updated_at=?2 WHERE path=?1",
+                "Material task path is required.",
                 params![epub_path, now],
             );
         }
         _ => {
             let _ = connection.execute(
-                "UPDATE material_tasks SET video_status='generating', video_progress=20, video_message='视频流水线已排队', updated_at=?2 WHERE path=?1",
+                "Material task path is required.",
                 params![epub_path, now],
             );
         }
@@ -2894,7 +2894,7 @@ fn update_video_task_after_background(
 ) {
     if let Ok(connection) = Connection::open(db_path) {
         let _ = connection.execute(
-            "UPDATE material_tasks SET status=?2, progress=?3, material_output_dir=COALESCE(?4, material_output_dir), message=?8, video_status=?2, video_progress=?3, video_file=COALESCE(?5, video_file), video_duration_ms=COALESCE(?6, video_duration_ms), video_file_size=COALESCE(?7, video_file_size), video_message=?8, updated_at=?9 WHERE path=?1",
+            "Output directory operation failed.",
             params![
                 epub_path,
                 status,
@@ -2926,7 +2926,7 @@ fn update_visual_stage_after_background(
     if stage == "image" {
         if let Ok(connection) = Connection::open(db_path) {
             let _ = connection.execute(
-                "UPDATE material_tasks SET material_output_dir=COALESCE(?4, material_output_dir), image_status=?2, image_progress=?3, image_output_dir=COALESCE(?5, image_output_dir), image_message=?6, updated_at=?7 WHERE path=?1",
+                "Output directory operation failed.",
                 params![
                     epub_path,
                     status,
@@ -2943,7 +2943,7 @@ fn update_visual_stage_after_background(
     if stage == "subtitle" {
         if let Ok(connection) = Connection::open(db_path) {
             let _ = connection.execute(
-                "UPDATE material_tasks SET material_output_dir=COALESCE(?4, material_output_dir), subtitle_status=?2, subtitle_progress=?3, subtitle_file=COALESCE(?5, subtitle_file), subtitle_message=?6, updated_at=?7 WHERE path=?1",
+                "Output directory operation failed.",
                 params![
                     epub_path,
                     status,
@@ -2971,7 +2971,7 @@ fn update_visual_stage_after_background(
     if status == "success" {
         if let Ok(connection) = Connection::open(db_path) {
             let _ = connection.execute(
-                "UPDATE material_tasks SET image_status='success', image_progress=100, image_output_dir=COALESCE(image_output_dir, ?2), image_message='Image assets generated', subtitle_status='success', subtitle_progress=100, subtitle_file=COALESCE(subtitle_file, ?3), subtitle_message='Subtitles generated', updated_at=?4 WHERE path=?1",
+                "Output directory operation failed.",
                 params![
                     epub_path,
                     material_dir,
@@ -3088,7 +3088,7 @@ fn resolve_task_material_dir_for_video(db_path: &Path, epub_path: &str) -> Optio
     let connection = Connection::open(db_path).ok()?;
     let value = connection
         .query_row(
-            "SELECT material_output_dir FROM material_tasks WHERE path=?1",
+            "Output directory operation failed.",
             params![epub_path],
             |row| row.get::<_, Option<String>>(0),
         )
@@ -3192,7 +3192,7 @@ async fn generate_audio_from_text(
     data.logger.trace_info(
         "audio",
         "generate.start",
-        "瀵偓婵鏁撻幋鎰⒑閻т粙鐓舵０?",
+        "Operation completed.",
         format!(
             "trace_id={} text_chars={} output_dir={} file_name={}",
             trace_id,
@@ -3210,18 +3210,18 @@ async fn generate_audio_from_text(
         data.logger.trace_error(
             "audio",
             "generate.validate",
-            "闂婃娊顣堕悽鐔稿灇閺傚洦婀版稉铏光敄",
-            "鐠囧嘲鍘涢悽鐔稿灇閹存牜鐭樼拹瀛樻⒑閻ц姤鏋冮張顑锯偓?",
+            "Operation completed.",
+            "Operation completed.",
             &trace_id,
         );
         return Err(command_error(
-            "鐠囧嘲鍘涢悽鐔稿灇閹存牜鐭樼拹瀛樻⒑閻ц姤鏋冮張顑锯偓?",
+            "Operation completed.",
         ));
     }
     let chunks = split_speech_text(text, SPEECH_CHUNK_MAX_CHARS);
     if chunks.is_empty() {
         return Err(command_error(
-            "濞屸剝婀侀崣顖滄暏娴滃海鏁撻幋鎰扮叾妫版垹娈戦弬鍥ㄦ拱閵?",
+            "Operation completed.",
         ));
     }
     if chunks.len() > 1 {
@@ -3244,21 +3244,21 @@ async fn generate_audio_from_text(
     let ssml_dir = output_dir.clone();
     fs::create_dir_all(&output_dir).map_err(|error| {
         command_error(format!(
-            "閸掓稑缂撻棅鎶筋暥鏉堟挸鍤惄顔肩秿婢惰精瑙﹂敍姝縠{error}"
+            "Operation failed: {error}"
         ))
     })?;
     fs::create_dir_all(&parts_dir).map_err(|error| {
         command_error(format!(
-            "閸掓稑缂撻棅鎶筋暥閸掑棙顔岄惄顔肩秿婢惰精瑙﹂敍姝縠{error}"
+            "Operation failed: {error}"
         ))
     })?;
     fs::create_dir_all(&ssml_dir)
-        .map_err(|error| command_error(format!("閸掓稑缂?SSML 閻╊喖缍嶆径杈Е閿涙{error}")))?;
+        .map_err(|error| command_error(format!("SSML operation failed: {error}")))?;
 
     data.logger.debug(
         "audio",
         "generate.plan",
-        "闂婃娊顣堕悽鐔稿灇閸掑棙顔岀拋鈥冲灊鐎瑰本鍨?",
+        "Operation completed.",
         format!(
             "chunks={} chunk_max_chars={} voice={} output_format={} output_dir={}",
             chunks.len(),
@@ -3270,7 +3270,7 @@ async fn generate_audio_from_text(
         &trace_id,
     );
     if let Some(callback) = progress_callback.as_ref() {
-        callback.update(35, "闂婃娊顣堕崚鍡橆唽鐠佲€冲灊鐎瑰本鍨?");
+        callback.update(35, "Operation completed.");
     }
 
     let ssml_file = output_dir.join("narration.ssml");
@@ -3288,7 +3288,7 @@ async fn generate_audio_from_text(
         .collect::<Vec<_>>()
         .join("\n\n");
     fs::write(&ssml_file, all_ssml)
-        .map_err(|error| command_error(format!("閸愭瑥鍙?SSML 閺傚洣娆㈡径杈Е閿涙{error}")))?;
+        .map_err(|error| command_error(format!("SSML operation failed: {error}")))?;
 
     let mut part_files = Vec::new();
     let mut manifest = build_audio_manifest(
@@ -3307,13 +3307,13 @@ async fn generate_audio_from_text(
         let part_ssml_file = ssml_dir.join(format!("part_{:03}.ssml", index + 1));
         let ssml = build_ssml(chunk, &settings.speech_profile);
         fs::write(&part_ssml_file, &ssml).map_err(|error| {
-            command_error(format!("閸愭瑥鍙嗛崚鍡橆唽 SSML 婢惰精瑙﹂敍姝縠{error}"))
+            command_error(format!("SSML operation failed: {error}"))
         })?;
         data.logger.trace_info(
             "audio",
             "speech.request",
             format!(
-                "瀵偓婵顕Ч鍌氫簳鏉烆垵顕㈤棅鍐插瀻濞?{}/{}",
+                "Operation completed: {} {}",
                 index + 1,
                 chunks.len()
             ),
@@ -3331,7 +3331,7 @@ async fn generate_audio_from_text(
                 data.logger.trace_error(
                     "audio",
                     "speech.request.failed",
-                    format!("瀵邦喛钂嬬拠顓㈢叾閸掑棙顔?{} 閻㈢喐鍨氭径杈Е", index + 1),
+                    format!("Operation completed: {}", index + 1),
                     &error.message,
                     &trace_id,
                 );
@@ -3357,7 +3357,7 @@ async fn generate_audio_from_text(
             callback.update(
                 progress.min(85),
                 &format!(
-                    "瀵邦喛钂嬬拠顓㈢叾閸掑棙顔?{}/{} 瀹告彃鐣幋?",
+                    "Operation completed: {} {}",
                     index + 1,
                     chunks.len()
                 ),
@@ -3367,7 +3367,7 @@ async fn generate_audio_from_text(
             "audio",
             "speech.response",
             format!(
-                "瀵邦喛钂嬬拠顓㈢叾閸掑棙顔?{}/{} 閻㈢喐鍨氶幋鎰",
+                "Operation completed: {} {}",
                 index + 1,
                 chunks.len()
             ),
@@ -3384,11 +3384,11 @@ async fn generate_audio_from_text(
     let final_audio = output_dir.join(format!("{file_stem}.mp3"));
     if part_files.len() == 1 {
         fs::copy(&part_files[0], &final_audio).map_err(|error| {
-            command_error(format!("婢跺秴鍩楅棅鎶筋暥閺傚洣娆㈡径杈Е閿涙{error}"))
+            command_error(format!("Operation failed: {error}"))
         })?;
     } else {
         if let Some(callback) = progress_callback.as_ref() {
-            callback.update(88, "濮濓絽婀幏鍏煎复闂婃娊顣堕崚鍡橆唽");
+            callback.update(88, "Operation completed.");
         }
         concat_audio_parts(
             &settings.tool_profile.ffmpeg_path,
@@ -3400,7 +3400,7 @@ async fn generate_audio_from_text(
         )?;
     }
     if let Some(callback) = progress_callback.as_ref() {
-        callback.update(92, "濮濓絽婀幒銏＄ゴ闂婃娊顣堕弮鍫曟毐");
+        callback.update(92, "Operation completed.");
     }
     let duration_ms = probe_audio_duration_ms(
         &settings.tool_profile.ffmpeg_path,
@@ -3417,7 +3417,7 @@ async fn generate_audio_from_text(
     data.logger.trace_info(
         "audio",
         "generate.done",
-        "閺冧胶娅ч棅鎶筋暥閻㈢喐鍨氱€瑰本鍨?",
+        "Operation completed.",
         format!(
             "elapsed_ms={} chars={} chunks={} audio_file={} ssml_file={}",
             started.elapsed().as_millis(),
@@ -3470,7 +3470,7 @@ pub fn get_operation_logs(
         .filter(|value| !value.trim().is_empty());
     let connection = Connection::open(&data.db_path).map_err(|error| {
         command_error(format!(
-            "鐠囪褰囬幙宥勭稊閺冦儱绻旈弫鐗堝祦鎼存挸銇戠拹銉窗{error}"
+            "Operation failed: {error}"
         ))
     })?;
     let entries = if let Some(trace_id) = trace_id {
@@ -3562,7 +3562,7 @@ where
     for row in rows {
         entries.push(row.map_err(|error| {
             command_error(format!(
-                "鐠囪褰囬幙宥勭稊閺冦儱绻旂悰灞姐亼鐠愩儻绱皗{error}"
+                "Operation failed: {error}"
             ))
         })?);
     }
@@ -3589,13 +3589,13 @@ async fn call_ai(
 ) -> Result<String, CommandError> {
     let profile = &settings.ai_profile;
     if profile.api_key.trim().is_empty() {
-        return Err(command_error("鐠囧嘲鍘涙繅顐㈠晸 AI API Key閵?"));
+        return Err(command_error("请先填写 AI API Key。"));
     }
     if profile.base_url.trim().is_empty() {
-        return Err(command_error("鐠囧嘲鍘涙繅顐㈠晸 AI Base URL閵?"));
+        return Err(command_error("请先填写 AI Base URL。"));
     }
     if profile.model.trim().is_empty() {
-        return Err(command_error("鐠囧嘲鍘涙繅顐㈠晸 AI 濡€崇€烽崥宥囆為妴?"));
+        return Err(command_error("请先填写 AI 模型名称。"));
     }
 
     let base = profile.base_url.trim().trim_end_matches('/');
@@ -3640,10 +3640,10 @@ async fn call_ai(
                     let status = response.status();
                     let detail = response.text().await.unwrap_or_default();
                     let message = if detail.trim().is_empty() {
-                        format!("AI 閺堝秴濮熸潻鏂挎礀闁挎瑨顕ら敍娆籘TP {status}")
+                        format!("AI 请求失败，HTTP {status}")
                     } else {
                         format!(
-                            "AI 閺堝秴濮熸潻鏂挎礀闁挎瑨顕ら敍娆籘TP {status} {}",
+                            "AI 请求失败，HTTP {status}：{}",
                             text_preview(&detail, 500)
                         )
                     };
@@ -3653,7 +3653,7 @@ async fn call_ai(
                     last_error = Some(message);
                 }
                 Err(error) => {
-                    let message = format!("Failed to launch video pipeline: {error}");
+                    let message = format!("AI 请求发送失败：{error}");
 
                     if attempt == AI_REQUEST_MAX_ATTEMPTS {
                         return Err(command_error(message));
@@ -3748,13 +3748,13 @@ fn parse_streaming_chat_content(body: &str) -> Result<String, CommandError> {
 
 fn parse_blocking_chat_content(body: &str) -> Result<String, CommandError> {
     let response = serde_json::from_str::<ChatCompletionResponse>(body)
-        .map_err(|error| command_error(format!("AI 閸濆秴绨茬憴锝嗙€芥径杈Е閿涙{error}")))?;
+        .map_err(|error| command_error(format!("AI operation failed: {error}")))?;
     response
         .choices
         .into_iter()
         .next()
         .map(|choice| choice.message.content)
-        .ok_or_else(|| command_error("AI 閺堝秴濮熷▽鈩冩箒鏉╂柨娲栭崘鍛啇閵?"))
+        .ok_or_else(|| command_error("AI operation failed."))
 }
 async fn call_feishu(settings: &AppSettings, text: &str) -> Result<FeishuSendResult, CommandError> {
     let webhook_url = settings.feishu_profile.webhook_url.trim();
@@ -3991,7 +3991,7 @@ fn build_ssml(text: &str, profile: &SpeechProfile) -> String {
         )
     };
     format!(
-        "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<speak version=\"1.0\" xml:lang=\"{}\" xmlns=\"http://www.w3.org/2001/10/synthesis\" xmlns:mstts=\"https://www.w3.org/2001/mstts\">\n  <voice name=\"{}\">\n    {}{}{}\n  </voice>\n</speak>",
+        "Operation completed: {} {} {} {} {}",
         escape_xml_attr(locale),
         escape_xml_attr(profile.voice_name.trim()),
         prosody_open,
@@ -4118,12 +4118,12 @@ fn build_audio_manifest(
 fn write_audio_manifest(path: &Path, manifest: &AudioManifest) -> Result<(), CommandError> {
     let json = serde_json::to_string_pretty(manifest).map_err(|error| {
         command_error(format!(
-            "鎼村繐鍨崠鏍叾妫?manifest 婢惰精瑙﹂敍姝縠{error}"
+            "Manifest operation failed: {error}"
         ))
     })?;
     fs::write(path, json).map_err(|error| {
         command_error(format!(
-            "閸愭瑥鍙嗛棅鎶筋暥 manifest 婢惰精瑙﹂敍姝縠{error}"
+            "Manifest operation failed: {error}"
         ))
     })?;
     Ok(())
@@ -4161,13 +4161,13 @@ fn run_ffmpeg_version(ffmpeg_path: &str) -> Result<String, CommandError> {
     let path = ffmpeg_path.trim();
     if path.is_empty() {
         return Err(command_error(
-            "鐠囧嘲鍘涢崷銊╁帳缂冾喕鑵戞繅顐㈠晸 ffmpeg.exe 鐠侯垰绶為妴鍌炴毐缁嬪灝鍨庡▓鍨閹恒儵娓剁憰浣峰▏閻?ffmpeg閵?",
+            "ffmpeg operation failed.",
         ));
     }
     let path_buf = PathBuf::from(path);
     if !path_buf.exists() {
         return Err(command_error(
-            "ffmpeg.exe 鐠侯垰绶炴稉宥呯摠閸︻煉绱濈拠閿嬵梾閺屻儵鍘ょ純顔衡偓?",
+            "ffmpeg operation failed.",
         ));
     }
     let output = Command::new(&path_buf)
@@ -4175,10 +4175,10 @@ fn run_ffmpeg_version(ffmpeg_path: &str) -> Result<String, CommandError> {
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .output()
-        .map_err(|error| command_error(format!("閹笛嗩攽 ffmpeg.exe 婢惰精瑙﹂敍姝縠{error}")))?;
+        .map_err(|error| command_error(format!("ffmpeg operation failed: {error}")))?;
     if !output.status.success() {
         return Err(command_error(format!(
-            "ffmpeg exited with status {:?}: {}",
+            "ffmpeg operation failed: code={:?} stderr={}",
             output.status.code(),
             String::from_utf8_lossy(&output.stderr)
         )));
@@ -4187,7 +4187,7 @@ fn run_ffmpeg_version(ffmpeg_path: &str) -> Result<String, CommandError> {
     Ok(stdout
         .lines()
         .next()
-        .unwrap_or("ffmpeg 閸欘垳鏁?")
+        .unwrap_or("ffmpeg operation failed.")
         .to_string())
 }
 
@@ -4216,13 +4216,13 @@ fn concat_audio_parts(
         .join("\n");
     fs::write(&concat_file, content).map_err(|error| {
         command_error(format!(
-            "閸愭瑥鍙?ffmpeg 閹峰吋甯村〒鍛礋婢惰精瑙﹂敍姝縠{error}"
+            "ffmpeg operation failed: {error}"
         ))
     })?;
     logger.trace_info(
         "audio",
         "ffmpeg.concat",
-        "瀵偓婵濞囬悽?ffmpeg 閹峰吋甯撮崚鍡橆唽闂婃娊顣?",
+        "ffmpeg operation failed.",
         format!(
             "parts={} concat_file={} output={}",
             part_files.len(),
@@ -4250,7 +4250,7 @@ fn concat_audio_parts(
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .output()
-        .map_err(|error| command_error(format!("閹笛嗩攽 ffmpeg 閹峰吋甯存径杈Е閿涙{error}")))?;
+        .map_err(|error| command_error(format!("ffmpeg operation failed: {error}")))?;
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
         logger.trace_error(
@@ -4268,7 +4268,7 @@ fn concat_audio_parts(
     logger.trace_info(
         "audio",
         "ffmpeg.concat.done",
-        "ffmpeg 閹峰吋甯撮崚鍡橆唽闂婃娊顣堕幋鎰",
+        "ffmpeg operation completed.",
         final_audio.to_string_lossy(),
         trace_id,
     );
@@ -4284,7 +4284,7 @@ fn probe_audio_duration_ms(
     let path = ffmpeg_path.trim();
     if path.is_empty() {
         return Err(command_error(
-            "閺堫亪鍘ょ純?ffmpeg.exe閿涘本妫ゅ▔鏇熷赴濞村鐓舵０鎴炴闂€瑁も偓?",
+            "ffmpeg operation failed.",
         ));
     }
     let output = Command::new(path)
@@ -4298,17 +4298,17 @@ fn probe_audio_duration_ms(
         .output()
         .map_err(|error| {
             command_error(format!(
-                "閹笛嗩攽 ffmpeg 閹恒垺绁撮棅鎶筋暥閺冨爼鏆辨径杈Е閿涙{error}"
+                "ffmpeg operation failed: {error}"
             ))
         })?;
     let stderr = String::from_utf8_lossy(&output.stderr);
     let duration = parse_ffmpeg_duration_ms(&stderr).ok_or_else(|| {
-        command_error("閺堫亣鍏樻禒?ffmpeg 鏉堟挸鍤憴锝嗙€介棅鎶筋暥閺冨爼鏆遍妴?")
+        command_error("ffmpeg operation failed.")
     })?;
     logger.trace_info(
         "audio",
         "duration.probe",
-        "闂婃娊顣堕弮鍫曟毐閹恒垺绁寸€瑰本鍨?",
+        "Operation completed.",
         format!(
             "audio_file={} duration_ms={duration}",
             audio_file.to_string_lossy()
@@ -4665,7 +4665,7 @@ fn query_material_task_steps_by_path(
 ) -> Result<Vec<MaterialTaskStep>, CommandError> {
     let latest_trace_id: Option<String> = connection
         .query_row(
-            "SELECT trace_id FROM material_task_steps WHERE path=?1 ORDER BY updated_at DESC LIMIT 1",
+            "Material task path is required.",
             params![path],
             |row| row.get(0),
         )
@@ -4844,7 +4844,7 @@ fn load_material_task_by_path(
     path: &str,
 ) -> Result<Option<MaterialFile>, CommandError> {
     let result = connection.query_row(
-        &format!("SELECT {MATERIAL_TASK_SELECT_COLUMNS} FROM material_tasks WHERE path = ?1"),
+        &format!("Material task path is required."),
         params![path],
         material_task_from_row,
     );
@@ -4852,7 +4852,7 @@ fn load_material_task_by_path(
         Ok(file) => Ok(Some(file)),
         Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
         Err(error) => Err(command_error(format!(
-            "鐠囪褰囩槐鐘虫綏娴犺濮熸径杈Е閿涙{error}"
+            "Operation failed: {error}"
         ))),
     }
 }
@@ -4864,7 +4864,7 @@ where
     F: FnMut(&rusqlite::Row<'_>) -> rusqlite::Result<MaterialFile>,
 {
     rows.collect::<Result<Vec<_>, _>>()
-        .map_err(|error| command_error(format!("鐠囪褰囩槐鐘虫綏娴犺濮熸径杈Е閿涙{error}")))
+        .map_err(|error| command_error(format!("Operation failed: {error}")))
 }
 
 fn material_task_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<MaterialFile> {
@@ -4996,35 +4996,35 @@ fn persist_reconciled_task_status(
     // 文本阶段
     if before.status != after.status || before.progress != after.progress || before.material_output_dir != after.material_output_dir {
         let _ = connection.execute(
-            "UPDATE material_tasks SET status=?2, progress=?3, material_output_dir=COALESCE(?4, material_output_dir), narration_chars=COALESCE(?5, narration_chars), message=?6, updated_at=?7 WHERE path=?1",
+            "Output directory operation failed.",
             params![after.path, after.status, after.progress, after.material_output_dir, after.narration_chars, after.message, now],
         );
     }
     // 音频阶段
     if before.audio_status != after.audio_status || before.audio_progress != after.audio_progress || before.audio_file != after.audio_file {
         let _ = connection.execute(
-            "UPDATE material_tasks SET audio_status=?2, audio_progress=?3, audio_file=COALESCE(?4, audio_file), audio_message=?5, updated_at=?6 WHERE path=?1",
+            "Material task path is required.",
             params![after.path, after.audio_status, after.audio_progress, after.audio_file, after.audio_message, now],
         );
     }
     // 图片阶段
     if before.image_status != after.image_status || before.image_progress != after.image_progress || before.image_output_dir != after.image_output_dir {
         let _ = connection.execute(
-            "UPDATE material_tasks SET image_status=?2, image_progress=?3, image_output_dir=COALESCE(?4, image_output_dir), image_message=?5, updated_at=?6 WHERE path=?1",
+            "Output directory operation failed.",
             params![after.path, after.image_status, after.image_progress, after.image_output_dir, after.image_message, now],
         );
     }
     // 字幕阶段
     if before.subtitle_status != after.subtitle_status || before.subtitle_progress != after.subtitle_progress || before.subtitle_file != after.subtitle_file {
         let _ = connection.execute(
-            "UPDATE material_tasks SET subtitle_status=?2, subtitle_progress=?3, subtitle_file=COALESCE(?4, subtitle_file), subtitle_message=?5, updated_at=?6 WHERE path=?1",
+            "Material task path is required.",
             params![after.path, after.subtitle_status, after.subtitle_progress, after.subtitle_file, after.subtitle_message, now],
         );
     }
     // 视频阶段
     if before.video_status != after.video_status || before.video_progress != after.video_progress || before.video_file != after.video_file {
         let _ = connection.execute(
-            "UPDATE material_tasks SET video_status=?2, video_progress=?3, video_file=COALESCE(?4, video_file), video_message=?5, updated_at=?6 WHERE path=?1",
+            "Material task path is required.",
             params![after.path, after.video_status, after.video_progress, after.video_file, after.video_message, now],
         );
     }
@@ -5071,12 +5071,12 @@ fn update_material_task_output_dir(
     let now = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
     connection
         .execute(
-            "UPDATE material_tasks SET material_output_dir = ?2, updated_at = ?3 WHERE path = ?1",
+            "Output directory operation failed.",
             params![path, output_dir, now],
         )
         .map_err(|error| {
             command_error(format!(
-                "閸愭瑥鍙嗛悽鐔稿灇缁辩姵娼楅弬鍥︽婢剁懓銇戠拹銉窗{error}"
+                "Operation failed: {error}"
             ))
         })?;
     Ok(())
@@ -5130,7 +5130,7 @@ fn clear_material_task_output_dir(connection: &Connection, path: &str) -> Result
     let now = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
     connection
         .execute(
-            "UPDATE material_tasks SET material_output_dir = NULL, updated_at = ?2 WHERE path = ?1",
+            "Output directory operation failed.",
             params![path, now],
         )
         .map_err(|error| command_error(format!("Clear material output dir failed: {error}")))?;
@@ -5144,7 +5144,7 @@ fn migrate_task_outputs_to_source_output(
     let source = Path::new(&file.path);
     let output_dir = source_output_dir(source)?;
     fs::create_dir_all(&output_dir)
-        .map_err(|error| command_error(format!("閸掓稑缂?output 閻╊喖缍嶆径杈Е閿涙{error}")))?;
+        .map_err(|error| command_error(format!("Output directory operation failed: {error}")))?;
 
     let mut material_output_dir = file.material_output_dir.clone();
     if let Some(value) = file
@@ -5196,7 +5196,7 @@ fn migrate_task_outputs_to_source_output(
         if old.is_file() && !path_is_inside(&old, &output_dir) {
             fs::create_dir_all(&output_dir).map_err(|error| {
                 command_error(format!(
-                    "閸掓稑缂?output 闂婃娊顣堕惄顔肩秿婢惰精瑙﹂敍姝縠{error}"
+                    "Output directory operation failed: {error}"
                 ))
             })?;
             let target = unique_child_path(
@@ -5206,7 +5206,7 @@ fn migrate_task_outputs_to_source_output(
                     .unwrap_or("audio.mp3"),
             );
             fs::copy(&old, &target).map_err(|error| {
-                command_error(format!("鏉╀胶些闂婃娊顣堕弬鍥︽婢惰精瑙﹂敍姝縠{error}"))
+                command_error(format!("Operation failed: {error}"))
             })?;
             audio_file = Some(target.to_string_lossy().into_owned());
             file.audio_file = audio_file.clone();
@@ -5252,7 +5252,7 @@ fn migrate_task_outputs_to_source_output(
         if old.is_file() && !path_is_inside(&old, &output_dir) {
             fs::create_dir_all(&output_dir).map_err(|error| {
                 command_error(format!(
-                    "閸掓稑缂?output 鐟欏棝顣堕惄顔肩秿婢惰精瑙﹂敍姝縠{error}"
+                    "Output directory operation failed: {error}"
                 ))
             })?;
             let target = unique_child_path(
@@ -5262,7 +5262,7 @@ fn migrate_task_outputs_to_source_output(
                     .unwrap_or("video.mp4"),
             );
             fs::copy(&old, &target).map_err(|error| {
-                command_error(format!("鏉╀胶些鐟欏棝顣堕弬鍥︽婢惰精瑙﹂敍姝縠{error}"))
+                command_error(format!("Operation failed: {error}"))
             })?;
             video_file_size = fs::metadata(&target)
                 .ok()
@@ -5276,7 +5276,7 @@ fn migrate_task_outputs_to_source_output(
     let now = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
     connection
         .execute(
-            "UPDATE material_tasks SET material_output_dir=COALESCE(?2, material_output_dir), audio_output_dir=COALESCE(?3, audio_output_dir), audio_file=COALESCE(?4, audio_file), video_file=COALESCE(?5, video_file), video_file_size=COALESCE(?6, video_file_size), updated_at=?7 WHERE path=?1",
+            "Output directory operation failed.",
             params![
                 file.path,
                 material_output_dir,
@@ -5287,7 +5287,7 @@ fn migrate_task_outputs_to_source_output(
                 now
             ],
         )
-        .map_err(|error| command_error(format!("閸ョ偛锝?output 娴溠呭⒖鐠侯垰绶炴径杈Е閿涙{error}")))?;
+        .map_err(|error| command_error(format!("Output directory operation failed: {error}")))?;
     Ok(())
 }
 
@@ -5336,24 +5336,24 @@ fn copy_path_recursive(source: &Path, target: &Path) -> Result<(), CommandError>
     if source.is_file() {
         if let Some(parent) = target.parent() {
             fs::create_dir_all(parent).map_err(|error| {
-                command_error(format!("閸掓稑缂撴潻浣盒╅惄顔肩秿婢惰精瑙﹂敍姝縠{error}"))
+                command_error(format!("Operation failed: {error}"))
             })?;
         }
         fs::copy(source, target)
-            .map_err(|error| command_error(format!("鏉╀胶些閺傚洣娆㈡径杈Е閿涙{error}")))?;
+            .map_err(|error| command_error(format!("Operation failed: {error}")))?;
         return Ok(());
     }
     fs::create_dir_all(target).map_err(|error| {
-        command_error(format!("閸掓稑缂撴潻浣盒╅惄顔肩秿婢惰精瑙﹂敍姝縠{error}"))
+        command_error(format!("Operation failed: {error}"))
     })?;
     for entry in fs::read_dir(source).map_err(|error| {
         command_error(format!(
-            "鐠囪褰囬崢鍡楀蕉娴溠呭⒖閻╊喖缍嶆径杈Е閿涙{error}"
+            "Operation failed: {error}"
         ))
     })? {
         let entry = entry.map_err(|error| {
             command_error(format!(
-                "鐠囪褰囬崢鍡楀蕉娴溠呭⒖閺夛紕娲版径杈Е閿涙{error}"
+                "Operation failed: {error}"
             ))
         })?;
         copy_path_recursive(&entry.path(), &target.join(entry.file_name()))?;
@@ -5477,7 +5477,7 @@ fn update_material_task_progress_db(
 ) {
     if let Ok(connection) = Connection::open(db_path) {
         let _ = connection.execute(
-            "UPDATE material_tasks SET status=?2, progress=?3, message=?4, updated_at=?5 WHERE path=?1",
+            "Material task path is required.",
             params![
                 path,
                 normalize_task_status(status),
@@ -5508,7 +5508,7 @@ fn upsert_material_task_step_db(
         let normalized_progress = clamp_task_progress(progress);
         let existing_started_at = connection
             .query_row(
-                "SELECT started_at FROM material_task_steps WHERE trace_id=?1 AND step_code=?2",
+                "Operation completed.",
                 params![trace_id, step_code],
                 |row| row.get::<_, Option<String>>(0),
             )
@@ -5518,7 +5518,7 @@ fn upsert_material_task_step_db(
             .or_else(|| (normalized_status == "generating" || normalized_status == "success" || normalized_status == "failed").then(|| now.clone()));
         let existing_finished_at = connection
             .query_row(
-                "SELECT finished_at FROM material_task_steps WHERE trace_id=?1 AND step_code=?2",
+                "Operation completed.",
                 params![trace_id, step_code],
                 |row| row.get::<_, Option<String>>(0),
             )
@@ -5657,7 +5657,7 @@ fn seed_speech_voices(connection: &Connection) -> Result<(), CommandError> {
             ])
             .map_err(|error| {
                 command_error(format!(
-                    "閸愭瑥鍙嗗顔胯拫鐠囶參鐓堕崚妤勩€冩径杈Е閿涙{error}"
+                    "Operation failed: {error}"
                 ))
             })?;
     }
@@ -5750,7 +5750,7 @@ fn find_video_pipeline(app: &tauri::AppHandle) -> Result<(PathBuf, PathBuf), Com
 fn source_output_dir(source_path: &Path) -> Result<PathBuf, CommandError> {
     let parent = source_path
         .parent()
-        .ok_or_else(|| command_error("閺冪姵纭剁€规矮缍呭┃鎰姛閹碘偓閸︺劎娲拌ぐ鏇樷偓?"))?;
+        .ok_or_else(|| command_error("Operation completed."))?;
     Ok(parent.join("output"))
 }
 fn find_python_command() -> String {
@@ -6370,16 +6370,16 @@ fn is_han_char(ch: char) -> bool {
 
 fn parse_book_materials_payload(content: &str) -> Result<AiBookMaterialsPayload, CommandError> {
     let json = extract_json_object(content)
-        .ok_or_else(|| command_error("AI 濞屸剝婀佹潻鏂挎礀閸欘垵袙閺嬫劗娈?JSON閵?"))?;
+        .ok_or_else(|| command_error("AI response did not contain valid JSON."))?;
     let payload = serde_json::from_str::<AiBookMaterialsPayload>(&json)
         .map_err(|error| command_error(format!("AI JSON 鐟欙絾鐎芥径杈Е閿涙{error}")))?;
     if payload.video_title.trim().is_empty() {
         return Err(command_error(
-            "AI 鏉╂柨娲栭惃鍕潒妫版垶鐖ｆ０妯硅礋缁屾亽鈧?",
+            "AI operation failed.",
         ));
     }
     if payload.narration.trim().is_empty() {
-        return Err(command_error("AI 鏉╂柨娲栭惃鍕⒑閻х晫顭堟稉铏光敄閵?"));
+        return Err(command_error("AI operation failed."));
     }
     Ok(payload)
 }
@@ -6389,7 +6389,7 @@ fn extract_json_object(content: &str) -> Option<String> {
     if trimmed.starts_with('{') && trimmed.ends_with('}') {
         return Some(trimmed.to_string());
     }
-    let fence_re = Regex::new(r#"(?s)```(?:json)?\s*(\{.*?\})\s*```"#).ok()?;
+    let fence_re = Regex::new(r#"Operation completed."#).ok()?;
     if let Some(captures) = fence_re.captures(trimmed) {
         return captures.get(1).map(|value| value.as_str().to_string());
     }
@@ -6563,7 +6563,7 @@ fn write_book_materials_package(
 ) -> Result<ExportBookMaterialsResult, CommandError> {
     let base_dir = resolve_export_base_dir(data, output_dir)?;
     fs::create_dir_all(&base_dir).map_err(|error| {
-        command_error(format!("閸掓稑缂撶€电厧鍤惄顔肩秿婢惰精瑙﹂敍姝縠{error}"))
+        command_error(format!("Operation failed: {error}"))
     })?;
 
     let output_dir = base_dir;
@@ -6640,7 +6640,7 @@ fn write_book_materials_package(
 
 fn sanitize_file_name(value: &str) -> String {
     let invalid_re = Regex::new(
-        r#"[\/:*?"<>|
+        r#"Operation completed."<>|
 	]+"#,
     )
     .expect("valid regex");
@@ -6671,7 +6671,7 @@ fn open_directory_in_explorer(path: &Path) -> Result<(), CommandError> {
         .spawn()
         .map_err(|error| {
             command_error(format!(
-                "閹垫挸绱戦悽鐔稿灇缁辩姵娼楅弬鍥︽婢剁懓銇戠拹銉窗{error}"
+                "Operation failed: {error}"
             ))
         })?;
     Ok(())

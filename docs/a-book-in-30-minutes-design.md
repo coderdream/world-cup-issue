@@ -1312,7 +1312,7 @@ D:\books\理想国译丛系列（74册）整理截止2026.018\001没有宽恕就
 
 - `get_material_tasks` 和 `get_material_task` 读取任务时不再把 `generating` 改成 `pending`，只展示数据库真实状态。
 - 防止自动续跑仍由前端按钮触发模型保证：应用启动、页面加载和读取历史列表只展示状态，不主动调用素材、音频、视频或发布任务。
-- 扩展乱码检测，覆盖旧库中常见 `闂`、`瀵` 等 mojibake 片段，减少旧任务说明污染步骤页。
+- 扩展乱码检测，覆盖旧库中常见中文 mojibake 片段，减少旧任务说明污染步骤页。
 
 ## 0.1.106 六阶段按钮与 A-F 步骤编码
 
@@ -1516,3 +1516,14 @@ When only updating the desktop shortcut development build, use `pnpm -C a-book-i
 This version switches the default background music path to `D:\04_GitHub\world-cup-issue\a-book-in-30-minutes\music\bf.mp3` in both frontend defaults and Rust backend defaults. The compatibility fallback in the video pipeline also checks `bf.mp3` directly, so newly generated videos use the processed ASCII-named background music file instead of the old Chinese filename.
 
 `bf.mp3` is regenerated from the local performance recording at `98%` speed with `ffmpeg atempo=0.98`. The verified output is MP3, 44100 Hz, stereo, approximately `304.666` seconds, size `6,753,058` bytes. This keeps the workflow compatible with the desktop shortcut Release build and avoids generating an installer.
+
+## 2026-07-04 0.1.128 Garbled Text Cleanup
+
+This version tightens the text-quality contract for code, comments, logs, daily reports, and documentation. Chinese text, icons, and emoji must render normally; replacement characters, Chinese mojibake, continuous question marks, and boxed/missing symbols are treated as defects.
+
+Changes in this pass:
+
+- AI profile validation and AI HTTP failure messages now use readable Chinese, so configuration-page errors are actionable.
+- AI text generation, Feishu message sending, material scanning, and Microsoft TTS voice-region labels no longer use garbled strings.
+- Mojibake detection samples in Rust are represented with Unicode escapes or descriptive wording, so the detection rules do not themselves pollute scans.
+- Historical docs and daily reports avoid embedding literal garbled samples and instead describe them as replacement-character, mojibake, or continuous-question-mark markers.
