@@ -1598,3 +1598,7 @@ Subtitle acceptance is stricter: AI-provided subtitle arrays must cover at least
 The text generator no longer pads short narration with local template paragraphs. If AI generation is below the configured target, the app asks the active AI provider for additional narration and rejects empty or repetitive extensions; if the result still misses the target, generation fails instead of producing repeated filler. This prevents the end of `narration.txt` and `subtitles.txt` from being filled with repeated generic lines.
 
 Subtitle line validation now requires each line to be one sentence or half sentence: no more than 20 Chinese characters, ending with punctuation, and without sentence-ending punctuation such as `。？！；` in the middle of the line. Invalid AI subtitle arrays are rebuilt from the full narration, and rebuilt arrays are rejected if they still contain overlong or multi-sentence lines.
+
+## 2026-07-04 0.1.139 CLI Length Repair Parity
+
+The CLI `--e2e-materials` path now uses the same AI length-repair behavior as the UI generation path. If narration is shorter than the configured range, it asks AI for a non-repetitive extension; if narration is longer than the configured range, it asks AI to rewrite the full material JSON into the configured target. This keeps end-to-end validation from failing immediately on overlong AI drafts while still avoiding local repetitive padding.

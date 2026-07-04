@@ -257,7 +257,7 @@ pub async fn run_e2e_materials_cli(epub_path: &str) -> Result<(), CommandError> 
         vec![
             ChatMessage {
                 role: "system".to_string(),
-                content: system_prompt,
+                content: system_prompt.clone(),
             },
             ChatMessage {
                 role: "user".to_string(),
@@ -281,18 +281,22 @@ pub async fn run_e2e_materials_cli(epub_path: &str) -> Result<(), CommandError> 
     };
     let min_chars = request.target_min_chars.max(1000);
     let max_chars = request.target_max_chars.max(min_chars + 1);
-    for _ in 0..=3 {
-        let before_chars = count_han_chars(&payload.narration);
-        if before_chars >= min_chars {
+    for _ in 0..=6 {
+        let current_chars = count_han_chars(&payload.narration);
+        if current_chars >= min_chars && current_chars <= max_chars {
             break;
         }
-        let repair_prompt = build_narration_extension_prompt(&payload, before_chars, min_chars, max_chars);
-        let Ok(extension_response) = call_ai(
+        let repair_prompt = if current_chars < min_chars {
+            build_narration_extension_prompt(&payload, current_chars, min_chars, max_chars)
+        } else {
+            build_repair_prompt(&payload, min_chars, max_chars)
+        };
+        let Ok(repair_response) = call_ai(
             &settings,
             vec![
                 ChatMessage {
                     role: "system".to_string(),
-                    content: "You are a Chinese audiobook writer. Return only the additional narration text.".to_string(),
+                    content: system_prompt.clone(),
                 },
                 ChatMessage {
                     role: "user".to_string(),
@@ -303,11 +307,17 @@ pub async fn run_e2e_materials_cli(epub_path: &str) -> Result<(), CommandError> 
         .await else {
             break;
         };
-        let extension = clean_narration_extension(&extension_response);
-        if extension.trim().is_empty() || narration_extension_is_repetitive(&payload.narration, &extension) {
+        if current_chars < min_chars {
+            let extension = clean_narration_extension(&repair_response);
+            if extension.trim().is_empty() || narration_extension_is_repetitive(&payload.narration, &extension) {
+                break;
+            }
+            payload.narration = merge_narration_extension(&payload.narration, &extension);
+        } else if let Ok(next_payload) = parse_book_materials_payload(&repair_response) {
+            payload = next_payload;
+        } else {
             break;
         }
-        payload.narration = merge_narration_extension(&payload.narration, &extension);
     }
     let final_chars = count_han_chars(&payload.narration);
     if final_chars < min_chars || final_chars > max_chars {
