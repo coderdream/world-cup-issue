@@ -23,7 +23,10 @@ HEADER_SECONDS = 3
 HEADER_AUDIO_ENCODE_SECONDS = 2.976
 HEADER_AUDIO_DURATION_MS = 3000
 CINEMATIC_FPS = 30
-WHITEBOARD_SCENE_COUNT = 8
+VISUAL_SCENE_MIN_COUNT = 32
+VISUAL_SCENE_MAX_COUNT = 64
+VISUAL_SUBTITLE_LINES_PER_IMAGE = 28
+WHITEBOARD_SCENE_COUNT = VISUAL_SCENE_MIN_COUNT
 WHITEBOARD_IMAGE_GENERATOR = (
     Path.home()
     / ".codex"
@@ -1503,6 +1506,15 @@ def image_candidates(directory: Path) -> list[Path]:
     return sorted(candidates, key=lambda path: path.name.lower())
 
 
+def target_visual_scene_count(material_root: Path, subtitle_events: list[tuple[int, int, str]] | None = None) -> int:
+    if subtitle_events:
+        source_count = len([event for event in subtitle_events if event[1] > HEADER_AUDIO_DURATION_MS])
+    else:
+        source_count = len(load_chinese_subtitle_lines(material_root))
+    estimated = (max(1, source_count) + VISUAL_SUBTITLE_LINES_PER_IMAGE - 1) // VISUAL_SUBTITLE_LINES_PER_IMAGE
+    return max(VISUAL_SCENE_MIN_COUNT, min(VISUAL_SCENE_MAX_COUNT, estimated))
+
+
 def find_local_visual_dirs(material_root: Path) -> list[Path]:
     roots = [
         material_root / "visual_assets" / "originals",
@@ -1556,7 +1568,7 @@ def migrate_visual_assets(material_root: Path, video_dir: Path) -> tuple[list[Pa
     dest_dir = video_dir
     dest_dir.mkdir(parents=True, exist_ok=True)
     copied: list[Path] = []
-    for index, source in enumerate(image_candidates(source_dir)[:8], 1):
+    for index, source in enumerate(image_candidates(source_dir)[:VISUAL_SCENE_MAX_COUNT], 1):
         suffix = source.suffix.lower() or ".png"
         dest = dest_dir / f"visual_{index:02d}_cinematic_background{suffix}"
         if source.resolve() != dest.resolve():
@@ -1593,37 +1605,27 @@ def generate_controlled_programmatic_assets(
     design_dir.mkdir(parents=True, exist_ok=True)
     image_dir.mkdir(parents=True, exist_ok=True)
 
-    run(
-        [
-            sys.executable,
-            str(design_script),
-            "--book-dir",
-            str(book_dir),
-            "--output-dir",
-            str(design_dir),
-        ],
-        cwd=script_dir,
-    )
-    run(
-        [
-            sys.executable,
-            str(render_script),
-            "--book-dir",
-            str(book_dir),
-            "--design-dir",
-            str(design_dir),
-            "--output-dir",
-            str(image_dir),
-        ],
-        cwd=script_dir,
-    )
-
-    content_images = sorted(image_dir.glob("scene_*.png"), key=lambda path: path.name.lower())[:8]
+    scene_count = target_visual_scene_count(material_root)
+    specs = whiteboard_scene_specs()
+    content_images: list[Path] = []
+    for index in range(1, scene_count + 1):
+        spec = specs[(index - 1) % len(specs)]
+        path = image_dir / f"scene_{index:02d}.png"
+        render_semantic_whiteboard_scene(path, ((index - 1) % len(specs)) + 1, spec)
+        content_images.append(path)
     if not content_images:
         raise RuntimeError("Controlled programmatic visual generation produced no images")
 
+    clean_lines = load_chinese_subtitle_lines(material_root)
     manifest_path = image_dir / "programmatic_visual_manifest.json"
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
+    manifest = {
+        "sceneCount": scene_count,
+        "minSceneCount": VISUAL_SCENE_MIN_COUNT,
+        "maxSceneCount": VISUAL_SCENE_MAX_COUNT,
+        "subtitleLineCount": len(clean_lines),
+        "subtitleLinesPerImage": VISUAL_SUBTITLE_LINES_PER_IMAGE,
+        "generatedAt": time.strftime("%Y-%m-%d %H:%M:%S"),
+    }
     manifest.update(
         {
             "sourceKind": "controlled_programmatic_visuals",
@@ -1644,8 +1646,9 @@ def build_whiteboard_skill_prompts(
     title: str,
     description: str,
     subtitle_events: list[tuple[int, int, str]],
-    scene_count: int = WHITEBOARD_SCENE_COUNT,
+    scene_count: int | None = None,
 ) -> list[str]:
+    scene_count = scene_count or target_visual_scene_count(material_root, subtitle_events)
     prompt_style = os.environ.get("BOOK_IMAGE_PROMPT_STYLE", "").strip().lower()
     clean_lines = load_chinese_subtitle_lines(material_root)
     clean_groups: list[str] = []
@@ -1881,6 +1884,7 @@ def draw_camellia(draw: ImageDraw.ImageDraw, cx: int, cy: int, size: int, ink: t
 
 
 def render_semantic_whiteboard_scene(path: Path, index: int, spec: dict) -> None:
+    index = ((index - 1) % 8) + 1
     bg = (246, 241, 227)
     paper = (248, 246, 239)
     ink = (45, 48, 50)
@@ -1974,7 +1978,13 @@ def generate_whiteboard_skill_assets(
     subtitle_events: list[tuple[int, int, str]],
 ) -> tuple[list[Path], Path, str]:
     image_dir = video_dir / "whiteboard_skill_images"
-    prompts = build_whiteboard_skill_prompts(material_root, title, description, subtitle_events)
+    prompts = build_whiteboard_skill_prompts(
+        material_root,
+        title,
+        description,
+        subtitle_events,
+        target_visual_scene_count(material_root, subtitle_events),
+    )
     raw_images = run_whiteboard_image_skill(prompts, image_dir)
     copied: list[Path] = []
     for index, source in enumerate(raw_images, 1):
@@ -2655,7 +2665,7 @@ def main() -> int:
             content_images, visual_source_dir, visual_source_kind = [], None, "none"
         else:
             content_images, visual_source_dir, visual_source_kind = migrate_visual_assets(material_root, video_dir)
-        if not content_images and args.controlled_programmatic_visuals:
+        if len(content_images) < VISUAL_SCENE_MIN_COUNT and args.controlled_programmatic_visuals:
             content_images, visual_source_dir, visual_source_kind = generate_controlled_programmatic_assets(
                 epub,
                 material_root,
@@ -2824,7 +2834,7 @@ def main() -> int:
         content_images, visual_source_dir, visual_source_kind = [], None, "none"
     else:
         content_images, visual_source_dir, visual_source_kind = migrate_visual_assets(material_root, video_dir)
-    if not content_images and args.controlled_programmatic_visuals:
+    if len(content_images) < VISUAL_SCENE_MIN_COUNT and args.controlled_programmatic_visuals:
         content_images, visual_source_dir, visual_source_kind = generate_controlled_programmatic_assets(
             epub,
             material_root,
