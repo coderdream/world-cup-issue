@@ -517,7 +517,7 @@ export function HomePage() {
       return;
     }
     const path = target.path;
-    const traceId = `${createTraceId()}-video`;
+    const traceId = `${createTraceId()}-${stage}`;
     const stageLabel = pipelineStageLabel(stage);
     updateWorkbench({ busy: true, error: "", copyState: "", exportState: `\u6b63\u5728\u6267\u884c${stageLabel}\u6d41\u6c34\u7ebf\u3002`, currentTraceId: traceId });
     try {
@@ -532,12 +532,14 @@ export function HomePage() {
       }
       updateWorkbench({ exportState: `${stageLabel}\u6d41\u6c34\u7ebf\uff1a\u6b63\u5728\u542f\u52a8\u540e\u53f0\u4efb\u52a1\u3002`, error: "" });
       if (stage === "image") {
-        await setTaskImageState(path, { imageStatus: "generating", imageProgress: 20, imageMessage: "\u6b63\u5728\u751f\u6210\u56fe\u7247\u7d20\u6750" });
+        await setTaskImageState(path, { imageStatus: "generating", imageProgress: 0, imageOutputDir: null, imageMessage: "\u6b63\u5728\u751f\u6210\u56fe\u7247\u7d20\u6750" });
       }
       if (stage === "subtitle") {
-        await setTaskSubtitleState(path, { subtitleStatus: "generating", subtitleProgress: 20, subtitleMessage: "\u6b63\u5728\u751f\u6210 SRT/ASS \u5b57\u5e55\u6587\u4ef6" });
+        await setTaskSubtitleState(path, { subtitleStatus: "generating", subtitleProgress: 0, subtitleFile: null, subtitleMessage: "\u6b63\u5728\u751f\u6210 SRT/ASS \u5b57\u5e55\u6587\u4ef6" });
       }
-      await updateVideoState(path, { status: "generating", progress: stage === "image" ? 35 : stage === "subtitle" ? 50 : 30, message: `${stageLabel}\u4efb\u52a1\u542f\u52a8\u4e2d\u3002` });
+      if (stage === "video") {
+        await updateVideoState(path, { status: "generating", progress: 30, message: `${stageLabel}\u4efb\u52a1\u542f\u52a8\u4e2d\u3002` });
+      }
       await frameworkApi.generateBookVideoPipeline({
         epubPath: path,
         traceId,
@@ -546,7 +548,9 @@ export function HomePage() {
         controlledProgrammaticVisuals: true,
         ignoreExistingVisualAssets: true
       });
-      await updateVideoState(path, { status: "generating", progress: stage === "image" ? 45 : stage === "subtitle" ? 60 : 40, message: `${stageLabel}\u540e\u53f0\u751f\u6210\u4e2d\uff0c\u8bf7\u5230\u64cd\u4f5c\u65e5\u5fd7\u67e5\u770b\u5b9e\u9645\u8fdb\u5ea6\u3002` });
+      if (stage === "video") {
+        await updateVideoState(path, { status: "generating", progress: 40, message: `${stageLabel}\u540e\u53f0\u751f\u6210\u4e2d\uff0c\u8bf7\u5230\u64cd\u4f5c\u65e5\u5fd7\u67e5\u770b\u5b9e\u9645\u8fdb\u5ea6\u3002` });
+      }
       updateWorkbench({
         busy: false,
         exportState: `${stageLabel}\u540e\u53f0\u4efb\u52a1\u5df2\u542f\u52a8\uff0c\u5df2\u9501\u5b9a\u6d41\u6c34\u7ebf\u6309\u94ae\u3002\u8bf7\u5230\u64cd\u4f5c\u65e5\u5fd7\u67e5\u770b\u5b9e\u9645\u8fdb\u5ea6\uff0c\u9700\u8981\u6539\u9009\u65f6\u5148\u70b9\u51fb\u7ec8\u6b62\u4efb\u52a1\u3002`,
@@ -711,7 +715,15 @@ export function HomePage() {
       currentTraceId: ""
     });
     if (path) {
-      await updateTaskStatus(path, { status: "failed", progress: 0, message: "用户已终止任务" });
+      if (activePipelineStage === "image") {
+        await setTaskImageState(path, { imageStatus: "failed", imageProgress: 0, imageMessage: "用户已终止图片任务" });
+      } else if (activePipelineStage === "subtitle") {
+        await setTaskSubtitleState(path, { subtitleStatus: "failed", subtitleProgress: 0, subtitleMessage: "用户已终止字幕任务" });
+      } else if (activePipelineStage === "video") {
+        await updateVideoState(path, { status: "failed", progress: 0, message: "用户已终止视频任务" });
+      } else {
+        await updateTaskStatus(path, { status: "failed", progress: 0, message: "用户已终止任务" });
+      }
     }
     setActivePipelineStage(null);
   }
@@ -872,10 +884,32 @@ export function HomePage() {
 
   async function setTaskImageState(path: string, patch: Partial<Pick<MaterialFile, "imageStatus" | "imageProgress" | "imageOutputDir" | "imageMessage">>) {
     await patchTaskState(path, patch);
+    if (patch.imageStatus || typeof patch.imageProgress === "number" || "imageOutputDir" in patch || patch.imageMessage !== undefined) {
+      const saved = await frameworkApi.updateMaterialTaskStageStatus({
+        path,
+        stage: "image",
+        status: patch.imageStatus ?? "generating",
+        progress: patch.imageProgress ?? 0,
+        outputPath: patch.imageOutputDir ?? null,
+        message: patch.imageMessage ?? ""
+      });
+      await patchTaskState(path, saved);
+    }
   }
 
   async function setTaskSubtitleState(path: string, patch: Partial<Pick<MaterialFile, "subtitleStatus" | "subtitleProgress" | "subtitleFile" | "subtitleMessage">>) {
     await patchTaskState(path, patch);
+    if (patch.subtitleStatus || typeof patch.subtitleProgress === "number" || "subtitleFile" in patch || patch.subtitleMessage !== undefined) {
+      const saved = await frameworkApi.updateMaterialTaskStageStatus({
+        path,
+        stage: "subtitle",
+        status: patch.subtitleStatus ?? "generating",
+        progress: patch.subtitleProgress ?? 0,
+        outputPath: patch.subtitleFile ?? null,
+        message: patch.subtitleMessage ?? ""
+      });
+      await patchTaskState(path, saved);
+    }
   }
 
   async function patchTaskState(path: string, patch: Partial<MaterialFile>) {

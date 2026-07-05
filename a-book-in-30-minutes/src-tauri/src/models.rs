@@ -329,6 +329,17 @@ pub struct UpdateMaterialTaskStatusRequest {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct UpdateMaterialTaskStageStatusRequest {
+    pub path: String,
+    pub stage: String,
+    pub status: String,
+    pub progress: i64,
+    pub output_path: Option<String>,
+    pub message: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MaterialOutputDirRequest {
     pub path: String,
 }

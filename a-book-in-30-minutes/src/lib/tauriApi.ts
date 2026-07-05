@@ -403,12 +403,52 @@ async function localCommand<T>(command: string, args?: Record<string, unknown>):
         audioDurationMs: undefined,
         audioChunks: undefined,
         audioMessage: "",
+        imageStatus: "pending",
+        imageProgress: 0,
+        imageOutputDir: undefined,
+        imageMessage: "",
         videoStatus: "pending",
         videoProgress: 0,
         videoFile: undefined,
         videoDurationMs: undefined,
         videoFileSize: undefined,
         videoMessage: ""
+      } as T;
+    }
+    case "update_material_task_stage_status": {
+      const request = args?.request as { path?: string; stage?: "image" | "subtitle" | "video"; status?: "pending" | "generating" | "success" | "failed"; progress?: number; outputPath?: string | null; message?: string } | undefined;
+      return {
+        path: request?.path || "",
+        name: request?.path?.split(/[\\/]/).pop() || "",
+        extension: request?.path?.split(".").pop()?.toLowerCase() || "",
+        size: 0,
+        category: settings.materialProfile.categoryName,
+        status: "pending",
+        progress: 0,
+        narrationChars: undefined,
+        materialOutputDir: undefined,
+        message: "",
+        audioStatus: "pending",
+        audioProgress: 0,
+        audioOutputDir: undefined,
+        audioFile: undefined,
+        audioDurationMs: undefined,
+        audioChunks: undefined,
+        audioMessage: "",
+        imageStatus: request?.stage === "image" ? request.status || "pending" : "pending",
+        imageProgress: request?.stage === "image" ? request.progress || 0 : 0,
+        imageOutputDir: request?.stage === "image" ? request.outputPath : undefined,
+        imageMessage: request?.stage === "image" ? request.message || "" : "",
+        subtitleStatus: request?.stage === "subtitle" ? request.status || "pending" : "pending",
+        subtitleProgress: request?.stage === "subtitle" ? request.progress || 0 : 0,
+        subtitleFile: request?.stage === "subtitle" ? request.outputPath : undefined,
+        subtitleMessage: request?.stage === "subtitle" ? request.message || "" : "",
+        videoStatus: request?.stage === "video" ? request.status || "pending" : "pending",
+        videoProgress: request?.stage === "video" ? request.progress || 0 : 0,
+        videoFile: request?.stage === "video" ? request.outputPath : undefined,
+        videoDurationMs: undefined,
+        videoFileSize: undefined,
+        videoMessage: request?.stage === "video" ? request.message || "" : ""
       } as T;
     }
     case "remove_material_task":

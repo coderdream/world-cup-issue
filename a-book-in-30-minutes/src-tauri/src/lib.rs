@@ -61,6 +61,7 @@ pub fn run() {
             get_material_tasks,
             get_material_task,
             update_material_task_status,
+            update_material_task_stage_status,
             remove_material_task,
             reset_material_tasks,
             open_material_output_dir,

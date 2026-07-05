@@ -284,7 +284,16 @@ function mapSubStepStatus(status: TaskStatus, progress: number, threshold: numbe
 }
 
 function failedStageThreshold(stage: StageKey, file: MaterialFile) {
-  const progress = stage === "audio" ? file.audioProgress : stage === "video" ? file.videoProgress : file.progress;
+  const progress =
+    stage === "audio"
+      ? file.audioProgress
+      : stage === "image"
+        ? file.imageProgress
+        : stage === "subtitle"
+          ? file.subtitleProgress
+          : stage === "video"
+            ? file.videoProgress
+            : file.progress;
   const thresholds = STEP_SPECS.filter((step) => step.stage === stage).map((step) => step.threshold);
   return thresholds.find((threshold) => threshold >= clampProgress(progress)) ?? thresholds[thresholds.length - 1] ?? 100;
 }

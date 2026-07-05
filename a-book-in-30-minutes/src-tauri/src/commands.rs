@@ -14,7 +14,8 @@ use crate::models::{
     MaterialTaskProgressEvent, MaterialTaskStep, OperationLogEntry,
     ResetMaterialTasksRequest, ScanMaterialFilesRequest, ScanMaterialFilesResult,
     SpeechPreviewRequest, SpeechProfile, SpeechRegionKeyRequest, SpeechRegionKeyResult,
-    SpeechTestResult, SpeechVoice, ToolTestResult, UpdateInfo, UpdateMaterialTaskStatusRequest,
+    SpeechTestResult, SpeechVoice, ToolTestResult, UpdateInfo, UpdateMaterialTaskStageStatusRequest,
+    UpdateMaterialTaskStatusRequest,
 };
 use crate::operation_log::OperationLogger;
 use base64::Engine;
@@ -1756,6 +1757,72 @@ pub fn update_material_task_status(
 }
 
 #[tauri::command]
+pub fn update_material_task_stage_status(
+    data: State<'_, AppData>,
+    request: UpdateMaterialTaskStageStatusRequest,
+) -> Result<MaterialFile, CommandError> {
+    let path = request.path.trim();
+    if path.is_empty() {
+        return Err(command_error("请先选择 EPUB 任务。"));
+    }
+    let stage = normalize_video_pipeline_stage(Some(&request.stage));
+    let status = normalize_task_status(&request.status);
+    let progress = clamp_task_progress(request.progress);
+    let message = request.message.unwrap_or_default();
+    let connection = Connection::open(&data.db_path)
+        .map_err(|error| command_error(format!("Open material task database failed: {error}")))?;
+    ensure_material_tasks_table(&connection)?;
+    if connection
+        .query_row(
+            "SELECT 1 FROM material_tasks WHERE path = ?1 LIMIT 1",
+            params![path],
+            |_| Ok(()),
+        )
+        .is_err()
+    {
+        upsert_material_task(&connection, &material_file_from_path(path, DEFAULT_MATERIAL_CATEGORY)?)?;
+    }
+    let now = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+    match stage.as_str() {
+        "image" => {
+            connection
+                .execute(
+                    "UPDATE material_tasks
+                     SET image_status = ?2, image_progress = ?3, image_output_dir = ?4,
+                         image_message = ?5, updated_at = ?6
+                     WHERE path = ?1",
+                    params![path, status, progress, request.output_path, message, now],
+                )
+                .map_err(|error| command_error(format!("Update image task status failed: {error}")))?;
+        }
+        "subtitle" => {
+            connection
+                .execute(
+                    "UPDATE material_tasks
+                     SET subtitle_status = ?2, subtitle_progress = ?3, subtitle_file = ?4,
+                         subtitle_message = ?5, updated_at = ?6
+                     WHERE path = ?1",
+                    params![path, status, progress, request.output_path, message, now],
+                )
+                .map_err(|error| command_error(format!("Update subtitle task status failed: {error}")))?;
+        }
+        _ => {
+            connection
+                .execute(
+                    "UPDATE material_tasks
+                     SET video_status = ?2, video_progress = ?3, video_file = ?4,
+                         video_message = ?5, updated_at = ?6
+                     WHERE path = ?1",
+                    params![path, status, progress, request.output_path, message, now],
+                )
+                .map_err(|error| command_error(format!("Update video task status failed: {error}")))?;
+        }
+    }
+    load_material_task_by_path(&connection, path)?
+        .ok_or_else(|| command_error("Material task was not found after stage status update."))
+}
+
+#[tauri::command]
 pub fn remove_material_task(
     data: State<'_, AppData>,
     request: MaterialTaskPathRequest,
@@ -2394,10 +2461,12 @@ pub fn generate_book_video_pipeline(
     )?;
     let pipeline_stage = normalize_video_pipeline_stage(request.pipeline_stage.as_deref());
     let app_material_dir = resolve_task_material_dir_for_video(&data.db_path, epub_path);
+    let log_module = video_pipeline_stage_log_module(&pipeline_stage);
+    let pipeline_label = video_pipeline_stage_pipeline_label(&pipeline_stage);
     data.logger.trace_info(
-        "video",
+        log_module,
         "pipeline.spawn",
-        "视频流水线后台任务已创建",
+        &format!("{pipeline_label}后台任务已创建"),
         format!(
             "阶段={} epub={} 输出目录={} script={} python={}",
             video_pipeline_stage_label(&pipeline_stage),
@@ -2415,13 +2484,14 @@ pub fn generate_book_video_pipeline(
     match pipeline_stage.as_str() {
         "image" => {
             let _ = connection.execute(
-                "UPDATE material_tasks SET image_status = 'generating', image_progress = 20, image_message = '正在生成图片素材', updated_at = ?2 WHERE path = ?1",
+                "UPDATE material_tasks SET image_status = 'generating', image_progress = 0, image_output_dir = NULL, image_message = '正在生成图片素材', updated_at = ?2 WHERE path = ?1",
                 params![epub_path, now],
             );
+            reset_image_task_steps_for_trace(&data.db_path, &trace_id, epub_path);
         }
         "subtitle" => {
             let _ = connection.execute(
-                "UPDATE material_tasks SET subtitle_status = 'generating', subtitle_progress = 20, subtitle_message = '正在生成字幕文件', updated_at = ?2 WHERE path = ?1",
+                "UPDATE material_tasks SET subtitle_status = 'generating', subtitle_progress = 0, subtitle_file = NULL, subtitle_message = '正在生成字幕文件', updated_at = ?2 WHERE path = ?1",
                 params![epub_path, now],
             );
         }
@@ -2567,10 +2637,12 @@ fn run_book_video_pipeline_background(
     pipeline_stage: String,
 ) {
     let started = Instant::now();
+    let log_module = video_pipeline_stage_log_module(&pipeline_stage);
+    let pipeline_label = video_pipeline_stage_pipeline_label(&pipeline_stage);
     logger.trace_info(
-        "video",
+        log_module,
         "pipeline.start",
-        "视频流水线开始执行",
+        &format!("{pipeline_label}开始执行"),
         format!(
             "阶段={} epub={} script={} python={}",
             video_pipeline_stage_label(&pipeline_stage),
@@ -2585,12 +2657,12 @@ fn run_book_video_pipeline_background(
         &epub_path,
         &pipeline_stage,
         "generating",
-        45,
+        video_pipeline_initial_progress(&pipeline_stage),
         None,
         None,
         None,
         None,
-        "Preparing video pipeline",
+        &format!("Preparing {pipeline_label}"),
     );
 
     let mut command = Command::new(&python);
@@ -2640,9 +2712,9 @@ fn run_book_video_pipeline_background(
         Err(error) => {
             let message = format!("Failed to launch video pipeline: {error}");
             logger.trace_error(
-                "video",
+                log_module,
                 "pipeline.failed",
-                "Video pipeline failed",
+                &format!("{pipeline_label}失败"),
                 &message,
                 &trace_id,
             );
@@ -2673,9 +2745,9 @@ fn run_book_video_pipeline_background(
         Err(error) => {
             let message = format!("Video pipeline wait failed: {error}");
             logger.trace_error(
-                "video",
+                log_module,
                 "pipeline.failed",
-                "Video pipeline failed",
+                &format!("{pipeline_label}失败"),
                 &message,
                 &trace_id,
             );
@@ -2709,9 +2781,9 @@ fn run_book_video_pipeline_background(
             text_preview(&stderr, 4000)
         );
         logger.trace_error(
-            "video",
+            log_module,
             "pipeline.failed",
-            "Video pipeline failed",
+            &format!("{pipeline_label}失败"),
             &detail,
             &trace_id,
         );
@@ -2726,6 +2798,18 @@ fn run_book_video_pipeline_background(
             None,
             &text_preview(&(stderr + &stdout), 240),
         );
+        if pipeline_stage == "image" {
+            upsert_material_task_step_db(
+                &db_path,
+                &trace_id,
+                &epub_path,
+                "B-01",
+                "图片：生成封面",
+                "failed",
+                0,
+                "图片流水线执行失败。",
+            );
+        }
         return;
     }
 
@@ -2733,9 +2817,9 @@ fn run_book_video_pipeline_background(
         Ok(json) => json,
         Err(error) => {
             logger.trace_error(
-                "video",
+                log_module,
                 "pipeline.parse_failed",
-                "Video pipeline JSON parse failed",
+                &format!("{pipeline_label}结果解析失败"),
                 &error.message,
                 &trace_id,
             );
@@ -2769,9 +2853,9 @@ fn run_book_video_pipeline_background(
         None => {
             let message = "Video pipeline result is missing materialDir";
             logger.trace_error(
-                "video",
+                log_module,
                 "pipeline.parse_failed",
-                "Video pipeline JSON parse failed",
+                &format!("{pipeline_label}结果解析失败"),
                 message,
                 &trace_id,
             );
@@ -2805,8 +2889,28 @@ fn run_book_video_pipeline_background(
             None,
             &format!("图片素材已生成：{} 张", visual_asset_count),
         );
+        upsert_material_task_step_db(
+            &db_path,
+            &trace_id,
+            &epub_path,
+            "B-01",
+            "图片：生成封面",
+            "success",
+            100,
+            if cover.is_empty() { "封面随图片素材阶段完成。" } else { "封面已生成。" },
+        );
+        upsert_material_task_step_db(
+            &db_path,
+            &trace_id,
+            &epub_path,
+            "B-02",
+            "图片：生成分镜图",
+            "success",
+            100,
+            &format!("分镜图已生成：{} 张。", visual_asset_count),
+        );
         logger.trace_info(
-            "video",
+            "image",
             "pipeline.visual_done",
             "图片流水线完成",
             format!(
@@ -3131,6 +3235,52 @@ fn video_pipeline_stage_label(stage: &str) -> &'static str {
         "subtitle" => "字幕",
         _ => "视频",
     }
+}
+
+fn video_pipeline_stage_pipeline_label(stage: &str) -> &'static str {
+    match stage {
+        "image" => "图片流水线",
+        "subtitle" => "字幕流水线",
+        _ => "视频流水线",
+    }
+}
+
+fn video_pipeline_stage_log_module(stage: &str) -> &'static str {
+    match stage {
+        "image" => "image",
+        "subtitle" => "subtitle",
+        _ => "video",
+    }
+}
+
+fn video_pipeline_initial_progress(stage: &str) -> i64 {
+    match stage {
+        "image" | "subtitle" => 0,
+        _ => 45,
+    }
+}
+
+fn reset_image_task_steps_for_trace(db_path: &Path, trace_id: &str, epub_path: &str) {
+    upsert_material_task_step_db(
+        db_path,
+        trace_id,
+        epub_path,
+        "B-01",
+        "图片：生成封面",
+        "generating",
+        0,
+        "图片阶段已重新开始，正在准备封面和视觉素材。",
+    );
+    upsert_material_task_step_db(
+        db_path,
+        trace_id,
+        epub_path,
+        "B-02",
+        "图片：生成分镜图",
+        "pending",
+        0,
+        "等待图片生成服务返回分镜图。",
+    );
 }
 
 fn count_image_files_in_dir(path: &Path) -> Option<i64> {

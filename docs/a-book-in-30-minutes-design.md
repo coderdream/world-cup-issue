@@ -15,7 +15,7 @@
 - 应用目录：`a-book-in-30-minutes`
 - Tauri 标识：`com.abookin30minutes.desktop`
 - Rust crate：`a_book_in_30_minutes`
-- 当前版本：`0.1.144`
+- 当前版本：`0.1.145`
 
 核心输出包括视频标题、简介、标签、旁白稿、字幕文本、SRT/ASS 字幕、生成提示词、源书概览、结构化素材 JSON、微软语音 SSML、旁白 mp3、AI 原始高清图片、图片资产清单和图片-字幕时间轴。
 
@@ -1623,3 +1623,9 @@ Initial AI material generation no longer falls back to local template-based mate
 Formal image generation uses the MacMini image service by default through `OPENAI_IMAGE_MODE=macmini-realistic` and `MACMINI_IMAGE_ENDPOINT=http://100.96.199.26:30020/v1/images/generations` for the home-network Tailscale path. In this mode the pipeline must not inherit the text-generation model from `ABOOK_AI_MODEL`; it explicitly passes a valid image model, defaulting to `SG161222/Realistic_Vision_V5.1_noVAE`, so text models such as `gpt-5.5` are never sent to the Hugging Face image backend.
 
 The whiteboard image skill may still have its own `.env` for standalone use. The pipeline therefore passes the image mode, endpoint, and image model in the subprocess environment so app runs override any stale standalone text-model setting.
+
+## 2026-07-05 0.1.145 Pipeline Stage Status Isolation
+
+The Pipeline page now treats Image, Subtitle, and Video as separate persisted stages. Starting Image uses an `image` trace id, writes `image_status=generating` with `image_progress=0`, clears the old image output path, and initializes the current trace's B-01/B-02 step rows so Step Tracking no longer shows stale 100% rows from an earlier image run.
+
+The Stop Task action updates only the active stage. Stopping Image marks the image stage failed without changing the Text status, narration character count, or material output directory. Backend operation logs use the current stage label, so clicking Image logs 图片流水线 instead of 视频流水线.

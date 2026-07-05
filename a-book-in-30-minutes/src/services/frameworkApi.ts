@@ -35,6 +35,7 @@ import type {
   SpeechTestResult,
   ToolTestResult,
   UpdateInfo,
+  UpdateMaterialTaskStageStatusRequest,
   UpdateMaterialTaskStatusRequest
 } from "@/types";
 
@@ -107,6 +108,9 @@ export const frameworkApi = {
   },
   updateMaterialTaskStatus(request: UpdateMaterialTaskStatusRequest) {
     return callCommand<MaterialFile>("update_material_task_status", { request });
+  },
+  updateMaterialTaskStageStatus(request: UpdateMaterialTaskStageStatusRequest) {
+    return callCommand<MaterialFile>("update_material_task_stage_status", { request });
   },
   removeMaterialTask(request: MaterialTaskPathRequest) {
     return callCommand<boolean>("remove_material_task", { request });

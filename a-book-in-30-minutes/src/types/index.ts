@@ -307,6 +307,15 @@ export interface UpdateMaterialTaskStatusRequest {
   message?: string;
 }
 
+export interface UpdateMaterialTaskStageStatusRequest {
+  path: string;
+  stage: "image" | "subtitle" | "video";
+  status: "pending" | "generating" | "success" | "failed";
+  progress: number;
+  outputPath?: string | null;
+  message?: string;
+}
+
 export interface MaterialTaskProgressEvent {
   traceId: string;
   path: string;
