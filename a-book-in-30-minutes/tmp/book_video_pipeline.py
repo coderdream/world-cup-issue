@@ -123,47 +123,15 @@ def newest_audio(material_root: Path, exclude_names: set[str] | None = None) -> 
         lower_stem = path.stem.lower()
         if lower_name in excluded_names or lower_name.startswith("_"):
             return True
-        if lower_stem.startswith(("hard_subtitle", "narration_for_video")):
-            return True
-        if lower_stem.endswith(("_无字幕母版", "_中英双语字幕_精修版")):
-            return True
-        return False
-
-    root_candidates = []
-    for pattern in ("*.mp3", "*.wav"):
-        root_candidates.extend(
-            path for path in material_root.glob(pattern)
-            if path.is_file() and not is_generated_audio(path)
-        )
-    if root_candidates:
-        return max(root_candidates, key=lambda path: path.stat().st_mtime)
-    nested_candidates = []
-    for pattern in ("audio/**/*.mp3", "audio/**/*.wav"):
-        nested_candidates.extend(
-            path for path in material_root.glob(pattern)
-            if path.is_file() and not is_generated_audio(path)
-        )
-    if not nested_candidates:
-        return None
-    return max(nested_candidates, key=lambda path: path.stat().st_mtime)
-
-
-def newest_audio(material_root: Path, exclude_names: set[str] | None = None) -> Path | None:
-    exclude_names = exclude_names or set()
-    excluded_names = {name.lower() for name in exclude_names}
-
-    def is_generated_audio(path: Path) -> bool:
-        lower_name = path.name.lower()
-        lower_stem = path.stem.lower()
-        if lower_name in excluded_names or lower_name.startswith("_"):
-            return True
         if re.match(r"part_\d+\.(mp3|wav)$", lower_name):
             return True
         if lower_name in {"concat.txt", "concat_video_source.txt", "header.mp3"}:
             return True
         if lower_stem.startswith(("hard_subtitle", "narration_for_video")):
             return True
-        if lower_stem.endswith(("_无字幕母版", "_中英双语字幕_精修版")):
+        if lower_stem.endswith(("_无字幕母版", "_中英双语字幕_精修版", "_video_mix")):
+            return True
+        if lower_stem in {"video_mix", "narration_for_video"}:
             return True
         return False
 
@@ -197,6 +165,23 @@ def audio_manifest_expected_duration(material_root: Path) -> int | None:
         return None
     duration = manifest.get("durationMs")
     return duration if isinstance(duration, int) and duration > 0 else None
+
+
+def audio_manifest_final_audio(material_root: Path) -> Path | None:
+    manifest_path = material_root / "audio_manifest.json"
+    if not manifest_path.exists():
+        return None
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8", errors="ignore"))
+    except Exception:
+        return None
+    final_audio = manifest.get("finalAudioFile")
+    if not isinstance(final_audio, str) or not final_audio.strip():
+        return None
+    path = Path(final_audio)
+    if not path.is_absolute():
+        path = material_root / path
+    return path if path.is_file() else None
 
 
 def audio_part_files(material_root: Path) -> list[Path]:
@@ -237,7 +222,10 @@ def concat_audio_parts(parts: list[Path], output: Path) -> Path:
 def select_narration_source_audio(material_root: Path, preferred: Path) -> tuple[Path, str, int | None]:
     expected_duration_ms = audio_manifest_expected_duration(material_root)
     candidates: list[Path] = []
-    if preferred.is_file():
+    manifest_audio = audio_manifest_final_audio(material_root)
+    if manifest_audio and manifest_audio not in candidates:
+        candidates.append(manifest_audio)
+    if preferred.is_file() and preferred not in candidates:
         candidates.append(preferred)
     detected = newest_audio(material_root, {preferred.name})
     if detected and detected not in candidates:
@@ -249,7 +237,7 @@ def select_narration_source_audio(material_root: Path, preferred: Path) -> tuple
         except Exception:
             continue
         if expected_duration_ms is None or abs(duration_ms - expected_duration_ms) <= 5000:
-            kind = "manifest_final_audio" if candidate == preferred else "detected_full_audio"
+            kind = "manifest_final_audio" if manifest_audio and candidate == manifest_audio else "detected_full_audio"
             return candidate, kind, expected_duration_ms
 
     parts = audio_part_files(material_root)
@@ -1286,6 +1274,14 @@ def prepend_header_audio(header: Path, narration: Path, output: Path) -> Path:
     if not ffmpeg:
         raise RuntimeError("ffmpeg was not found, so audio cannot be combined.")
     output.parent.mkdir(parents=True, exist_ok=True)
+    actual_output = output
+    replace_output = False
+    try:
+        if narration.resolve() == output.resolve():
+            actual_output = output.with_name(f"{output.stem}.tmp{output.suffix}")
+            replace_output = True
+    except OSError:
+        pass
     run(
         [
             ffmpeg,
@@ -1304,9 +1300,11 @@ def prepend_header_audio(header: Path, narration: Path, output: Path) -> Path:
             "libmp3lame",
             "-b:a",
             "160k",
-            str(output),
+            str(actual_output),
         ]
     )
+    if replace_output:
+        actual_output.replace(output)
     return output
 
 

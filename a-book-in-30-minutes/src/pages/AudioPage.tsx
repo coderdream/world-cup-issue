@@ -265,7 +265,7 @@ function getStage(file: MaterialFile, stage: StageKey) {
   if (stage === "image") return { status: file.imageStatus, progress: clampProgress(file.imageProgress), message: file.imageMessage };
   if (stage === "subtitle") return { status: file.subtitleStatus, progress: clampProgress(file.subtitleProgress), message: file.subtitleMessage };
   if (stage === "video") return { status: file.videoStatus, progress: clampProgress(file.videoProgress), message: file.videoMessage };
-  if (stage === "publish") return { status: file.videoFile ? "success" : file.videoStatus, progress: file.videoFile ? 100 : clampProgress(file.videoProgress), message: file.videoFile ? "等待生成发布资料" : file.videoMessage };
+  if (stage === "publish") return { status: "pending" as TaskStatus, progress: 0, message: file.videoFile ? "等待生成发布资料" : "等待视频完成后生成发布资料" };
   if (file.materialOutputDir) return { status: "success" as TaskStatus, progress: 100, message: file.message };
   return { status: file.status, progress: clampProgress(file.progress), message: file.message };
 }
