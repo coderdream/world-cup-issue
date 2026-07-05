@@ -15,7 +15,7 @@
 - 应用目录：`a-book-in-30-minutes`
 - Tauri 标识：`com.abookin30minutes.desktop`
 - Rust crate：`a_book_in_30_minutes`
-- 当前版本：`0.1.150`
+- 当前版本：`0.1.151`
 
 核心输出包括视频标题、简介、标签、旁白稿、字幕文本、SRT/ASS 字幕、生成提示词、源书概览、结构化素材 JSON、微软语音 SSML、旁白 mp3、AI 原始高清图片、图片资产清单和图片-字幕时间轴。
 
@@ -67,7 +67,7 @@
 
 图片阶段后端读取素材目录时必须使用 SQLite `material_tasks.material_output_dir`，不能使用固定字符串或错误 SQL；否则已生成的 `hard_subtitle.aeneas.cmn.srt` / `hard_subtitle.aeneas.chn.srt` 会被误判缺失。前置校验失败时，后端必须同时把 `image_status` 收口为 `failed`，并将仍处于 `generating` 的视频状态收口为失败，避免步骤跟踪同时显示图片和视频进行中。
 
-图片生成支持可选远程 Qwen Image 后端。Tauri 启动视频脚本时默认设置 `BOOK_IMAGE_BACKEND=qwen-image-2512`、`QWEN_IMAGE_BASE_URL=http://100.96.199.26:8188`、`QWEN_IMAGE_WIDTH=1024`、`QWEN_IMAGE_HEIGHT=576`、`QWEN_IMAGE_STEPS=4`。脚本通过 ComfyUI `POST /prompt`、`GET /history/{prompt_id}` 和 `/view` 生成并下载图片，输出到 `qwen_image_2512` 目录，同时写入 `qwen_image_2512_manifest.json` 和 `visual_assets_manifest.json`。若 Qwen 服务不可用、超时或输出低质量图片，脚本必须在 stderr 写明原因并回退到现有 whiteboard image skill，保证流水线有明确日志且不中断。
+图片生成支持可选远程 Qwen Image 后端。Tauri 启动视频脚本时默认设置 `BOOK_IMAGE_BACKEND=qwen-image-2512`、`QWEN_IMAGE_BASE_URL=http://100.96.199.26:8188`、`QWEN_IMAGE_WIDTH=1024`、`QWEN_IMAGE_HEIGHT=576`、`QWEN_IMAGE_STEPS=4`、`QWEN_IMAGE_REQUEST_TIMEOUT_SECONDS=600`、`QWEN_IMAGE_MAX_WAIT_SECONDS=7200`、`QWEN_IMAGE_POLL_SECONDS=10`。`100.96.199.26` 是 MacMini4 的 Tailscale IP，当前在家里或不在同一局域网时必须使用该地址，不要改用公司/局域网 NAS 地址。脚本通过 ComfyUI `POST /prompt`、`GET /history/{prompt_id}` 和 `/view` 生成并下载图片，输出到 `qwen_image_2512` 目录，同时写入 `qwen_image_2512_manifest.json` 和 `visual_assets_manifest.json`。Qwen 生成单张图可能耗时数分钟，HTTP socket timeout 必须长于生成时间；脚本必须在 stderr 输出每张图的 queued、waiting 和 generated 进度，避免操作日志看起来像卡住。若 Qwen 服务不可用、超时或输出低质量图片，脚本必须在 stderr 写明原因并回退到现有 whiteboard image skill，保证流水线有明确日志且不中断。
 
 素材生成默认参数保存在 `settings.materialProfile`，包括 `channelName`、`categoryName`、`categories`、`language`、`targetMinChars`、`targetMaxChars` 和 ```textraDirection`。默认目标为 `7000-8300` 个中文字，最佳约 `7600` 字，用于配合 `0%` 原速语音生成约 `30-35` 分钟睡前听书音频，并尽量避免最终音频超过 `35:00`；如果用户调整目标时长，应优先调整这两个字数配置，而不是为了压缩时长提高语速。`categories` 默认包含 `半小时听完一本书`、`睡前听完一本书`、`A Book in 30 Minutes`，配置页允许新增分类；`categoryName` 是当前任务入库分类，等价于后续 YouTube 播放列表名称；`channelName` 为兼容旧生成提示词保留，当前选择分类时会同步更新。素材生成页不再直接编辑这些参数，生成请求会把当前配置合并进请求体。文件级生成状态同时保存在 `materialsWorkbench.fileStatuses` 和 SQLite `material_tasks`，按文件路径记录状态、五档进度、成稿字数和失败信息。
 

@@ -1804,7 +1804,7 @@ def qwen_image_workflow(prompt: str, *, width: int, height: int, steps: int, see
     }
 
 
-def qwen_image_request_json(url: str, payload: dict | None = None, timeout: int = 30) -> dict:
+def qwen_image_request_json(url: str, payload: dict | None = None, timeout: int = 600) -> dict:
     data = json.dumps(payload).encode("utf-8") if payload is not None else None
     request = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
     with urllib.request.urlopen(request, timeout=timeout) as response:
@@ -1822,8 +1822,10 @@ def generate_qwen_image_assets(
     width = int(os.environ.get("QWEN_IMAGE_WIDTH", "1024") or "1024")
     height = int(os.environ.get("QWEN_IMAGE_HEIGHT", "576") or "576")
     steps = int(os.environ.get("QWEN_IMAGE_STEPS", "8") or "8")
-    poll_seconds = int(os.environ.get("QWEN_IMAGE_POLL_SECONDS", "5") or "5")
-    max_polls = int(os.environ.get("QWEN_IMAGE_MAX_POLLS", "360") or "360")
+    request_timeout = int(os.environ.get("QWEN_IMAGE_REQUEST_TIMEOUT_SECONDS", "600") or "600")
+    poll_seconds = int(os.environ.get("QWEN_IMAGE_POLL_SECONDS", "10") or "10")
+    max_wait_seconds = int(os.environ.get("QWEN_IMAGE_MAX_WAIT_SECONDS", str(2 * 60 * 60)) or str(2 * 60 * 60))
+    max_polls = max(1, max_wait_seconds // max(1, poll_seconds))
     image_dir = video_dir / "qwen_image_2512"
     image_dir.mkdir(parents=True, exist_ok=True)
     prompts = build_whiteboard_skill_prompts(
@@ -1838,17 +1840,23 @@ def generate_qwen_image_assets(
         prefix = f"qwen_image_2512_{index:02d}"
         seed = int(os.environ.get("QWEN_IMAGE_SEED", "20260705") or "20260705") + index
         workflow = qwen_image_workflow(prompt, width=width, height=height, steps=steps, seed=seed, prefix=prefix)
+        print(
+            f"Qwen Image queue {index}/{len(prompts)} via {base_url} ({width}x{height}, steps={steps}, seed={seed})",
+            file=sys.stderr,
+            flush=True,
+        )
         queued = qwen_image_request_json(
             f"{base_url}/prompt",
             {"prompt": workflow, "client_id": str(uuid.uuid4())},
-            timeout=30,
+            timeout=request_timeout,
         )
         prompt_id = queued.get("prompt_id")
         if not prompt_id:
             raise RuntimeError(f"Qwen Image did not return prompt_id: {queued}")
         info = None
+        started_at = time.time()
         for _ in range(max_polls):
-            history = qwen_image_request_json(f"{base_url}/history/{prompt_id}", timeout=10)
+            history = qwen_image_request_json(f"{base_url}/history/{prompt_id}", timeout=request_timeout)
             if prompt_id in history:
                 outputs = history[prompt_id].get("outputs", {})
                 images = outputs.get("10", {}).get("images", [])
@@ -1856,9 +1864,15 @@ def generate_qwen_image_assets(
                     raise RuntimeError(f"Qwen Image finished without image output: {history[prompt_id]}")
                 info = images[0]
                 break
+            waited = int(time.time() - started_at)
+            print(
+                f"Qwen Image waiting {index}/{len(prompts)} prompt_id={prompt_id} waited={waited}s",
+                file=sys.stderr,
+                flush=True,
+            )
             time.sleep(poll_seconds)
         if info is None:
-            raise TimeoutError(f"Timed out waiting for Qwen Image prompt {prompt_id}")
+            raise TimeoutError(f"Timed out after {max_wait_seconds}s waiting for Qwen Image prompt {prompt_id}")
         params = urllib.parse.urlencode(
             {
                 "filename": info["filename"],
@@ -1866,7 +1880,7 @@ def generate_qwen_image_assets(
                 "type": info.get("type", "output"),
             }
         )
-        raw = urllib.request.urlopen(f"{base_url}/view?{params}", timeout=60).read()
+        raw = urllib.request.urlopen(f"{base_url}/view?{params}", timeout=request_timeout).read()
         source = image_dir / f"{prefix}.png"
         source.write_bytes(raw)
         assert_meaningful_image(source)
