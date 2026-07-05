@@ -2,6 +2,7 @@
 import argparse
 import difflib
 import json
+import math
 import os
 import re
 import shutil
@@ -1790,15 +1791,42 @@ def qwen_image_workflow(prompt: str, *, width: int, height: int, steps: int, see
         "QWEN_IMAGE_NEGATIVE_PROMPT",
         "low quality, blurry, distorted, bad anatomy, oversaturated, text artifacts, watermark, logo, unreadable text, messy composition",
     )
+    mode = os.environ.get("QWEN_IMAGE_WORKFLOW", "gguf").strip().lower()
+    if mode in {"gguf", "q2", "q2_k"}:
+        model_node = {"class_type": "UnetLoaderGGUF", "inputs": {"unet_name": os.environ.get("QWEN_IMAGE_GGUF_MODEL", "qwen-image-2512-Q2_K.gguf")}}
+        sampled_model = ["4", 0]
+        extra_nodes = {
+            "4": {"class_type": "ModelSamplingAuraFlow", "inputs": {"model": ["1", 0], "shift": 3.1}},
+        }
+    else:
+        model_node = {
+            "class_type": "UNETLoader",
+            "inputs": {
+                "unet_name": os.environ.get("QWEN_IMAGE_DIFFUSION_MODEL", "qwen_image_2512_fp8_e4m3fn.safetensors"),
+                "weight_dtype": os.environ.get("QWEN_IMAGE_WEIGHT_DTYPE", "default"),
+            },
+        }
+        sampled_model = ["11", 0]
+        extra_nodes = {
+            "4": {
+                "class_type": "LoraLoaderModelOnly",
+                "inputs": {
+                    "model": ["1", 0],
+                    "lora_name": os.environ.get("QWEN_IMAGE_LORA_MODEL", "Qwen-Image-2512-Lightning-4steps-V1.0-fp32.safetensors"),
+                    "strength_model": float(os.environ.get("QWEN_IMAGE_LORA_STRENGTH", "1") or "1"),
+                },
+            },
+            "11": {"class_type": "ModelSamplingAuraFlow", "inputs": {"model": ["4", 0], "shift": 3.1}},
+        }
     return {
-        "1": {"class_type": "UnetLoaderGGUF", "inputs": {"unet_name": "qwen-image-2512-Q2_K.gguf"}},
+        "1": model_node,
         "2": {"class_type": "CLIPLoader", "inputs": {"clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors", "type": "qwen_image", "device": "default"}},
         "3": {"class_type": "VAELoader", "inputs": {"vae_name": "qwen_image_vae.safetensors"}},
-        "4": {"class_type": "ModelSamplingAuraFlow", "inputs": {"model": ["1", 0], "shift": 3.1}},
+        **extra_nodes,
         "5": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["2", 0], "text": prompt}},
         "6": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["2", 0], "text": negative}},
         "7": {"class_type": "EmptySD3LatentImage", "inputs": {"width": width, "height": height, "batch_size": 1}},
-        "8": {"class_type": "KSampler", "inputs": {"model": ["4", 0], "positive": ["5", 0], "negative": ["6", 0], "latent_image": ["7", 0], "seed": seed, "steps": steps, "cfg": 4.0, "sampler_name": "euler", "scheduler": "simple", "denoise": 1.0}},
+        "8": {"class_type": "KSampler", "inputs": {"model": sampled_model, "positive": ["5", 0], "negative": ["6", 0], "latent_image": ["7", 0], "seed": seed, "steps": steps, "cfg": 4.0, "sampler_name": "euler", "scheduler": "simple", "denoise": 1.0}},
         "9": {"class_type": "VAEDecode", "inputs": {"samples": ["8", 0], "vae": ["3", 0]}},
         "10": {"class_type": "SaveImage", "inputs": {"images": ["9", 0], "filename_prefix": prefix}},
     }
@@ -1892,7 +1920,10 @@ def generate_qwen_image_assets(
     manifest = {
         "sourceKind": "qwen_image_2512",
         "baseUrl": base_url,
-        "model": "qwen-image-2512-Q2_K.gguf",
+        "workflow": os.environ.get("QWEN_IMAGE_WORKFLOW", "gguf").strip().lower() or "gguf",
+        "diffusionModel": os.environ.get("QWEN_IMAGE_DIFFUSION_MODEL", "qwen_image_2512_fp8_e4m3fn.safetensors"),
+        "loraModel": os.environ.get("QWEN_IMAGE_LORA_MODEL", "Qwen-Image-2512-Lightning-4steps-V1.0-fp32.safetensors"),
+        "ggufModel": os.environ.get("QWEN_IMAGE_GGUF_MODEL", "qwen-image-2512-Q2_K.gguf"),
         "width": width,
         "height": height,
         "steps": steps,
@@ -2022,6 +2053,249 @@ def draw_camellia(draw: ImageDraw.ImageDraw, cx: int, cy: int, size: int, ink: t
     draw.arc((cx, cy + 50, cx + 82, cy + 126), 190, 340, fill=accent, width=5)
 
 
+def xiaohei_scene_groups(material_root: Path, subtitle_events: list[tuple[int, int, str]], scene_count: int) -> list[dict]:
+    clean_lines = load_chinese_subtitle_lines(material_root)
+    body_events = [(start, end, text) for start, end, text in subtitle_events if end > HEADER_AUDIO_DURATION_MS]
+    groups: list[dict] = []
+    line_cursor = 0
+    event_cursor = 0
+    for index in range(scene_count):
+        remaining_scenes = scene_count - index
+        if clean_lines:
+            remaining_lines = len(clean_lines) - line_cursor
+            take_lines = max(1, round(remaining_lines / remaining_scenes)) if remaining_scenes else remaining_lines
+            lines = clean_lines[line_cursor : line_cursor + take_lines]
+            line_cursor += take_lines
+            preview = " ".join(lines)
+        else:
+            remaining_events = len(body_events) - event_cursor
+            take_events = max(1, round(remaining_events / remaining_scenes)) if remaining_scenes else remaining_events
+            group_events = body_events[event_cursor : event_cursor + take_events]
+            event_cursor += take_events
+            lines = [text for _, _, text in group_events]
+            preview = " ".join(text.splitlines()[0].strip() for text in lines if text.strip())
+        if body_events:
+            start_slot = round(index * len(body_events) / scene_count)
+            end_slot = round((index + 1) * len(body_events) / scene_count)
+            event_group = body_events[start_slot:end_slot] or body_events[max(0, start_slot - 1):start_slot]
+            start_ms = event_group[0][0] if event_group else None
+            end_ms = event_group[-1][1] if event_group else None
+        else:
+            start_ms = None
+            end_ms = None
+        groups.append({"index": index + 1, "text": preview, "startMs": start_ms, "endMs": end_ms})
+    return groups
+
+
+def xiaohei_keywords(text: str, fallback: str) -> list[str]:
+    candidates = [
+        "清醒",
+        "耐心",
+        "理性",
+        "选择",
+        "错误",
+        "学习",
+        "投资",
+        "复利",
+        "边界",
+        "判断",
+        "机会",
+        "诱惑",
+        "善意",
+        "温柔",
+        "修正",
+        "时间",
+        "生活",
+        "自己",
+    ]
+    found = [word for word in candidates if word in text]
+    if not found:
+        compact = re.sub(r"[^\u4e00-\u9fff]", "", text)
+        found = [compact[i : i + 4] for i in range(0, min(len(compact), 12), 4) if compact[i : i + 4]]
+    found = [word[:6] for word in found if word.strip()]
+    return (found[:4] or [fallback])
+
+
+def draw_xiaohei(draw: ImageDraw.ImageDraw, x: int, y: int, scale: float, pose: str, ink: tuple[int, int, int]) -> None:
+    w = int(94 * scale)
+    h = int(128 * scale)
+    head = (x - w // 2, y - h, x + w // 2, y)
+    draw.ellipse(head, fill=ink)
+    eye = max(5, int(8 * scale))
+    draw.ellipse((x - int(26 * scale) - eye, y - int(70 * scale) - eye, x - int(26 * scale) + eye, y - int(70 * scale) + eye), fill=(255, 255, 255))
+    draw.ellipse((x + int(21 * scale) - eye, y - int(72 * scale) - eye, x + int(21 * scale) + eye, y - int(72 * scale) + eye), fill=(255, 255, 255))
+    arm_y = y - int(44 * scale)
+    if pose == "pull":
+        draw_sketch_line(draw, [(x - w // 2, arm_y), (x - int(150 * scale), arm_y - int(45 * scale))], ink, max(5, int(8 * scale)))
+        draw_sketch_line(draw, [(x + w // 2, arm_y), (x + int(142 * scale), arm_y + int(20 * scale))], ink, max(5, int(8 * scale)))
+    elif pose == "carry":
+        draw_sketch_line(draw, [(x - w // 2, arm_y), (x - int(120 * scale), arm_y - int(80 * scale))], ink, max(5, int(8 * scale)))
+        draw_sketch_line(draw, [(x + w // 2, arm_y), (x + int(120 * scale), arm_y - int(80 * scale))], ink, max(5, int(8 * scale)))
+    elif pose == "fix":
+        draw_sketch_line(draw, [(x - w // 2, arm_y), (x - int(105 * scale), arm_y + int(65 * scale))], ink, max(5, int(8 * scale)))
+        draw_sketch_line(draw, [(x + w // 2, arm_y), (x + int(130 * scale), arm_y - int(35 * scale))], ink, max(5, int(8 * scale)))
+    else:
+        draw_sketch_line(draw, [(x - w // 2, arm_y), (x - int(95 * scale), arm_y)], ink, max(5, int(8 * scale)))
+        draw_sketch_line(draw, [(x + w // 2, arm_y), (x + int(95 * scale), arm_y)], ink, max(5, int(8 * scale)))
+    draw_sketch_line(draw, [(x - int(22 * scale), y - int(3 * scale)), (x - int(38 * scale), y + int(78 * scale))], ink, max(5, int(8 * scale)))
+    draw_sketch_line(draw, [(x + int(22 * scale), y - int(3 * scale)), (x + int(42 * scale), y + int(78 * scale))], ink, max(5, int(8 * scale)))
+
+
+def draw_hand_label(
+    draw: ImageDraw.ImageDraw,
+    text: str,
+    xy: tuple[int, int],
+    font: ImageFont.ImageFont,
+    color: tuple[int, int, int],
+) -> None:
+    text = compact_text(text, 8)
+    draw.text(xy, text, font=font, fill=color)
+
+
+def draw_xiaohei_scene(path: Path, title: str, group: dict, scene_count: int) -> dict:
+    index = int(group["index"])
+    text = str(group.get("text") or "")
+    labels = xiaohei_keywords(text, "清醒")
+    patterns = ("workflow", "filter", "balance", "repair", "map", "layers", "well", "choice")
+    pattern = patterns[(index - 1) % len(patterns)]
+    bg = (255, 255, 255)
+    ink = (18, 18, 18)
+    muted = (202, 202, 202)
+    red = (210, 58, 48)
+    orange = (224, 126, 39)
+    blue = (42, 108, 190)
+    image = Image.new("RGB", (WIDTH, HEIGHT), bg)
+    draw = ImageDraw.Draw(image)
+    label_font = load_font(44, bold=True)
+    tiny_font = load_font(30)
+    draw.text((92, 72), f"{index:02d}/{scene_count:02d}", font=tiny_font, fill=muted)
+
+    if pattern == "workflow":
+        draw_sketch_rect(draw, (210, 395, 520, 620), ink, 6)
+        draw_sketch_rect(draw, (1310, 395, 1620, 620), ink, 6)
+        draw_sketch_line(draw, [(545, 505), (835, 505), (1085, 505), (1285, 505)], orange, 10)
+        draw.polygon([(1285, 505), (1235, 475), (1235, 535)], fill=orange)
+        draw_xiaohei(draw, 930, 650, 1.35, "pull", ink)
+        draw_hand_label(draw, labels[0], (258, 330), label_font, blue)
+        draw_hand_label(draw, labels[1] if len(labels) > 1 else "输出", (1372, 330), label_font, red)
+    elif pattern == "filter":
+        draw.polygon([(600, 260), (1220, 260), (1030, 585), (790, 585)], outline=ink)
+        draw_sketch_line(draw, [(600, 260), (790, 585), (790, 820)], ink, 7)
+        draw_sketch_line(draw, [(1220, 260), (1030, 585), (1030, 820)], ink, 7)
+        for i, word in enumerate(labels[:4]):
+            draw_hand_label(draw, word, (250 + i * 235, 205 + (i % 2) * 70), label_font, (blue, red, orange, ink)[i % 4])
+            draw.arc((330 + i * 235, 295, 455 + i * 235, 420), 190, 350, fill=muted, width=4)
+        draw_xiaohei(draw, 920, 820, 1.25, "carry", ink)
+        draw_sketch_rect(draw, (1340, 635, 1570, 770), ink, 6)
+    elif pattern == "balance":
+        draw_sketch_line(draw, [(450, 485), (1470, 485)], ink, 8)
+        draw_sketch_line(draw, [(960, 485), (960, 770)], ink, 8)
+        draw.arc((650, 465, 890, 745), 0, 180, fill=orange, width=7)
+        draw.arc((1070, 465, 1310, 745), 0, 180, fill=blue, width=7)
+        draw_xiaohei(draw, 960, 465, 1.05, "fix", ink)
+        draw_hand_label(draw, labels[0], (650, 765), label_font, orange)
+        draw_hand_label(draw, labels[1] if len(labels) > 1 else "边界", (1120, 765), label_font, blue)
+    elif pattern == "repair":
+        draw_sketch_rect(draw, (430, 330, 1480, 700), ink, 7)
+        for x in range(540, 1370, 150):
+            draw_sketch_line(draw, [(x, 330), (x + 80, 700)], muted, 4)
+        draw_sketch_line(draw, [(505, 520), (730, 480), (890, 560), (1110, 470), (1390, 535)], red, 9)
+        draw_xiaohei(draw, 910, 825, 1.28, "fix", ink)
+        draw_hand_label(draw, labels[0], (485, 240), label_font, red)
+        draw_hand_label(draw, labels[1] if len(labels) > 1 else "修正", (1240, 745), label_font, blue)
+    elif pattern == "map":
+        points = [(290, 760), (520, 590), (760, 685), (980, 455), (1250, 545), (1560, 330)]
+        draw_sketch_line(draw, points, orange, 10)
+        for x, y in points:
+            draw.ellipse((x - 28, y - 28, x + 28, y + 28), outline=ink, width=6)
+        draw_xiaohei(draw, 790, 590, 1.12, "pull", ink)
+        for i, word in enumerate(labels[:3]):
+            draw_hand_label(draw, word, (330 + i * 440, 825 - i * 70), label_font, (blue, red, orange)[i % 3])
+    elif pattern == "layers":
+        for i in range(4):
+            y = 720 - i * 115
+            draw_sketch_rect(draw, (565 + i * 55, y, 1355 - i * 55, y + 70), ink, 6)
+        draw_xiaohei(draw, 430, 780, 1.12, "carry", ink)
+        for i, word in enumerate(labels[:4]):
+            draw_hand_label(draw, word, (1410, 717 - i * 115), label_font, (orange, blue, red, ink)[i % 4])
+    elif pattern == "well":
+        for i in range(5):
+            draw.ellipse((670 - i * 35, 335 - i * 18, 1250 + i * 35, 735 + i * 18), outline=ink if i == 0 else muted, width=6 if i == 0 else 3)
+        draw_sketch_line(draw, [(960, 305), (960, 690)], blue, 8)
+        draw_xiaohei(draw, 960, 870, 1.22, "pull", ink)
+        draw_hand_label(draw, labels[0], (510, 260), label_font, blue)
+        draw_hand_label(draw, labels[1] if len(labels) > 1 else "捞出来", (1240, 760), label_font, red)
+    else:
+        draw_sketch_rect(draw, (360, 360, 700, 650), ink, 7)
+        draw_sketch_rect(draw, (1215, 360, 1555, 650), ink, 7)
+        draw_sketch_line(draw, [(830, 505), (1080, 505)], orange, 10)
+        draw.polygon([(1080, 505), (1030, 475), (1030, 535)], fill=orange)
+        draw_xiaohei(draw, 960, 760, 1.18, "stand", ink)
+        draw_hand_label(draw, labels[0], (430, 285), label_font, red)
+        draw_hand_label(draw, labels[1] if len(labels) > 1 else "下一步", (1280, 285), label_font, blue)
+
+    preview = compact_text(re.sub(r"\s+", "", text), 28)
+    image.save(path, quality=95)
+    return {"pattern": pattern, "labels": labels, "preview": preview}
+
+
+def assert_xiaohei_image(path: Path) -> None:
+    if not path.is_file() or path.stat().st_size < 8 * 1024:
+        raise RuntimeError(f"Xiaohei sequence image is missing or too small: {path}")
+    with Image.open(path) as image:
+        if image.size != (WIDTH, HEIGHT):
+            raise RuntimeError(f"Xiaohei sequence image has unexpected size {image.size}: {path}")
+        colors = image.convert("RGB").getcolors(maxcolors=512000)
+        color_count = len(colors or [])
+        if color_count < 16:
+            raise RuntimeError(f"Xiaohei sequence image has too few colors: {path} ({color_count})")
+
+
+def generate_xiaohei_sequence_assets(
+    video_dir: Path,
+    material_root: Path,
+    title: str,
+    description: str,
+    subtitle_events: list[tuple[int, int, str]],
+) -> tuple[list[Path], Path, str]:
+    scene_count = target_visual_scene_count(material_root, subtitle_events)
+    image_dir = video_dir / "xiaohei_sequence_images"
+    image_dir.mkdir(parents=True, exist_ok=True)
+    groups = xiaohei_scene_groups(material_root, subtitle_events, scene_count)
+    copied: list[Path] = []
+    series = []
+    for group in groups:
+        index = int(group["index"])
+        source = image_dir / f"xiaohei_{index:02d}.png"
+        meta = draw_xiaohei_scene(source, title or description or "book", group, scene_count)
+        assert_xiaohei_image(source)
+        dest = video_dir / f"visual_{index:02d}_xiaohei_sequence.png"
+        shutil.copy2(source, dest)
+        copied.append(dest)
+        series.append(
+            {
+                "index": index,
+                "image": str(dest),
+                "source": str(source),
+                "startMs": group.get("startMs"),
+                "endMs": group.get("endMs"),
+                **meta,
+            }
+        )
+        print(f"Xiaohei sequence generated {index}/{scene_count}: {dest}", file=sys.stderr, flush=True)
+    manifest = {
+        "sourceKind": "xiaohei_sequence",
+        "styleReference": "helloianneo/ian-xiaohei-illustrations",
+        "generatedAt": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "promptCount": scene_count,
+        "assets": [str(path) for path in copied],
+        "series": series,
+    }
+    (video_dir / "xiaohei_sequence_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    (video_dir / "visual_assets_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    return copied, image_dir, "xiaohei_sequence"
+
+
 def render_semantic_whiteboard_scene(path: Path, index: int, spec: dict) -> None:
     index = ((index - 1) % 8) + 1
     bg = (246, 241, 227)
@@ -2116,7 +2390,10 @@ def generate_whiteboard_skill_assets(
     description: str,
     subtitle_events: list[tuple[int, int, str]],
 ) -> tuple[list[Path], Path, str]:
-    if os.environ.get("BOOK_IMAGE_BACKEND", "").strip().lower() == "qwen-image-2512":
+    image_backend = os.environ.get("BOOK_IMAGE_BACKEND", "").strip().lower()
+    if image_backend == "xiaohei-sequence":
+        return generate_xiaohei_sequence_assets(video_dir, material_root, title, description, subtitle_events)
+    if image_backend == "qwen-image-2512":
         try:
             return generate_qwen_image_assets(video_dir, material_root, title, description, subtitle_events)
         except Exception as error:

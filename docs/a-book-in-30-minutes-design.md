@@ -61,13 +61,13 @@
 
 步骤跟踪中的发布阶段不能复用视频阶段的 `generating` 状态。发布只有在真实发布资料步骤执行时才显示进行中；视频已生成但发布资料未生成时显示等待生成发布资料，避免用户看到视频和发布两个阶段同时运行。
 
-图片阶段的正式内容图数量必须按字幕规模动态生成，范围固定为 32~64 张。目标数量按 `字幕行数 / 28` 向上取整后夹在该范围内；例如 1000 多行字幕通常生成约 36~40 张图片。禁止沿用早期 8 段验证分镜作为正式听书视频图片数量，因为 30~35 分钟视频中 8 张图会导致单张停留数分钟，视觉变化不足。若迁移到的本地旧图片素材少于 32 张，且允许程序化视觉生成，必须重新生成满足数量范围的图片。图片必须由正式图片生成器根据字幕区间生成 `book-illustration` 风格的内容图；禁止用低保真方框图、线框图、占位图或纯程序化示意图冒充正式图片。图片服务不可用时必须失败并在日志里写明连接错误，不允许静默降级为方框图。
+图片阶段的正式内容图数量必须按字幕规模动态生成，范围固定为 32~64 张。目标数量按 `字幕行数 / 28` 向上取整后夹在该范围内；例如 1000 多行字幕通常生成约 36~40 张图片。禁止沿用早期 8 段验证分镜作为正式听书视频图片数量，因为 30~35 分钟视频中 8 张图会导致单张停留数分钟，视觉变化不足。若迁移到的本地旧图片素材少于 32 张，且允许程序化视觉生成，必须重新生成满足数量范围的图片。默认正式图片后端为 `BOOK_IMAGE_BACKEND=xiaohei-sequence`：参考 `helloianneo/ian-xiaohei-illustrations` 的纯白背景、黑色手绘线稿、小黑角色、少量红/橙/蓝中文批注和单图单隐喻规则，按字幕区间快速生成 16:9 小黑序列图。禁止用低保真方框图、线框图或占位图冒充正式图片；但 `xiaohei-sequence` 这种有明确视觉规范、时间轴和 manifest 的轻量程序化序列图是正式后端，不依赖远程大模型。
 
 图片阶段不得早于字幕阶段执行。若缺少最终 mp3、中文字幕 SRT 或字幕对齐清单，图片阶段必须失败并提示先生成音频和字幕。图片分段以中文字幕 SRT 为准，而不是用 `subtitles.txt` 和估算时长临时切分。`visual_assets_manifest.json` 和 `visual_timeline.json` 都必须能追溯每张图覆盖的 `startMs`、`endMs`、字幕文本范围和源图片文件，视频阶段以该时间轴控制图片显示开始和结束。
 
 图片阶段后端读取素材目录时必须使用 SQLite `material_tasks.material_output_dir`，不能使用固定字符串或错误 SQL；否则已生成的 `hard_subtitle.aeneas.cmn.srt` / `hard_subtitle.aeneas.chn.srt` 会被误判缺失。前置校验失败时，后端必须同时把 `image_status` 收口为 `failed`，并将仍处于 `generating` 的视频状态收口为失败，避免步骤跟踪同时显示图片和视频进行中。
 
-图片生成支持可选远程 Qwen Image 后端。Tauri 启动视频脚本时默认设置 `BOOK_IMAGE_BACKEND=qwen-image-2512`、`QWEN_IMAGE_BASE_URL=http://100.96.199.26:8188`、`QWEN_IMAGE_WIDTH=1024`、`QWEN_IMAGE_HEIGHT=576`、`QWEN_IMAGE_STEPS=4`、`QWEN_IMAGE_REQUEST_TIMEOUT_SECONDS=600`、`QWEN_IMAGE_MAX_WAIT_SECONDS=7200`、`QWEN_IMAGE_POLL_SECONDS=10`。`100.96.199.26` 是 MacMini4 的 Tailscale IP，当前在家里或不在同一局域网时必须使用该地址，不要改用公司/局域网 NAS 地址。脚本通过 ComfyUI `POST /prompt`、`GET /history/{prompt_id}` 和 `/view` 生成并下载图片，输出到 `qwen_image_2512` 目录，同时写入 `qwen_image_2512_manifest.json` 和 `visual_assets_manifest.json`。Qwen 生成单张图可能耗时数分钟，HTTP socket timeout 必须长于生成时间；脚本必须在 stderr 输出每张图的 queued、waiting 和 generated 进度，避免操作日志看起来像卡住。若 Qwen 服务不可用、超时或输出低质量图片，脚本必须在 stderr 写明原因并回退到现有 whiteboard image skill，保证流水线有明确日志且不中断。
+图片生成仍保留可选远程 Qwen Image 后端。只有显式设置 `BOOK_IMAGE_BACKEND=qwen-image-2512` 时，脚本才读取 `QWEN_IMAGE_BASE_URL=http://100.96.199.26:8188`、`QWEN_IMAGE_WIDTH`、`QWEN_IMAGE_HEIGHT`、`QWEN_IMAGE_STEPS`、`QWEN_IMAGE_REQUEST_TIMEOUT_SECONDS`、`QWEN_IMAGE_MAX_WAIT_SECONDS` 和 `QWEN_IMAGE_POLL_SECONDS`。`100.96.199.26` 是 MacMini4 的 Tailscale IP，当前在家里或不在同一局域网时必须使用该地址，不要改用公司/局域网 NAS 地址。脚本通过 ComfyUI `POST /prompt`、`GET /history/{prompt_id}` 和 `/view` 生成并下载图片，输出到 `qwen_image_2512` 目录，同时写入 `qwen_image_2512_manifest.json` 和 `visual_assets_manifest.json`。Qwen 生成单张图可能耗时数分钟，HTTP socket timeout 必须长于生成时间；脚本必须在 stderr 输出每张图的 queued、waiting 和 generated 进度，避免操作日志看起来像卡住。若 Qwen 服务不可用、超时或输出低质量图片，脚本必须在 stderr 写明原因并回退到现有 whiteboard image skill，保证流水线有明确日志且不中断。
 
 素材生成默认参数保存在 `settings.materialProfile`，包括 `channelName`、`categoryName`、`categories`、`language`、`targetMinChars`、`targetMaxChars` 和 ```textraDirection`。默认目标为 `7000-8300` 个中文字，最佳约 `7600` 字，用于配合 `0%` 原速语音生成约 `30-35` 分钟睡前听书音频，并尽量避免最终音频超过 `35:00`；如果用户调整目标时长，应优先调整这两个字数配置，而不是为了压缩时长提高语速。`categories` 默认包含 `半小时听完一本书`、`睡前听完一本书`、`A Book in 30 Minutes`，配置页允许新增分类；`categoryName` 是当前任务入库分类，等价于后续 YouTube 播放列表名称；`channelName` 为兼容旧生成提示词保留，当前选择分类时会同步更新。素材生成页不再直接编辑这些参数，生成请求会把当前配置合并进请求体。文件级生成状态同时保存在 `materialsWorkbench.fileStatuses` 和 SQLite `material_tasks`，按文件路径记录状态、五档进度、成稿字数和失败信息。
 
@@ -1641,6 +1641,14 @@ The whiteboard image skill may still have its own `.env` for standalone use. The
 The Pipeline page now treats Image, Subtitle, and Video as separate persisted stages. Starting Image uses an `image` trace id, writes `image_status=generating` with `image_progress=0`, clears the old image output path, and initializes the current trace's image step rows so Step Tracking no longer shows stale 100% rows from an earlier image run.
 
 The Stop Task action updates only the active stage. Stopping Image marks the image stage failed without changing the Text status, narration character count, or material output directory. Backend operation logs use the current stage label, so clicking Image logs 图片流水线 instead of 视频流水线.
+
+## 2026-07-05 0.1.152 Xiaohei Sequence Image Backend
+
+The Image stage now defaults to `BOOK_IMAGE_BACKEND=xiaohei-sequence` instead of Qwen or MacMini Realistic Vision. This backend generates 32-64 lightweight 16:9 PNG images locally from subtitle-aligned scene groups, using the `helloianneo/ian-xiaohei-illustrations` visual contract: pure white background, black hand-drawn 小黑 character, sparse red/orange/blue Chinese annotations, and one conceptual action per image.
+
+Each generated image is written as `visual_XX_xiaohei_sequence.png`; source images are kept in `xiaohei_sequence_images`; `xiaohei_sequence_manifest.json` and `visual_assets_manifest.json` record `sourceKind=xiaohei_sequence`, scene count, paths, short labels, preview text, and `startMs`/`endMs` coverage. Minimal-image validation uses dimensions, file size, and color count rather than the high-detail photographic checks used for AI-generated illustrations.
+
+The Qwen Image and MacMini image paths remain available only when explicitly selected through environment variables or future configuration, but the packaged app no longer sends the default Image stage to remote heavy image models.
 
 ## 2026-07-05 0.1.146 Timeline Driven Image Stage
 
