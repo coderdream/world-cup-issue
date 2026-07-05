@@ -15,7 +15,7 @@
 - 应用目录：`a-book-in-30-minutes`
 - Tauri 标识：`com.abookin30minutes.desktop`
 - Rust crate：`a_book_in_30_minutes`
-- 当前版本：`0.1.145`
+- 当前版本：`0.1.146`
 
 核心输出包括视频标题、简介、标签、旁白稿、字幕文本、SRT/ASS 字幕、生成提示词、源书概览、结构化素材 JSON、微软语音 SSML、旁白 mp3、AI 原始高清图片、图片资产清单和图片-字幕时间轴。
 
@@ -53,9 +53,13 @@
 
 `materialsWorkbench` 状态保存在 Zustand 全局 store 中，包含请求参数、扫描结果、生成结果、导出目录、错误提示、复制状态、当前结果标签页、当前 `trace_id` 和忙碌状态。切换菜单后不丢失素材页状态。
 
-流水线的 `图片`、`字幕`、`视频` 属于后台任务阶段。点击其中任一按钮后，前端保留当前 `trace_id` 和高亮阶段，6 个阶段按钮全部禁用，直到用户点击【终止任务】解除锁定；这样可以避免同一个任务在后台运行时误点其它阶段。终止区左侧显示当前错误、复制或执行状态日志，右侧显示【终止任务】按钮，两者顶部对齐，日志允许多行换行。任务列表轮询 SQLite 时，正在生成的图片、字幕、音频或视频阶段不能因为产物文件暂未出现而被恢复为待处理。
+流水线主顺序为 `文本 -> 音频 -> 字幕 -> 图片 -> 视频 -> 发布`。`文本` 生成 `narration.txt` 和 `subtitles.txt`；`音频` 根据 `subtitles.txt` 生成最终 mp3；`字幕` 根据 mp3 和字幕文本对齐生成中文字幕 SRT、双语 SRT 和 ASS；`图片` 必须基于已对齐的中文字幕 SRT 时间戳和文本分段生成，并在图片清单/时间轴里记录每张图片的开始时间、结束时间、覆盖字幕文本和图片路径；`视频` 只消费音频、字幕和图片时间轴合成成片；`发布` 最后生成 YouTube 发布资料。
+
+流水线的 `音频`、`字幕`、`图片`、`视频` 属于后台任务阶段。点击其中任一按钮后，前端保留当前 `trace_id` 和高亮阶段，6 个阶段按钮全部禁用，直到用户点击【终止任务】解除锁定；这样可以避免同一个任务在后台运行时误点其它阶段。终止区左侧显示当前错误、复制或执行状态日志，右侧显示【终止任务】按钮，两者顶部对齐，日志允许多行换行。任务列表轮询 SQLite 时，正在生成的图片、字幕、音频或视频阶段不能因为产物文件暂未出现而被恢复为待处理。
 
 图片阶段的正式内容图数量必须按字幕规模动态生成，范围固定为 32~64 张。目标数量按 `字幕行数 / 28` 向上取整后夹在该范围内；例如 1000 多行字幕通常生成约 36~40 张图片。禁止沿用早期 8 段验证分镜作为正式听书视频图片数量，因为 30~35 分钟视频中 8 张图会导致单张停留数分钟，视觉变化不足。若迁移到的本地旧图片素材少于 32 张，且允许程序化视觉生成，必须重新生成满足数量范围的图片。图片必须由正式图片生成器根据字幕区间生成 `book-illustration` 风格的内容图；禁止用低保真方框图、线框图、占位图或纯程序化示意图冒充正式图片。图片服务不可用时必须失败并在日志里写明连接错误，不允许静默降级为方框图。
+
+图片阶段不得早于字幕阶段执行。若缺少最终 mp3、中文字幕 SRT 或字幕对齐清单，图片阶段必须失败并提示先生成音频和字幕。图片分段以中文字幕 SRT 为准，而不是用 `subtitles.txt` 和估算时长临时切分。`visual_assets_manifest.json` 和 `visual_timeline.json` 都必须能追溯每张图覆盖的 `startMs`、`endMs`、字幕文本范围和源图片文件，视频阶段以该时间轴控制图片显示开始和结束。
 
 素材生成默认参数保存在 `settings.materialProfile`，包括 `channelName`、`categoryName`、`categories`、`language`、`targetMinChars`、`targetMaxChars` 和 ```textraDirection`。默认目标为 `7000-8300` 个中文字，最佳约 `7600` 字，用于配合 `0%` 原速语音生成约 `30-35` 分钟睡前听书音频，并尽量避免最终音频超过 `35:00`；如果用户调整目标时长，应优先调整这两个字数配置，而不是为了压缩时长提高语速。`categories` 默认包含 `半小时听完一本书`、`睡前听完一本书`、`A Book in 30 Minutes`，配置页允许新增分类；`categoryName` 是当前任务入库分类，等价于后续 YouTube 播放列表名称；`channelName` 为兼容旧生成提示词保留，当前选择分类时会同步更新。素材生成页不再直接编辑这些参数，生成请求会把当前配置合并进请求体。文件级生成状态同时保存在 `materialsWorkbench.fileStatuses` 和 SQLite `material_tasks`，按文件路径记录状态、五档进度、成稿字数和失败信息。
 
@@ -105,11 +109,11 @@ Tauri 后端命令集中在 `src-tauri/src/commands.rs`：
 
 左侧导航中的“生成音频”替换为“步骤跟踪”。步骤跟踪页参考 `video-easy-creator` 的步骤统计与步骤表结构；结构化步骤数据持久化在 SQLite 的 `material_task_steps` 表中，页面通过 `get_material_task_steps` 按当前 `traceId` 或源文件路径读取。页面顶部展示当前任务、总步骤、步骤进度、任务摘要、任务 ID 和整体进度；下方按产物链拆成细步骤行，展示步骤编码、步骤名称、状态、百分比、耗时和说明。若当前任务没有步骤表记录，前端才回退到 `material_tasks` 的阶段状态推导，避免旧任务完全空白。
 
-当前步骤跟踪页拆分为 17 个步骤：A-01 解析书籍、A-02 标题简介标签、A-03 旁白文稿、A-04 保存素材包、B-01 生成封面、B-02 生成分镜图、C-01 读取旁白、C-02 拆分片段、C-03 生成语音、C-04 合成音频、D-01 生成中文字幕、D-02 生成双语字幕、E-01 准备流水线、E-02 生成无字幕母版、E-03 生成硬字幕版、E-04 登记视频产物、F-01 生成发布资料。步骤编码必须稳定显示，禁止把相邻产物阶段合并成一个步骤。
+当前步骤跟踪页拆分为 17 个步骤：A-01 解析书籍、A-02 标题简介标签、A-03 旁白文稿、A-04 保存素材包、B-01 读取旁白、B-02 拆分片段、B-03 生成语音、B-04 合成音频、C-01 生成中文字幕、C-02 生成双语字幕、D-01 生成封面、D-02 生成分镜图、E-01 准备流水线、E-02 生成无字幕母版、E-03 生成硬字幕版、E-04 登记视频产物、F-01 生成发布资料。步骤编码必须稳定显示，禁止把相邻产物阶段合并成一个步骤。
 
 材料生成阶段已接入持久化步骤记录：`generate_book_materials` 在读取 EPUB 时写入 A-01 进行中，`source.read.done` 时把 A-01 标记为成功；构建 prompt 和 `ai.request` 后写入 A-02 进行中，AI JSON 解析成功后把 A-02 标记为成功；旁白长度检查、修复和字幕切分归入 A-03；素材包写入归入 A-04。每条步骤记录包含 `started_at`、`finished_at` 和 `elapsed_ms`，步骤页的【耗时】列优先显示已落库耗时，运行中的步骤按 `started_at` 到当前时间实时刷新。AI 已经进入 `ai.request` 时，A-01 必须已经完成，不能继续显示“待处理”。
 
-步骤耗时统一显示为 `MM分SS.SSS秒`。新写入的 `material_task_steps.started_at` 和 `finished_at` 使用毫秒精度，后端计算 `elapsed_ms` 时兼容旧的秒级时间戳；前端如果遇到旧记录 `elapsed_ms=0`，会优先用开始/结束时间重新计算，仍无法判断时才显示 `00分00.000秒`。步骤页选择跟踪任务时，必须把 `image_status`、`subtitle_status` 的 `generating` 状态纳入优先级，确保点击【图片】后 B-01 立即显示“进行中”。
+步骤耗时统一显示为 `MM分SS.SSS秒`。新写入的 `material_task_steps.started_at` 和 `finished_at` 使用毫秒精度，后端计算 `elapsed_ms` 时兼容旧的秒级时间戳；前端如果遇到旧记录 `elapsed_ms=0`，会优先用开始/结束时间重新计算，仍无法判断时才显示 `00分00.000秒`。步骤页选择跟踪任务时，必须把 `image_status`、`subtitle_status` 的 `generating` 状态纳入优先级，确保点击【图片】后 D-01 立即显示“进行中”。
 
 素材阶段请求 AI 超时或失败时，失败会落在素材子步骤上，并在说明中显示后端写入的错误消息，例如 `HTTP 524`；这样用户可以从步骤跟踪页直接判断是 AI 素材 JSON 生成失败，而不是前端卡死。音频任务继续按读取旁白、拆分片段、生成语音片段和合成最终音频显示；视频任务按准备流水线、封面、图片、字幕、无字幕视频、硬字幕视频和登记产物显示。流水线任务列表中的音频与视频列同步显示“状态 + 百分比”。
 
@@ -1325,7 +1329,7 @@ D:\books\理想国译丛系列（74册）整理截止2026.018\001没有宽恕就
 
 ## 0.1.106 六阶段按钮与 A-F 步骤编码
 
-用户要求流水线顶部阶段改成 6 个横向按钮：【文本】、【图片】、【音频】、【字幕】、【视频】、【发布】，并同步把步骤跟踪编码改成 `A-01`、`A-02`、`B-01`、`B-02` 到 `F-01` 的分组格式。
+用户要求流水线顶部阶段改成 6 个横向按钮，当前正式顺序为：【文本】、【音频】、【字幕】、【图片】、【视频】、【发布】，并同步把步骤跟踪编码改成 `A-01`、`A-02`、`B-01`、`B-02` 到 `F-01` 的分组格式。
 
 本版本调整：
 
@@ -1626,6 +1630,12 @@ The whiteboard image skill may still have its own `.env` for standalone use. The
 
 ## 2026-07-05 0.1.145 Pipeline Stage Status Isolation
 
-The Pipeline page now treats Image, Subtitle, and Video as separate persisted stages. Starting Image uses an `image` trace id, writes `image_status=generating` with `image_progress=0`, clears the old image output path, and initializes the current trace's B-01/B-02 step rows so Step Tracking no longer shows stale 100% rows from an earlier image run.
+The Pipeline page now treats Image, Subtitle, and Video as separate persisted stages. Starting Image uses an `image` trace id, writes `image_status=generating` with `image_progress=0`, clears the old image output path, and initializes the current trace's image step rows so Step Tracking no longer shows stale 100% rows from an earlier image run.
 
 The Stop Task action updates only the active stage. Stopping Image marks the image stage failed without changing the Text status, narration character count, or material output directory. Backend operation logs use the current stage label, so clicking Image logs 图片流水线 instead of 视频流水线.
+
+## 2026-07-05 0.1.146 Timeline Driven Image Stage
+
+The canonical pipeline order is now Text -> Audio -> Subtitle -> Image -> Video -> Publish. Image generation is downstream of subtitle alignment, because each image needs the final Chinese SRT timestamp range to know when it appears in the finished video.
+
+The Image stage must read the aligned Chinese SRT and generate visual prompts from timed subtitle groups. Each generated image records its `startMs`, `endMs`, covered text, and file path in the visual manifest/timeline. Video generation consumes that timeline instead of guessing display intervals from raw subtitle text.

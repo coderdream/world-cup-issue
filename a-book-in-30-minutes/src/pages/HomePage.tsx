@@ -165,13 +165,13 @@ export function HomePage() {
               <span>文本</span>
               <span>文本进度</span>
               <span>成稿字数</span>
-              <span>图片</span>
-              <span>图片进度</span>
               <span>音频</span>
               <span>音频进度</span>
               <span>音频时长</span>
               <span>字幕</span>
               <span>字幕进度</span>
+              <span>图片</span>
+              <span>图片进度</span>
               <span>视频</span>
               <span>视频进度</span>
               <span>视频时长</span>
@@ -292,10 +292,6 @@ export function HomePage() {
         <span className={getGenerationStatusClass(generation, parsable, supported)}>{formatGenerationStatus(generation, parsable, supported)}</span>
         <span>{formatProgress(generation, parsable)}</span>
         <small className={supported ? undefined : "unsupported"}>{formatNarrationChars(generation)}</small>
-        <span className={getGenerationStatusClass({ status: file.imageStatus }, true, true)}>
-          {formatStageStatus(file.imageStatus)}
-        </span>
-        <span>{formatRawProgress(file.imageProgress)}</span>
         <span className={getGenerationStatusClass({ status: file.audioStatus }, true, true)}>
           {formatStageStatus(file.audioStatus)}
         </span>
@@ -305,6 +301,10 @@ export function HomePage() {
           {formatStageStatus(file.subtitleStatus)}
         </span>
         <span>{formatRawProgress(file.subtitleProgress)}</span>
+        <span className={getGenerationStatusClass({ status: file.imageStatus }, true, true)}>
+          {formatStageStatus(file.imageStatus)}
+        </span>
+        <span>{formatRawProgress(file.imageProgress)}</span>
         <span className={getVideoStatusClass(file)}>
           {formatVideoStageStatus(file)}
         </span>
@@ -325,10 +325,6 @@ export function HomePage() {
           {(pipelineLocked || busy) && activePipelineStage === "materials" ? <Loader2 className="spin" size={16} /> : <BookOpenText size={16} />}
           文本
         </button>
-        <button className={getPipelineStageClass("image")} disabled={pipelineLocked || busy || !hasPipelineTarget("image")} type="button" title="生成图片素材" onClick={() => void runVisualPipeline("image")}>
-          {(pipelineLocked || busy) && activePipelineStage === "image" ? <Loader2 className="spin" size={16} /> : <Image size={16} />}
-          图片
-        </button>
         <button className={getPipelineStageClass("audio")} disabled={pipelineLocked || busy} type="button" onClick={() => void runAudioPipeline()}>
           {(pipelineLocked || busy) && activePipelineStage === "audio" ? <Loader2 className="spin" size={16} /> : <Volume2 size={16} />}
           音频
@@ -336,6 +332,10 @@ export function HomePage() {
         <button className={getPipelineStageClass("subtitle")} disabled={pipelineLocked || busy || !hasPipelineTarget("subtitle")} type="button" title="生成 SRT/ASS 字幕" onClick={() => void runVisualPipeline("subtitle")}>
           {(pipelineLocked || busy) && activePipelineStage === "subtitle" ? <Loader2 className="spin" size={16} /> : <MessageSquareText size={16} />}
           字幕
+        </button>
+        <button className={getPipelineStageClass("image")} disabled={pipelineLocked || busy || !hasPipelineTarget("image")} type="button" title="根据中文字幕 SRT 时间轴生成图片素材" onClick={() => void runVisualPipeline("image")}>
+          {(pipelineLocked || busy) && activePipelineStage === "image" ? <Loader2 className="spin" size={16} /> : <Image size={16} />}
+          图片
         </button>
         <button className={getPipelineStageClass("video")} disabled={pipelineLocked || busy || !hasPipelineTarget("video")} type="button" title="一键生成视频" onClick={() => void runVideoPipeline()}>
           {(pipelineLocked || busy) && activePipelineStage === "video" ? <Loader2 className="spin" size={16} /> : <Video size={16} />}
@@ -524,11 +524,20 @@ export function HomePage() {
       await refreshSettingsForPipeline();
       const freshTarget = await refreshTaskForPipeline(path);
       let current = await ensureTextForPipeline(freshTarget ?? target, traceId, stageLabel);
-      if (stage === "subtitle" || stage === "video") {
+      if (stage === "subtitle" || stage === "image" || stage === "video") {
         current = await ensureAudioForPipeline(current, traceId, stageLabel);
       }
+      current = (await refreshTaskForPipeline(path)) ?? current;
+      if (stage === "image" && !isSubtitleReady(current)) {
+        throw new Error("图片阶段必须在字幕阶段之后执行。请先点击【字幕】，等中文字幕 SRT/ASS 生成完成后再点击【图片】。");
+      }
       if (stage === "video") {
-        current = await ensureTimedSubtitlesForPipeline(current, traceId, stageLabel);
+        if (!isSubtitleReady(current)) {
+          throw new Error("视频阶段需要已完成的字幕文件。请先点击【字幕】。");
+        }
+        if (!isImageReady(current)) {
+          throw new Error("视频阶段需要已完成的图片时间轴。请先点击【图片】。");
+        }
       }
       updateWorkbench({ exportState: `${stageLabel}\u6d41\u6c34\u7ebf\uff1a\u6b63\u5728\u542f\u52a8\u540e\u53f0\u4efb\u52a1\u3002`, error: "" });
       if (stage === "image") {
@@ -545,8 +554,8 @@ export function HomePage() {
         traceId,
         pipelineStage: stage,
         allowPlaceholderVisuals: false,
-        controlledProgrammaticVisuals: true,
-        ignoreExistingVisualAssets: true
+        controlledProgrammaticVisuals: stage === "image",
+        ignoreExistingVisualAssets: stage === "image"
       });
       if (stage === "video") {
         await updateVideoState(path, { status: "generating", progress: 40, message: `${stageLabel}\u540e\u53f0\u751f\u6210\u4e2d\uff0c\u8bf7\u5230\u64cd\u4f5c\u65e5\u5fd7\u67e5\u770b\u5b9e\u9645\u8fdb\u5ea6\u3002` });
@@ -565,7 +574,9 @@ export function HomePage() {
       if (stage === "subtitle") {
         await setTaskSubtitleState(path, { subtitleStatus: "failed", subtitleProgress: 0, subtitleMessage: message });
       }
-      await updateVideoState(path, { status: "failed", progress: 0, message });
+      if (stage === "video") {
+        await updateVideoState(path, { status: "failed", progress: 0, message });
+      }
       updateWorkbench({ error: message, exportState: "", currentTraceId: "" });
       setActivePipelineStage(null);
     } finally {
@@ -1134,6 +1145,14 @@ function shouldGenerateSubtitle(file: MaterialFile) {
 function shouldGenerateVideo(file: MaterialFile) {
   if (!useAppStore.getState().settings.pipelineProfile.skipExistingVideo) return true;
   return file.videoStatus !== "success" || !file.videoFile || file.videoProgress < 100;
+}
+
+function isSubtitleReady(file: MaterialFile) {
+  return file.subtitleStatus === "success" && Boolean(file.subtitleFile) && file.subtitleProgress >= 100;
+}
+
+function isImageReady(file: MaterialFile) {
+  return file.imageStatus === "success" && Boolean(file.imageOutputDir) && file.imageProgress >= 100;
 }
 
 function needsMaterialGeneration(file: MaterialFile) {

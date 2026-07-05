@@ -190,7 +190,7 @@ export function SettingsPage() {
             </select>
           </label>
         </div>
-        <p className="settings-help">默认选择“是”，流水线会跳过已有产物；选择“否”时，对应阶段每次点击都会重新生成。图片和字幕当前由视频流水线生成，独立配置先用于阶段入口和后续拆分。</p>
+        <p className="settings-help">默认选择“是”，流水线会跳过已有产物；选择“否”时，对应阶段每次点击都会重新生成。图片阶段依赖已对齐的中文字幕 SRT，应在音频和字幕完成后执行。</p>
       </Panel>
 
       <Panel>

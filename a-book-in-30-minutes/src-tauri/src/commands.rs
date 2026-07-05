@@ -2461,6 +2461,11 @@ pub fn generate_book_video_pipeline(
     )?;
     let pipeline_stage = normalize_video_pipeline_stage(request.pipeline_stage.as_deref());
     let app_material_dir = resolve_task_material_dir_for_video(&data.db_path, epub_path);
+    if pipeline_stage == "image" && !has_aligned_chinese_srt(app_material_dir.as_deref()) {
+        return Err(command_error(
+            "图片阶段必须在字幕阶段之后执行。请先生成音频和字幕，确认已产出中文字幕 SRT 后再生成图片。",
+        ));
+    }
     let log_module = video_pipeline_stage_log_module(&pipeline_stage);
     let pipeline_label = video_pipeline_stage_pipeline_label(&pipeline_stage);
     data.logger.trace_info(
@@ -2548,6 +2553,20 @@ fn normalize_video_pipeline_stage(stage: Option<&str>) -> String {
         "subtitle" => "subtitle".to_string(),
         _ => "video".to_string(),
     }
+}
+
+fn has_aligned_chinese_srt(dir: Option<&Path>) -> bool {
+    let Some(dir) = dir else {
+        return false;
+    };
+    [
+        "hard_subtitle.aeneas.cmn.srt",
+        "hard_subtitle.aeneas.chn.srt",
+        "hard_subtitle.aeneas.zh.srt",
+    ]
+    .iter()
+    .map(|name| dir.join(name))
+    .any(|path| path.is_file())
 }
 
 #[tauri::command]
@@ -2803,7 +2822,7 @@ fn run_book_video_pipeline_background(
                 &db_path,
                 &trace_id,
                 &epub_path,
-                "B-01",
+                "D-01",
                 "图片：生成封面",
                 "failed",
                 0,
@@ -2893,7 +2912,7 @@ fn run_book_video_pipeline_background(
             &db_path,
             &trace_id,
             &epub_path,
-            "B-01",
+            "D-01",
             "图片：生成封面",
             "success",
             100,
@@ -2903,7 +2922,7 @@ fn run_book_video_pipeline_background(
             &db_path,
             &trace_id,
             &epub_path,
-            "B-02",
+            "D-02",
             "图片：生成分镜图",
             "success",
             100,
@@ -3265,7 +3284,7 @@ fn reset_image_task_steps_for_trace(db_path: &Path, trace_id: &str, epub_path: &
         db_path,
         trace_id,
         epub_path,
-        "B-01",
+        "D-01",
         "图片：生成封面",
         "generating",
         0,
@@ -3275,7 +3294,7 @@ fn reset_image_task_steps_for_trace(db_path: &Path, trace_id: &str, epub_path: &
         db_path,
         trace_id,
         epub_path,
-        "B-02",
+        "D-02",
         "图片：生成分镜图",
         "pending",
         0,

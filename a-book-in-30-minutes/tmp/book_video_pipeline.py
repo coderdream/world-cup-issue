@@ -642,6 +642,38 @@ def read_srt_events(path: Path) -> list[tuple[int, int, str]]:
     return events
 
 
+def find_timed_chinese_srt(material_root: Path, video_dir: Path, audio_language: str = "cmn") -> Path | None:
+    candidates: list[Path] = []
+    manifest_path = video_dir / "pipeline_manifest.json"
+    if manifest_path.exists():
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8", errors="ignore"))
+            subtitle_manifest = manifest.get("subtitleManifest") if isinstance(manifest.get("subtitleManifest"), dict) else {}
+            for key in ("singleLanguageSrt", "outputSrt"):
+                value = subtitle_manifest.get(key)
+                if isinstance(value, str) and value.strip():
+                    candidates.append(Path(value))
+        except Exception:
+            pass
+    names = [
+        f"hard_subtitle.aeneas.{audio_language}.srt",
+        "hard_subtitle.aeneas.cmn.srt",
+        "hard_subtitle.aeneas.chn.srt",
+        "hard_subtitle.aeneas.zh.srt",
+    ]
+    for root in (video_dir, material_root):
+        candidates.extend(root / name for name in names)
+    seen: set[str] = set()
+    for candidate in candidates:
+        key = str(candidate)
+        if key in seen:
+            continue
+        seen.add(key)
+        if candidate.is_file() and read_srt_events(candidate):
+            return candidate
+    return None
+
+
 def offset_events(events: list[tuple[int, int, str]], offset_ms: int) -> list[tuple[int, int, str]]:
     return [(start + offset_ms, end + offset_ms, text) for start, end, text in events]
 
@@ -1592,13 +1624,16 @@ def generate_controlled_programmatic_assets(
     epub: Path,
     material_root: Path,
     video_dir: Path,
+    subtitle_events: list[tuple[int, int, str]] | None = None,
 ) -> tuple[list[Path], Path | None, str]:
     material = read_material_json(material_root)
     title = str(material.get("videoTitle") or material.get("title") or epub.stem)
     description = str(material.get("description") or "")
-    duration_ms = audio_manifest_expected_duration(material_root) or 30 * 60 * 1000
-    subtitle_lines = load_chinese_subtitle_lines(material_root)
-    events = build_subtitle_events(subtitle_lines, duration_ms, HEADER_AUDIO_DURATION_MS) if subtitle_lines else []
+    events = subtitle_events or []
+    if not events:
+        duration_ms = audio_manifest_expected_duration(material_root) or 30 * 60 * 1000
+        subtitle_lines = load_chinese_subtitle_lines(material_root)
+        events = build_subtitle_events(subtitle_lines, duration_ms, HEADER_AUDIO_DURATION_MS) if subtitle_lines else []
     return generate_whiteboard_skill_assets(
         video_dir,
         material_root,
@@ -2642,9 +2677,25 @@ def main() -> int:
         manifest = video_dir / "pipeline_manifest.json"
         header_duration_ms = HEADER_AUDIO_DURATION_MS
         header_seconds = header_duration_ms / 1000.0
-        duration_ms = audio_manifest_expected_duration(material_root) or 30 * 60 * 1000
-        subtitle_lines = load_chinese_subtitle_lines(material_root)
-        events = build_subtitle_events(subtitle_lines, duration_ms, 0) if subtitle_lines else []
+        timed_srt = find_timed_chinese_srt(material_root, video_dir, args.audio_language)
+        if not timed_srt:
+            raise RuntimeError(
+                "Image generation requires aligned Chinese SRT. Please generate audio and subtitles first, "
+                "then run the image stage."
+            )
+        events = read_srt_events(timed_srt)
+        if not events:
+            raise RuntimeError(f"Aligned Chinese SRT has no subtitle events: {timed_srt}")
+        duration_ms = max(end for _, end, _ in events)
+        prior_manifest = {}
+        if manifest.exists():
+            try:
+                prior_manifest = json.loads(manifest.read_text(encoding="utf-8", errors="ignore"))
+            except Exception:
+                prior_manifest = {}
+        manifest_duration = prior_manifest.get("narrationAudioForVideoDurationMs") if isinstance(prior_manifest, dict) else None
+        if isinstance(manifest_duration, int) and manifest_duration > duration_ms:
+            duration_ms = manifest_duration
         if args.ignore_existing_visual_assets:
             content_images, visual_source_dir, visual_source_kind = [], None, "none"
         else:
@@ -2654,6 +2705,7 @@ def main() -> int:
                 epub,
                 material_root,
                 video_dir,
+                events,
             )
         if not content_images:
             try:
@@ -2708,9 +2760,9 @@ def main() -> int:
             "materialDir": str(material_root),
             "pipelineManifest": str(manifest),
             "hardSubtitleManifest": None,
-            "hardSubtitleSrt": None,
-            "subtitleTiming": "visual_assets_only",
-            "subtitleManifest": None,
+            "hardSubtitleSrt": str(timed_srt),
+            "subtitleTiming": "existing_aligned_chinese_srt",
+            "subtitleManifest": prior_manifest.get("subtitleManifest") if isinstance(prior_manifest, dict) else None,
             "narrationAudioForVideo": None,
             "narrationAudioWithoutHeader": None,
             "headerAudio": None,
@@ -2823,6 +2875,7 @@ def main() -> int:
             epub,
             material_root,
             video_dir,
+            events,
         )
     if not content_images:
         try:
