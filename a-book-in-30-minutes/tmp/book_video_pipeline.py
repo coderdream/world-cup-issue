@@ -8,7 +8,9 @@ import shutil
 import subprocess
 import sys
 import time
+import uuid
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -1783,6 +1785,113 @@ def run_whiteboard_image_skill(prompts: list[str], output_dir: Path) -> list[Pat
     return images
 
 
+def qwen_image_workflow(prompt: str, *, width: int, height: int, steps: int, seed: int, prefix: str) -> dict:
+    negative = os.environ.get(
+        "QWEN_IMAGE_NEGATIVE_PROMPT",
+        "low quality, blurry, distorted, bad anatomy, oversaturated, text artifacts, watermark, logo, unreadable text, messy composition",
+    )
+    return {
+        "1": {"class_type": "UnetLoaderGGUF", "inputs": {"unet_name": "qwen-image-2512-Q2_K.gguf"}},
+        "2": {"class_type": "CLIPLoader", "inputs": {"clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors", "type": "qwen_image", "device": "default"}},
+        "3": {"class_type": "VAELoader", "inputs": {"vae_name": "qwen_image_vae.safetensors"}},
+        "4": {"class_type": "ModelSamplingAuraFlow", "inputs": {"model": ["1", 0], "shift": 3.1}},
+        "5": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["2", 0], "text": prompt}},
+        "6": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["2", 0], "text": negative}},
+        "7": {"class_type": "EmptySD3LatentImage", "inputs": {"width": width, "height": height, "batch_size": 1}},
+        "8": {"class_type": "KSampler", "inputs": {"model": ["4", 0], "positive": ["5", 0], "negative": ["6", 0], "latent_image": ["7", 0], "seed": seed, "steps": steps, "cfg": 4.0, "sampler_name": "euler", "scheduler": "simple", "denoise": 1.0}},
+        "9": {"class_type": "VAEDecode", "inputs": {"samples": ["8", 0], "vae": ["3", 0]}},
+        "10": {"class_type": "SaveImage", "inputs": {"images": ["9", 0], "filename_prefix": prefix}},
+    }
+
+
+def qwen_image_request_json(url: str, payload: dict | None = None, timeout: int = 30) -> dict:
+    data = json.dumps(payload).encode("utf-8") if payload is not None else None
+    request = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        return json.loads(response.read().decode("utf-8", errors="replace"))
+
+
+def generate_qwen_image_assets(
+    video_dir: Path,
+    material_root: Path,
+    title: str,
+    description: str,
+    subtitle_events: list[tuple[int, int, str]],
+) -> tuple[list[Path], Path, str]:
+    base_url = os.environ.get("QWEN_IMAGE_BASE_URL", "http://100.96.199.26:8188").rstrip("/")
+    width = int(os.environ.get("QWEN_IMAGE_WIDTH", "1024") or "1024")
+    height = int(os.environ.get("QWEN_IMAGE_HEIGHT", "576") or "576")
+    steps = int(os.environ.get("QWEN_IMAGE_STEPS", "8") or "8")
+    poll_seconds = int(os.environ.get("QWEN_IMAGE_POLL_SECONDS", "5") or "5")
+    max_polls = int(os.environ.get("QWEN_IMAGE_MAX_POLLS", "360") or "360")
+    image_dir = video_dir / "qwen_image_2512"
+    image_dir.mkdir(parents=True, exist_ok=True)
+    prompts = build_whiteboard_skill_prompts(
+        material_root,
+        title,
+        description,
+        subtitle_events,
+        target_visual_scene_count(material_root, subtitle_events),
+    )
+    copied: list[Path] = []
+    for index, prompt in enumerate(prompts, 1):
+        prefix = f"qwen_image_2512_{index:02d}"
+        seed = int(os.environ.get("QWEN_IMAGE_SEED", "20260705") or "20260705") + index
+        workflow = qwen_image_workflow(prompt, width=width, height=height, steps=steps, seed=seed, prefix=prefix)
+        queued = qwen_image_request_json(
+            f"{base_url}/prompt",
+            {"prompt": workflow, "client_id": str(uuid.uuid4())},
+            timeout=30,
+        )
+        prompt_id = queued.get("prompt_id")
+        if not prompt_id:
+            raise RuntimeError(f"Qwen Image did not return prompt_id: {queued}")
+        info = None
+        for _ in range(max_polls):
+            history = qwen_image_request_json(f"{base_url}/history/{prompt_id}", timeout=10)
+            if prompt_id in history:
+                outputs = history[prompt_id].get("outputs", {})
+                images = outputs.get("10", {}).get("images", [])
+                if not images:
+                    raise RuntimeError(f"Qwen Image finished without image output: {history[prompt_id]}")
+                info = images[0]
+                break
+            time.sleep(poll_seconds)
+        if info is None:
+            raise TimeoutError(f"Timed out waiting for Qwen Image prompt {prompt_id}")
+        params = urllib.parse.urlencode(
+            {
+                "filename": info["filename"],
+                "subfolder": info.get("subfolder", ""),
+                "type": info.get("type", "output"),
+            }
+        )
+        raw = urllib.request.urlopen(f"{base_url}/view?{params}", timeout=60).read()
+        source = image_dir / f"{prefix}.png"
+        source.write_bytes(raw)
+        assert_meaningful_image(source)
+        dest = video_dir / f"visual_{index:02d}_qwen_image.png"
+        with Image.open(source) as image:
+            image.convert("RGB").resize((WIDTH, HEIGHT), Image.Resampling.LANCZOS).save(dest, quality=94)
+        copied.append(dest)
+        print(f"Qwen Image generated {index}/{len(prompts)}: {dest}", file=sys.stderr, flush=True)
+    manifest = {
+        "sourceKind": "qwen_image_2512",
+        "baseUrl": base_url,
+        "model": "qwen-image-2512-Q2_K.gguf",
+        "width": width,
+        "height": height,
+        "steps": steps,
+        "generatedAt": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "promptCount": len(prompts),
+        "assets": [str(path) for path in copied],
+        "prompts": prompts,
+    }
+    (video_dir / "qwen_image_2512_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    (video_dir / "visual_assets_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    return copied, image_dir, "qwen_image_2512"
+
+
 def normalize_whiteboard_palette(image: Image.Image) -> Image.Image:
     converted = image.convert("RGB")
     pixels = converted.load()
@@ -1993,6 +2102,11 @@ def generate_whiteboard_skill_assets(
     description: str,
     subtitle_events: list[tuple[int, int, str]],
 ) -> tuple[list[Path], Path, str]:
+    if os.environ.get("BOOK_IMAGE_BACKEND", "").strip().lower() == "qwen-image-2512":
+        try:
+            return generate_qwen_image_assets(video_dir, material_root, title, description, subtitle_events)
+        except Exception as error:
+            print(f"Qwen Image backend failed, falling back to whiteboard image skill: {error}", file=sys.stderr, flush=True)
     image_dir = video_dir / "whiteboard_skill_images"
     prompts = build_whiteboard_skill_prompts(
         material_root,

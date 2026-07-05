@@ -2563,9 +2563,19 @@ pub fn generate_book_video_pipeline(
     let pipeline_stage = normalize_video_pipeline_stage(request.pipeline_stage.as_deref());
     let app_material_dir = resolve_task_material_dir_for_video(&data.db_path, epub_path);
     if pipeline_stage == "image" && !has_aligned_chinese_srt(app_material_dir.as_deref()) {
-        return Err(command_error(
-            "图片阶段必须在字幕阶段之后执行。请先生成音频和字幕，确认已产出中文字幕 SRT 后再生成图片。",
-        ));
+        let message = "图片阶段必须在字幕阶段之后执行。请先生成音频和字幕，确认已产出中文字幕 SRT 后再生成图片。";
+        let now = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+        let _ = connection.execute(
+            "UPDATE material_tasks
+             SET image_status = 'failed', image_progress = 0, image_message = ?2,
+                 video_status = CASE WHEN video_status = 'generating' THEN 'failed' ELSE video_status END,
+                 video_progress = CASE WHEN video_status = 'generating' THEN 0 ELSE video_progress END,
+                 video_message = CASE WHEN video_status = 'generating' THEN '前置图片阶段失败，视频流水线已终止。' ELSE video_message END,
+                 updated_at = ?3
+             WHERE path = ?1",
+            params![epub_path, message, now],
+        );
+        return Err(command_error(message));
     }
     let log_module = video_pipeline_stage_log_module(&pipeline_stage);
     let pipeline_label = video_pipeline_stage_pipeline_label(&pipeline_stage);
@@ -2795,6 +2805,11 @@ fn run_book_video_pipeline_background(
         .env("ABOOK_AI_API_KEY", settings.ai_profile.api_key.trim())
         .env("ABOOK_AI_MODEL", settings.ai_profile.model.trim())
         .env("ABOOK_SUBTITLE_SOURCE_LANGUAGE", "cmn")
+        .env("BOOK_IMAGE_BACKEND", "qwen-image-2512")
+        .env("QWEN_IMAGE_BASE_URL", "http://100.96.199.26:8188")
+        .env("QWEN_IMAGE_WIDTH", "1024")
+        .env("QWEN_IMAGE_HEIGHT", "576")
+        .env("QWEN_IMAGE_STEPS", "4")
         .arg(&script)
         .arg("--epub")
         .arg(&epub)
@@ -3497,7 +3512,7 @@ fn resolve_task_material_dir_for_video(db_path: &Path, epub_path: &str) -> Optio
     let connection = Connection::open(db_path).ok()?;
     let value = connection
         .query_row(
-            "Output directory operation failed.",
+            "SELECT material_output_dir FROM material_tasks WHERE path = ?1",
             params![epub_path],
             |row| row.get::<_, Option<String>>(0),
         )
