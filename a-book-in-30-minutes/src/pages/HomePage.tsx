@@ -540,18 +540,13 @@ export function HomePage() {
       if (stage === "subtitle" || stage === "image" || stage === "video") {
         current = await ensureAudioForPipeline(current, traceId, stageLabel);
       }
-      current = (await refreshTaskForPipeline(path)) ?? current;
-      if (stage === "image" && !isSubtitleReady(current)) {
-        throw new Error("图片阶段必须在字幕阶段之后执行。请先点击【字幕】，等中文字幕 SRT/ASS 生成完成后再点击【图片】。");
+      if (stage === "image" || stage === "video") {
+        current = await ensureTimedSubtitlesForPipeline(current, traceId, stageLabel);
       }
       if (stage === "video") {
-        if (!isSubtitleReady(current)) {
-          throw new Error("视频阶段需要已完成的字幕文件。请先点击【字幕】。");
-        }
-        if (!isImageReady(current)) {
-          throw new Error("视频阶段需要已完成的图片时间轴。请先点击【图片】。");
-        }
+        current = await ensureImageForPipeline(current, traceId, stageLabel);
       }
+      current = (await refreshTaskForPipeline(path)) ?? current;
       updateWorkbench({ exportState: `${stageLabel}\u6d41\u6c34\u7ebf\uff1a\u6b63\u5728\u542f\u52a8\u540e\u53f0\u4efb\u52a1\u3002`, error: "" });
       if (stage === "image") {
         await setTaskImageState(path, { imageStatus: "generating", imageProgress: 0, imageOutputDir: null, imageMessage: "\u6b63\u5728\u751f\u6210\u56fe\u7247\u7d20\u6750" });
@@ -659,8 +654,47 @@ export function HomePage() {
       controlledProgrammaticVisuals: false,
       ignoreExistingVisualAssets: false
     });
+    await waitForStageCompletion(file.path, "subtitle", "\u5b57\u5e55");
     await loadStoredTasks(useAppStore.getState().settings.materialProfile.categoryName);
     return (await refreshTaskForPipeline(file.path)) ?? findTaskByPath(file.path) ?? file;
+  }
+
+  async function ensureImageForPipeline(file: MaterialFile, traceId: string, stageLabel: string) {
+    const current = (await refreshTaskForPipeline(file.path)) ?? file;
+    if (!shouldGenerateImage(current)) return current;
+    updateWorkbench({ exportState: `${stageLabel}\u6d41\u6c34\u7ebf\uff1a\u6b63\u5728\u6839\u636e\u5b57\u5e55\u65f6\u95f4\u8f74\u751f\u6210\u56fe\u7247\u3002`, error: "" });
+    await setTaskImageState(file.path, { imageStatus: "generating", imageProgress: 0, imageOutputDir: null, imageMessage: "\u6b63\u5728\u751f\u6210\u56fe\u7247\u7d20\u6750" });
+    await frameworkApi.generateBookVideoPipeline({
+      epubPath: file.path,
+      traceId: `${traceId}-image`,
+      pipelineStage: "image",
+      allowPlaceholderVisuals: false,
+      controlledProgrammaticVisuals: true,
+      ignoreExistingVisualAssets: true
+    });
+    await waitForStageCompletion(file.path, "image", "\u56fe\u7247");
+    await loadStoredTasks(useAppStore.getState().settings.materialProfile.categoryName);
+    return (await refreshTaskForPipeline(file.path)) ?? findTaskByPath(file.path) ?? file;
+  }
+
+  async function waitForStageCompletion(path: string, stage: "subtitle" | "image" | "video", label: string) {
+    const startedAt = Date.now();
+    const timeoutMs = stage === "image" ? 90 * 60 * 1000 : stage === "video" ? 120 * 60 * 1000 : 45 * 60 * 1000;
+    while (Date.now() - startedAt < timeoutMs) {
+      if (isTraceTerminated(useAppStore.getState().materialsWorkbench.currentTraceId)) {
+        throw new Error(`${label}\u9636\u6bb5\u5df2\u7ec8\u6b62\u3002`);
+      }
+      await delay(2000);
+      const latest = await refreshTaskForPipeline(path);
+      if (!latest) continue;
+      const state = getStageState(latest, stage);
+      if (state.status === "success" && state.progress >= 100) return latest;
+      if (state.status === "failed") {
+        throw new Error(state.message || `${label}\u9636\u6bb5\u6267\u884c\u5931\u8d25\u3002`);
+      }
+      updateWorkbench({ exportState: `${label}\u9636\u6bb5\u6b63\u5728\u6267\u884c\uff1a${Math.max(0, Math.min(100, state.progress || 0))}%` });
+    }
+    throw new Error(`${label}\u9636\u6bb5\u7b49\u5f85\u8d85\u65f6\u3002`);
   }
 
   async function generatePublishMaterials() {
@@ -671,18 +705,42 @@ export function HomePage() {
       return;
     }
     const traceId = `${createTraceId()}-publish`;
-    updateWorkbench({ busy: true, error: "", copyState: "", exportState: "\u6b63\u5728\u751f\u6210\u53d1\u5e03\u8d44\u6599 Markdown\u3002", currentTraceId: traceId });
+    updateWorkbench({ busy: true, error: "", copyState: "", exportState: "\u6b63\u5728\u6267\u884c\u53d1\u5e03\u6d41\u6c34\u7ebf\u3002", currentTraceId: traceId });
     try {
-      const result = await frameworkApi.generatePublishMaterials({ epubPath: target.path, traceId });
+      await refreshSettingsForPipeline();
+      const freshTarget = await refreshTaskForPipeline(target.path);
+      let current = await ensureTextForPipeline(freshTarget ?? target, traceId, "\u53d1\u5e03");
+      current = await ensureAudioForPipeline(current, traceId, "\u53d1\u5e03");
+      current = await ensureTimedSubtitlesForPipeline(current, traceId, "\u53d1\u5e03");
+      current = await ensureImageForPipeline(current, traceId, "\u53d1\u5e03");
+      current = (await refreshTaskForPipeline(target.path)) ?? current;
+      if (shouldGenerateVideo(current)) {
+        updateWorkbench({ exportState: "\u53d1\u5e03\u6d41\u6c34\u7ebf\uff1a\u6b63\u5728\u751f\u6210\u89c6\u9891\u3002", error: "" });
+        await updateVideoState(target.path, { status: "generating", progress: 30, message: "\u53d1\u5e03\u524d\u6b63\u5728\u751f\u6210\u89c6\u9891\u3002" });
+        await frameworkApi.generateBookVideoPipeline({
+          epubPath: target.path,
+          traceId: `${traceId}-video`,
+          pipelineStage: "video",
+          allowPlaceholderVisuals: false,
+          controlledProgrammaticVisuals: false,
+          ignoreExistingVisualAssets: false
+        });
+        await waitForStageCompletion(target.path, "video", "\u89c6\u9891");
+        await loadStoredTasks(useAppStore.getState().settings.materialProfile.categoryName);
+      }
+      updateWorkbench({ exportState: "\u53d1\u5e03\u6d41\u6c34\u7ebf\uff1a\u6b63\u5728\u751f\u6210\u53d1\u5e03\u8d44\u6599 Markdown\u3002", error: "" });
+      const result = await frameworkApi.generatePublishMaterials({ epubPath: target.path, traceId: `${traceId}-publish-materials` });
       updateWorkbench({
         exportState: `\u53d1\u5e03\u8d44\u6599\u5df2\u751f\u6210\uff1a${result.markdownFile}`,
-        error: ""
+        error: "",
+        currentTraceId: ""
       });
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : String(caught);
-      updateWorkbench({ error: message, exportState: "" });
+      updateWorkbench({ error: message, exportState: "", currentTraceId: "" });
     } finally {
       updateWorkbench({ busy: false });
+      setActivePipelineStage(null);
     }
   }
 
@@ -1392,6 +1450,20 @@ function hasVideoDurationMismatch(file: MaterialFile) {
   if (file.videoStatus !== "success") return false;
   if (!file.audioDurationMs || !file.videoDurationMs) return false;
   return file.audioDurationMs > 60_000 && file.videoDurationMs < file.audioDurationMs * 0.8;
+}
+
+function getStageState(file: MaterialFile, stage: "subtitle" | "image" | "video") {
+  if (stage === "subtitle") {
+    return { status: file.subtitleStatus, progress: file.subtitleProgress, message: file.subtitleMessage };
+  }
+  if (stage === "image") {
+    return { status: file.imageStatus, progress: file.imageProgress, message: file.imageMessage };
+  }
+  return { status: file.videoStatus, progress: file.videoProgress, message: file.videoMessage };
+}
+
+function delay(ms: number) {
+  return new Promise<void>((resolve) => window.setTimeout(resolve, ms));
 }
 
 function createTraceId() {
