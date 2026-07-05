@@ -416,7 +416,7 @@ async function localCommand<T>(command: string, args?: Record<string, unknown>):
       } as T;
     }
     case "update_material_task_stage_status": {
-      const request = args?.request as { path?: string; stage?: "image" | "subtitle" | "video"; status?: "pending" | "generating" | "success" | "failed"; progress?: number; outputPath?: string | null; message?: string } | undefined;
+      const request = args?.request as { path?: string; stage?: "audio" | "image" | "subtitle" | "video"; status?: "pending" | "generating" | "success" | "failed"; progress?: number; outputPath?: string | null; message?: string } | undefined;
       return {
         path: request?.path || "",
         name: request?.path?.split(/[\\/]/).pop() || "",
@@ -428,13 +428,13 @@ async function localCommand<T>(command: string, args?: Record<string, unknown>):
         narrationChars: undefined,
         materialOutputDir: undefined,
         message: "",
-        audioStatus: "pending",
-        audioProgress: 0,
+        audioStatus: request?.stage === "audio" ? request.status || "pending" : "pending",
+        audioProgress: request?.stage === "audio" ? request.progress || 0 : 0,
         audioOutputDir: undefined,
-        audioFile: undefined,
+        audioFile: request?.stage === "audio" ? request.outputPath : undefined,
         audioDurationMs: undefined,
         audioChunks: undefined,
-        audioMessage: "",
+        audioMessage: request?.stage === "audio" ? request.message || "" : "",
         imageStatus: request?.stage === "image" ? request.status || "pending" : "pending",
         imageProgress: request?.stage === "image" ? request.progress || 0 : 0,
         imageOutputDir: request?.stage === "image" ? request.outputPath : undefined,

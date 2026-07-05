@@ -309,7 +309,7 @@ export interface UpdateMaterialTaskStatusRequest {
 
 export interface UpdateMaterialTaskStageStatusRequest {
   path: string;
-  stage: "image" | "subtitle" | "video";
+  stage: "audio" | "image" | "subtitle" | "video";
   status: "pending" | "generating" | "success" | "failed";
   progress: number;
   outputPath?: string | null;

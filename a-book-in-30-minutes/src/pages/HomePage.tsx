@@ -103,7 +103,7 @@ export function HomePage() {
   const allTaskPaths = scanResult?.files.map((file) => file.path) ?? [];
   const selectedTaskSet = new Set(selectedTaskPaths);
   const allTasksSelected = allTaskPaths.length > 0 && allTaskPaths.every((path) => selectedTaskSet.has(path));
-  const pipelineLocked = Boolean(currentTraceId && (activePipelineStage === "image" || activePipelineStage === "subtitle" || activePipelineStage === "video"));
+  const pipelineLocked = Boolean(currentTraceId);
   return (
     <div className="page material-page" onClick={() => setContextMenu(null)}>
       <Panel className="material-analyze-panel">
@@ -481,21 +481,34 @@ export function HomePage() {
     setActivePipelineStage("audio");
     const candidates = getAudioPipelineCandidates();
     if (candidates.length === 0) {
-      updateWorkbench({ copyState: "", error: "Please select a task that can generate audio.", exportState: "" });
+      updateWorkbench({ copyState: "", error: "请选择可生成音频的任务。", exportState: "" });
+      setActivePipelineStage(null);
       return;
     }
-    updateWorkbench({ busy: true, error: "", copyState: "", exportState: `Starting audio generation for ${candidates.length} task(s).` });
+    const traceId = `${createTraceId()}-audio`;
+    updateWorkbench({
+      busy: true,
+      error: "",
+      copyState: "",
+      exportState: `正在生成音频：${candidates.length} 个任务。`,
+      currentTraceId: traceId
+    });
     try {
       for (const file of candidates) {
-        const traceId = `${createTraceId()}-audio`;
-        const current = await ensureTextForPipeline(file, traceId, "Audio");
-        await ensureAudioForPipeline(current, traceId, "Audio");
+        if (isTraceTerminated(traceId)) break;
+        const current = await ensureTextForPipeline(file, traceId, "音频");
+        await ensureAudioForPipeline(current, traceId, "音频");
       }
-      updateWorkbench({ exportState: `Audio generation finished: ${candidates.length} task(s).`, error: "" });
+      updateWorkbench({
+        exportState: isTraceTerminated(traceId) ? "音频任务已终止。" : `音频生成完成：${candidates.length} 个任务。`,
+        error: "",
+        currentTraceId: ""
+      });
     } catch (caught) {
-      updateWorkbench({ error: caught instanceof Error ? caught.message : String(caught), exportState: "" });
+      updateWorkbench({ error: caught instanceof Error ? caught.message : String(caught), exportState: "", currentTraceId: "" });
     } finally {
       updateWorkbench({ busy: false });
+      setActivePipelineStage(null);
       await loadStoredTasks(settings.materialProfile.categoryName);
     }
   }
@@ -726,7 +739,9 @@ export function HomePage() {
       currentTraceId: ""
     });
     if (path) {
-      if (activePipelineStage === "image") {
+      if (activePipelineStage === "audio") {
+        await setTaskAudioState(path, { audioStatus: "failed", audioProgress: 0, audioMessage: "用户已终止音频任务" });
+      } else if (activePipelineStage === "image") {
         await setTaskImageState(path, { imageStatus: "failed", imageProgress: 0, imageMessage: "用户已终止图片任务" });
       } else if (activePipelineStage === "subtitle") {
         await setTaskSubtitleState(path, { subtitleStatus: "failed", subtitleProgress: 0, subtitleMessage: "用户已终止字幕任务" });
@@ -882,15 +897,18 @@ export function HomePage() {
   }
 
   async function setTaskAudioState(path: string, patch: Partial<Pick<MaterialFile, "audioStatus" | "audioProgress" | "audioOutputDir" | "audioFile" | "audioDurationMs" | "audioChunks" | "audioMessage">>) {
-    const current = useAppStore.getState().materialsWorkbench;
-    updateWorkbench({
-      scanResult: current.scanResult
-        ? {
-            ...current.scanResult,
-            files: current.scanResult.files.map((file) => (file.path === path ? { ...file, ...patch } : file))
-          }
-        : current.scanResult
-    });
+    await patchTaskState(path, patch);
+    if (patch.audioStatus || typeof patch.audioProgress === "number" || "audioFile" in patch || patch.audioMessage !== undefined) {
+      const saved = await frameworkApi.updateMaterialTaskStageStatus({
+        path,
+        stage: "audio",
+        status: patch.audioStatus ?? "generating",
+        progress: patch.audioProgress ?? 0,
+        outputPath: patch.audioFile ?? null,
+        message: patch.audioMessage ?? ""
+      });
+      await patchTaskState(path, saved);
+    }
   }
 
   async function setTaskImageState(path: string, patch: Partial<Pick<MaterialFile, "imageStatus" | "imageProgress" | "imageOutputDir" | "imageMessage">>) {
@@ -1063,6 +1081,14 @@ export function HomePage() {
             audioDurationMs: null,
             audioChunks: null,
             audioMessage: "",
+            imageStatus: "pending",
+            imageProgress: 0,
+            imageOutputDir: null,
+            imageMessage: "",
+            subtitleStatus: "pending",
+            subtitleProgress: 0,
+            subtitleFile: null,
+            subtitleMessage: "",
             videoStatus: "pending",
             videoProgress: 0,
             videoFile: null,
@@ -1092,6 +1118,14 @@ export function HomePage() {
       audioDurationMs: null,
       audioChunks: null,
       audioMessage: "",
+      imageStatus: "pending" as const,
+      imageProgress: 0,
+      imageOutputDir: null,
+      imageMessage: "",
+      subtitleStatus: "pending" as const,
+      subtitleProgress: 0,
+      subtitleFile: null,
+      subtitleMessage: "",
       videoStatus: "pending" as const,
       videoProgress: 0,
       videoFile: null,

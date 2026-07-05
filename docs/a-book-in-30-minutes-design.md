@@ -15,7 +15,7 @@
 - 应用目录：`a-book-in-30-minutes`
 - Tauri 标识：`com.abookin30minutes.desktop`
 - Rust crate：`a_book_in_30_minutes`
-- 当前版本：`0.1.146`
+- 当前版本：`0.1.147`
 
 核心输出包括视频标题、简介、标签、旁白稿、字幕文本、SRT/ASS 字幕、生成提示词、源书概览、结构化素材 JSON、微软语音 SSML、旁白 mp3、AI 原始高清图片、图片资产清单和图片-字幕时间轴。
 
@@ -1639,3 +1639,13 @@ The Stop Task action updates only the active stage. Stopping Image marks the ima
 The canonical pipeline order is now Text -> Audio -> Subtitle -> Image -> Video -> Publish. Image generation is downstream of subtitle alignment, because each image needs the final Chinese SRT timestamp range to know when it appears in the finished video.
 
 The Image stage must read the aligned Chinese SRT and generate visual prompts from timed subtitle groups. Each generated image records its `startMs`, `endMs`, covered text, and file path in the visual manifest/timeline. Video generation consumes that timeline instead of guessing display intervals from raw subtitle text.
+
+## 2026-07-05 0.1.147 Audio Failure Closure and Log Hygiene
+
+This version tightens the Audio stage contract after a failed speech request.
+
+- Polling reads such as `get_material_tasks` must not create user-visible operation-log rows. Logs should describe user actions, backend work, and failures, not the UI heartbeat.
+- Audio stage UI state is persisted through the shared stage-status command. `setTaskAudioState()` writes SQLite just like Image and Subtitle, so a refresh cannot overwrite an in-flight or failed Audio status with stale local state.
+- The Audio button participates in the same `currentTraceId` lock and terminate flow as the other pipeline buttons. Completion, failure, or user termination clears the trace and releases the UI lock.
+- `generate_material_task_audio` writes B-01 through B-04 step records into `material_task_steps`: reading narration, splitting chunks, generating speech, and merging final audio. A speech failure marks B-03 failed with the chunk and SSML file context.
+- SSML generation must produce a valid Microsoft Speech request body with `<speak>`, `<voice>`, and `<prosody>` elements. Placeholder text such as `Operation completed` is rejected locally before sending the request.

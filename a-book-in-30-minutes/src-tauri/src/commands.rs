@@ -100,6 +100,7 @@ pub struct AppData {
 struct AudioTaskProgress {
     db_path: PathBuf,
     path: String,
+    trace_id: String,
 }
 
 impl AudioTaskProgress {
@@ -117,6 +118,19 @@ impl AudioTaskProgress {
                 Some(message),
             );
         }
+    }
+
+    fn step(&self, step_code: &str, step_name: &str, status: &str, progress: i64, detail: &str) {
+        upsert_material_task_step_db(
+            &self.db_path,
+            &self.trace_id,
+            &self.path,
+            step_code,
+            step_name,
+            status,
+            progress,
+            detail,
+        );
     }
 }
 
@@ -1634,11 +1648,6 @@ pub fn get_material_tasks(
         normalize_material_task_outputs(file);
         persist_reconciled_task_status(&connection, &before, file);
     }
-    data.logger.info(
-        "materials",
-        "tasks.get",
-        format!("已读取素材任务：{} 条", files.len()),
-    );
     Ok(ScanMaterialFilesResult {
         directory: String::new(),
         files,
@@ -1765,7 +1774,7 @@ pub fn update_material_task_stage_status(
     if path.is_empty() {
         return Err(command_error("请先选择 EPUB 任务。"));
     }
-    let stage = normalize_video_pipeline_stage(Some(&request.stage));
+    let stage = request.stage.trim().to_ascii_lowercase();
     let status = normalize_task_status(&request.status);
     let progress = clamp_task_progress(request.progress);
     let message = request.message.unwrap_or_default();
@@ -1784,6 +1793,17 @@ pub fn update_material_task_stage_status(
     }
     let now = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
     match stage.as_str() {
+        "audio" => {
+            connection
+                .execute(
+                    "UPDATE material_tasks
+                     SET audio_status = ?2, audio_progress = ?3, audio_file = ?4,
+                         audio_message = ?5, updated_at = ?6
+                     WHERE path = ?1",
+                    params![path, status, progress, request.output_path, message, now],
+                )
+                .map_err(|error| command_error(format!("Update audio task status failed: {error}")))?;
+        }
         "image" => {
             connection
                 .execute(
@@ -2331,8 +2351,18 @@ pub async fn generate_material_task_audio(
         None,
         None,
         None,
-        Some("Operation completed."),
+        Some("正在读取旁白文件。"),
     )?;
+    upsert_material_task_step_db(
+        &data.db_path,
+        &trace_id,
+        path,
+        "B-01",
+        "音频：读取旁白",
+        "generating",
+        10,
+        &format!("正在读取旁白文件：{}", narration_file.to_string_lossy()),
+    );
     let text = fs::read_to_string(&narration_file)
         .map_err(|error| command_error(format!("Narration file operation failed: {error}")))?;
     update_material_task_audio_status(
@@ -2344,8 +2374,28 @@ pub async fn generate_material_task_audio(
         None,
         None,
         None,
-        Some("Operation completed."),
+        Some("旁白已读取，正在拆分音频片段。"),
     )?;
+    upsert_material_task_step_db(
+        &data.db_path,
+        &trace_id,
+        path,
+        "B-01",
+        "音频：读取旁白",
+        "success",
+        100,
+        &format!("旁白已读取，字符数：{}", text.chars().count()),
+    );
+    upsert_material_task_step_db(
+        &data.db_path,
+        &trace_id,
+        path,
+        "B-02",
+        "音频：拆分片段",
+        "generating",
+        20,
+        "正在按语音服务限制拆分旁白文本。",
+    );
     let file_name = sanitize_file_name(&file.name);
     let audio_base_dir = material_dir.clone();
     update_material_task_audio_status(
@@ -2357,11 +2407,32 @@ pub async fn generate_material_task_audio(
         None,
         None,
         None,
-        Some("Operation completed."),
+        Some("音频片段拆分完成，正在生成语音。"),
     )?;
+    upsert_material_task_step_db(
+        &data.db_path,
+        &trace_id,
+        path,
+        "B-02",
+        "音频：拆分片段",
+        "success",
+        100,
+        "旁白文本已拆分，准备请求语音服务。",
+    );
+    upsert_material_task_step_db(
+        &data.db_path,
+        &trace_id,
+        path,
+        "B-03",
+        "音频：生成语音",
+        "generating",
+        30,
+        "正在请求语音服务生成分段 mp3。",
+    );
     let audio_progress = AudioTaskProgress {
         db_path: data.db_path.clone(),
         path: path.to_string(),
+        trace_id: trace_id.clone(),
     };
     let result = match generate_audio_from_text(
         &data,
@@ -2387,10 +2458,20 @@ pub async fn generate_material_task_audio(
                 None,
                 Some(&error.message),
             );
+            upsert_material_task_step_db(
+                &data.db_path,
+                &trace_id,
+                path,
+                "B-03",
+                "音频：生成语音",
+                "failed",
+                0,
+                &error.message,
+            );
             data.logger.trace_error(
                 "audio",
                 "task.failed",
-                "Operation completed.",
+                "音频任务失败。",
                 &error.message,
                 &trace_id,
             );
@@ -2406,8 +2487,28 @@ pub async fn generate_material_task_audio(
         Some(&result.audio_file),
         result.duration_ms.map(|value| value as i64),
         Some(result.chunks as i64),
-        Some("Operation completed."),
+        Some("音频已生成。"),
     )?;
+    upsert_material_task_step_db(
+        &data.db_path,
+        &trace_id,
+        path,
+        "B-03",
+        "音频：生成语音",
+        "success",
+        100,
+        &format!("已生成 {} 个音频片段。", result.chunks),
+    );
+    upsert_material_task_step_db(
+        &data.db_path,
+        &trace_id,
+        path,
+        "B-04",
+        "音频：合成音频",
+        "success",
+        100,
+        &format!("最终音频：{}", result.audio_file),
+    );
     let settings = data.settings.lock().map_err(lock_error)?.clone();
     notify_audio_generation_completed(
         &data,
@@ -3500,7 +3601,7 @@ async fn generate_audio_from_text(
     data.logger.trace_info(
         "audio",
         "generate.start",
-        "Operation completed.",
+        "开始生成音频。",
         format!(
             "trace_id={} text_chars={} output_dir={} file_name={}",
             trace_id,
@@ -3518,18 +3619,18 @@ async fn generate_audio_from_text(
         data.logger.trace_error(
             "audio",
             "generate.validate",
-            "Operation completed.",
-            "Operation completed.",
+            "音频文本为空。",
+            "请先生成旁白文本，再生成音频。",
             &trace_id,
         );
         return Err(command_error(
-            "Operation completed.",
+            "音频文本为空，请先生成旁白文本。",
         ));
     }
     let chunks = split_speech_text(text, SPEECH_CHUNK_MAX_CHARS);
     if chunks.is_empty() {
         return Err(command_error(
-            "Operation completed.",
+            "音频文本拆分后为空，请检查旁白文本。",
         ));
     }
     if chunks.len() > 1 {
@@ -3566,7 +3667,7 @@ async fn generate_audio_from_text(
     data.logger.debug(
         "audio",
         "generate.plan",
-        "Operation completed.",
+        "音频生成计划已创建。",
         format!(
             "chunks={} chunk_max_chars={} voice={} output_format={} output_dir={}",
             chunks.len(),
@@ -3578,7 +3679,14 @@ async fn generate_audio_from_text(
         &trace_id,
     );
     if let Some(callback) = progress_callback.as_ref() {
-        callback.update(35, "Operation completed.");
+        callback.update(35, "音频片段已拆分，准备请求语音服务。");
+        callback.step(
+            "B-02",
+            "音频：拆分片段",
+            "success",
+            100,
+            &format!("已拆分为 {} 个音频片段。", chunks.len()),
+        );
     }
 
     let ssml_file = output_dir.join("narration.ssml");
@@ -3621,17 +3729,30 @@ async fn generate_audio_from_text(
             "audio",
             "speech.request",
             format!(
-                "Operation completed: {} {}",
+                "正在生成第 {}/{} 段语音。",
                 index + 1,
                 chunks.len()
             ),
             format!(
-                "chunk_chars={} output={}",
+                "voice={} locale={} chunk_chars={} ssml_file={} output={}",
+                settings.speech_profile.voice_name,
+                if settings.speech_profile.locale.trim().is_empty() { "zh-CN" } else { settings.speech_profile.locale.trim() },
                 chunk.chars().count(),
+                part_ssml_file.to_string_lossy(),
                 part_file.to_string_lossy()
             ),
             &trace_id,
         );
+        if let Some(callback) = progress_callback.as_ref() {
+            let progress = 40 + ((index as i64 * 45) / chunks.len().max(1) as i64);
+            callback.step(
+                "B-03",
+                "音频：生成语音",
+                "generating",
+                progress.min(84),
+                &format!("正在生成第 {}/{} 段语音。", index + 1, chunks.len()),
+            );
+        }
         let part_started = Instant::now();
         synthesize_speech_to_file(&settings.speech_profile, &ssml, &part_file)
             .await
@@ -3639,10 +3760,29 @@ async fn generate_audio_from_text(
                 data.logger.trace_error(
                     "audio",
                     "speech.request.failed",
-                    format!("Operation completed: {}", index + 1),
-                    &error.message,
+                    format!("第 {} 段语音生成失败。", index + 1),
+                    format!(
+                        "{} ssml_file={}",
+                        error.message,
+                        part_ssml_file.to_string_lossy()
+                    ),
                     &trace_id,
                 );
+                if let Some(callback) = progress_callback.as_ref() {
+                    callback.step(
+                        "B-03",
+                        "音频：生成语音",
+                        "failed",
+                        0,
+                        &format!(
+                            "第 {}/{} 段语音生成失败：{}；SSML：{}",
+                            index + 1,
+                            chunks.len(),
+                            error.message,
+                            part_ssml_file.to_string_lossy()
+                        ),
+                    );
+                }
                 if let Some(part) = manifest.parts.get_mut(index) {
                     part.status = "failed".to_string();
                     part.error = Some(error.message.clone());
@@ -3665,17 +3805,24 @@ async fn generate_audio_from_text(
             callback.update(
                 progress.min(85),
                 &format!(
-                    "Operation completed: {} {}",
+                    "已生成第 {}/{} 段语音。",
                     index + 1,
                     chunks.len()
                 ),
+            );
+            callback.step(
+                "B-03",
+                "音频：生成语音",
+                "generating",
+                progress.min(85),
+                &format!("已生成第 {}/{} 段语音。", index + 1, chunks.len()),
             );
         }
         data.logger.trace_info(
             "audio",
             "speech.response",
             format!(
-                "Operation completed: {} {}",
+                "第 {}/{} 段语音生成完成。",
                 index + 1,
                 chunks.len()
             ),
@@ -3696,7 +3843,14 @@ async fn generate_audio_from_text(
         })?;
     } else {
         if let Some(callback) = progress_callback.as_ref() {
-            callback.update(88, "Operation completed.");
+            callback.update(88, "正在合成完整音频。");
+            callback.step(
+                "B-04",
+                "音频：合成音频",
+                "generating",
+                88,
+                "正在合并分段 mp3。",
+            );
         }
         concat_audio_parts(
             &settings.tool_profile.ffmpeg_path,
@@ -3708,7 +3862,7 @@ async fn generate_audio_from_text(
         )?;
     }
     if let Some(callback) = progress_callback.as_ref() {
-        callback.update(92, "Operation completed.");
+        callback.update(92, "正在读取音频时长。");
     }
     let duration_ms = probe_audio_duration_ms(
         &settings.tool_profile.ffmpeg_path,
@@ -3725,7 +3879,7 @@ async fn generate_audio_from_text(
     data.logger.trace_info(
         "audio",
         "generate.done",
-        "Operation completed.",
+        "音频生成完成。",
         format!(
             "elapsed_ms={} chars={} chunks={} audio_file={} ssml_file={}",
             started.elapsed().as_millis(),
@@ -4392,6 +4546,7 @@ async fn synthesize_speech_to_file(
     ssml: &str,
     output_file: &Path,
 ) -> Result<(), CommandError> {
+    validate_ssml(ssml)?;
     let region = profile.region.trim();
     let url = format!("https://{region}.tts.speech.microsoft.com/cognitiveservices/v1");
     let client = reqwest::Client::builder()
@@ -4448,13 +4603,29 @@ fn build_ssml(text: &str, profile: &SpeechProfile) -> String {
         )
     };
     format!(
-        "Operation completed: {} {} {} {} {}",
+        "<speak version=\"1.0\" xml:lang=\"{}\" xmlns=\"http://www.w3.org/2001/10/synthesis\"><voice name=\"{}\">{}{}</prosody></voice></speak>",
         escape_xml_attr(locale),
         escape_xml_attr(profile.voice_name.trim()),
         prosody_open,
-        escape_xml_text(text),
-        "</prosody>"
+        escape_xml_text(text)
     )
+}
+
+fn validate_ssml(ssml: &str) -> Result<(), CommandError> {
+    let trimmed = ssml.trim_start();
+    if !trimmed.starts_with("<speak") {
+        return Err(command_error(format!(
+            "SSML 格式错误：请求体必须以 <speak> 开始。预览：{}",
+            text_preview(trimmed, 180)
+        )));
+    }
+    if ssml.contains("Operation completed") {
+        return Err(command_error(format!(
+            "SSML 格式错误：请求体包含占位文案 Operation completed。预览：{}",
+            text_preview(trimmed, 180)
+        )));
+    }
+    Ok(())
 }
 
 fn split_speech_text(text: &str, max_chars: usize) -> Vec<String> {
