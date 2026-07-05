@@ -208,7 +208,14 @@ function pickTrackedTasks(files: MaterialFile[], requestPath: string, selectedTa
   const current =
     files.find((file) => file.path === selectedTaskPath) ??
     files.find((file) => file.path === normalizedRequestPath) ??
-    files.find((file) => file.status === "generating" || file.audioStatus === "generating" || file.videoStatus === "generating") ??
+    files.find(
+      (file) =>
+        file.status === "generating" ||
+        file.imageStatus === "generating" ||
+        file.audioStatus === "generating" ||
+        file.subtitleStatus === "generating" ||
+        file.videoStatus === "generating"
+    ) ??
     files[0] ??
     (normalizedRequestPath ? materialFileFromPath(normalizedRequestPath) : null);
   return current ? [current] : [];
@@ -271,7 +278,7 @@ function mapSubStepStatus(status: TaskStatus, progress: number, threshold: numbe
   }
   if (status === "generating") {
     const previous = previousStageThreshold(stage, threshold);
-    return progress >= previous ? "RUNNING" : "PENDING";
+    return progress >= previous || previous === 0 ? "RUNNING" : "PENDING";
   }
   return "PENDING";
 }
@@ -298,8 +305,15 @@ function estimateOverallProgress(steps: StepRow[]) {
 }
 
 function formatStepDuration(step: MaterialTaskStep, nowMs: number) {
-  if (typeof step.elapsedMs === "number") return formatDurationMs(step.elapsedMs);
-  if (step.status !== "generating" || !step.startedAt) return "-";
+  if (typeof step.elapsedMs === "number" && step.elapsedMs > 0) return formatDurationMs(step.elapsedMs);
+  if (step.startedAt && step.finishedAt) {
+    const started = parseSqliteDateTime(step.startedAt);
+    const finished = parseSqliteDateTime(step.finishedAt);
+    if (started && finished && finished.getTime() > started.getTime()) {
+      return formatDurationMs(finished.getTime() - started.getTime());
+    }
+  }
+  if (step.status !== "generating" || !step.startedAt) return typeof step.elapsedMs === "number" ? formatDurationMs(step.elapsedMs) : "-";
   const started = parseSqliteDateTime(step.startedAt);
   if (!started) return "-";
   return formatDurationMs(Math.max(0, nowMs - started.getTime()));
@@ -333,9 +347,11 @@ function formatTaskTitle(name: string) {
 function buildSummary(file: MaterialFile) {
   if (file.videoStatus === "success") return text("\u89c6\u9891\u751f\u6210\u5b8c\u6210");
   if (file.videoStatus === "generating") return text("\u6b63\u5728\u751f\u6210\u89c6\u9891\u4ea7\u7269");
+  if (file.subtitleStatus === "generating") return text("\u6b63\u5728\u751f\u6210\u5b57\u5e55");
+  if (file.imageStatus === "generating") return text("\u6b63\u5728\u751f\u6210\u56fe\u7247");
   if (file.audioStatus === "generating") return text("\u6b63\u5728\u751f\u6210\u97f3\u9891");
   if (file.status === "generating") return text("\u6b63\u5728\u751f\u6210\u7d20\u6750");
-  if (file.status === "failed" || file.audioStatus === "failed" || file.videoStatus === "failed") return text("\u4efb\u52a1\u5931\u8d25");
+  if (file.status === "failed" || file.imageStatus === "failed" || file.audioStatus === "failed" || file.subtitleStatus === "failed" || file.videoStatus === "failed") return text("\u4efb\u52a1\u5931\u8d25");
   return text("\u7b49\u5f85\u4e0b\u4e00\u6b65");
 }
 

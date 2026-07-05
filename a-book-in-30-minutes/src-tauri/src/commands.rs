@@ -2384,19 +2384,6 @@ pub fn generate_book_video_pipeline(
     }
     let (pipeline_root, script) = find_video_pipeline(&app)?;
     let python = find_python_command();
-    data.logger.trace_info(
-        "video",
-        "pipeline.spawn",
-        "Video pipeline task spawned",
-        format!(
-            "epub={} script={} python={}",
-            epub.to_string_lossy(),
-            script.to_string_lossy(),
-            python
-        ),
-        &trace_id,
-    );
-
     let connection = Connection::open(&data.db_path).map_err(|error| {
         command_error(format!("Open material task database failed: {error}"))
     })?;
@@ -2406,6 +2393,24 @@ pub fn generate_book_video_pipeline(
         &material_file_from_path(epub_path, DEFAULT_MATERIAL_CATEGORY)?,
     )?;
     let pipeline_stage = normalize_video_pipeline_stage(request.pipeline_stage.as_deref());
+    let app_material_dir = resolve_task_material_dir_for_video(&data.db_path, epub_path);
+    data.logger.trace_info(
+        "video",
+        "pipeline.spawn",
+        "视频流水线后台任务已创建",
+        format!(
+            "阶段={} epub={} 输出目录={} script={} python={}",
+            video_pipeline_stage_label(&pipeline_stage),
+            epub.to_string_lossy(),
+            app_material_dir
+                .as_ref()
+                .map(|path| path.to_string_lossy().into_owned())
+                .unwrap_or_else(|| "自动推断".to_string()),
+            script.to_string_lossy(),
+            python
+        ),
+        &trace_id,
+    );
     let now = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
     match pipeline_stage.as_str() {
         "image" => {
@@ -2565,9 +2570,10 @@ fn run_book_video_pipeline_background(
     logger.trace_info(
         "video",
         "pipeline.start",
-        "Video pipeline started",
+        "视频流水线开始执行",
         format!(
-            "epub={} script={} python={}",
+            "阶段={} epub={} script={} python={}",
+            video_pipeline_stage_label(&pipeline_stage),
             epub.to_string_lossy(),
             script.to_string_lossy(),
             python
@@ -2777,6 +2783,12 @@ fn run_book_video_pipeline_background(
     };
     if pipeline_stage == "image" || json_bool(&json, "visualAssetsOnly").unwrap_or(false) {
         let visual_assets_dir = json_string(&json, "visualAssetsDir").or_else(|| json_string(&json, "visualStoryPlan"));
+        let visual_asset_count = visual_assets_dir
+            .as_deref()
+            .and_then(|path| count_image_files_in_dir(Path::new(path)))
+            .or_else(|| json_i64(&json, "visualAssetCount"))
+            .unwrap_or(0);
+        let cover = json_string(&json, "cover").unwrap_or_default();
         let material_dir_for_db = app_material_dir
             .as_ref()
             .map(|path| path.to_string_lossy().into_owned())
@@ -2791,17 +2803,19 @@ fn run_book_video_pipeline_background(
             visual_assets_dir.as_deref(),
             None,
             None,
-            "Image assets generated",
+            &format!("图片素材已生成：{} 张", visual_asset_count),
         );
         logger.trace_info(
             "video",
             "pipeline.visual_done",
-            "Image pipeline completed",
+            "图片流水线完成",
             format!(
-                "elapsed_seconds={:.1} material_dir={} visual_assets_dir={}",
+                "耗时={:.1}秒 素材目录={} 图片目录={} 图片数量={} 封面={}",
                 started.elapsed().as_secs_f64(),
                 material_dir,
-                visual_assets_dir.unwrap_or_default()
+                visual_assets_dir.unwrap_or_default(),
+                visual_asset_count,
+                cover
             ),
             &trace_id,
         );
@@ -2935,7 +2949,10 @@ fn update_video_task_after_background(
 ) {
     if let Ok(connection) = Connection::open(db_path) {
         let _ = connection.execute(
-            "Output directory operation failed.",
+            "UPDATE material_tasks
+             SET video_status = ?2, video_progress = ?3, material_output_dir = COALESCE(?4, material_output_dir),
+                 video_file = ?5, video_duration_ms = ?6, video_file_size = ?7, video_message = ?8, updated_at = ?9
+             WHERE path = ?1",
             params![
                 epub_path,
                 status,
@@ -2967,7 +2984,10 @@ fn update_visual_stage_after_background(
     if stage == "image" {
         if let Ok(connection) = Connection::open(db_path) {
             let _ = connection.execute(
-                "Output directory operation failed.",
+                "UPDATE material_tasks
+                 SET image_status = ?2, image_progress = ?3, material_output_dir = COALESCE(?4, material_output_dir),
+                     image_output_dir = ?5, image_message = ?6, updated_at = ?7
+                 WHERE path = ?1",
                 params![
                     epub_path,
                     status,
@@ -2984,7 +3004,10 @@ fn update_visual_stage_after_background(
     if stage == "subtitle" {
         if let Ok(connection) = Connection::open(db_path) {
             let _ = connection.execute(
-                "Output directory operation failed.",
+                "UPDATE material_tasks
+                 SET subtitle_status = ?2, subtitle_progress = ?3, material_output_dir = COALESCE(?4, material_output_dir),
+                     subtitle_file = ?5, subtitle_message = ?6, updated_at = ?7
+                 WHERE path = ?1",
                 params![
                     epub_path,
                     status,
@@ -3012,7 +3035,10 @@ fn update_visual_stage_after_background(
     if status == "success" {
         if let Ok(connection) = Connection::open(db_path) {
             let _ = connection.execute(
-                "Output directory operation failed.",
+                "UPDATE material_tasks
+                 SET status = 'success', progress = 100, material_output_dir = COALESCE(?2, material_output_dir),
+                     message = '视频流水线已完成', updated_at = ?4
+                 WHERE path = ?1",
                 params![
                     epub_path,
                     material_dir,
@@ -3040,6 +3066,18 @@ fn collect_video_pipeline_stream<R: std::io::Read>(
         collected.push_str(&line);
         collected.push('\n');
         let action = format!("pipeline.{stream_name}");
+        if stream_name == "stdout" {
+            if let Some(summary) = summarize_video_pipeline_json_line(&line) {
+                logger.trace_info(
+                    "video",
+                    "pipeline.result",
+                    "视频流水线结果摘要",
+                    summary,
+                    &trace_id,
+                );
+                continue;
+            }
+        }
         logger.trace_info(
             "video",
             &action,
@@ -3049,6 +3087,66 @@ fn collect_video_pipeline_stream<R: std::io::Read>(
         );
     }
     collected
+}
+
+fn summarize_video_pipeline_json_line(line: &str) -> Option<String> {
+    if !line.starts_with('{') || !line.ends_with('}') {
+        return None;
+    }
+    let json: serde_json::Value = serde_json::from_str(line).ok()?;
+    let material_dir = json_string(&json, "materialDir")?;
+    let visual_assets_dir = json_string(&json, "visualAssetsDir");
+    let cover = json_string(&json, "cover");
+    let visual_count = visual_assets_dir
+        .as_deref()
+        .and_then(|path| count_image_files_in_dir(Path::new(path)))
+        .or_else(|| json_i64(&json, "visualAssetCount"))
+        .unwrap_or(0);
+    let elapsed = json_f64(&json, "elapsedSeconds").unwrap_or(0.0);
+    Some(format!(
+        "素材目录={} 图片目录={} 图片数量={} 封面={} 字幕行数={} 模式={} 耗时={:.1}秒",
+        material_dir,
+        visual_assets_dir.unwrap_or_default(),
+        visual_count,
+        cover.unwrap_or_default(),
+        json_i64(&json, "subtitleCount").unwrap_or(0),
+        video_pipeline_result_mode(&json),
+        elapsed
+    ))
+}
+
+fn video_pipeline_result_mode(json: &serde_json::Value) -> &'static str {
+    if json_bool(json, "visualAssetsOnly").unwrap_or(false) {
+        return "仅图片素材";
+    }
+    if json_bool(json, "audioSubtitleOnly").unwrap_or(false) {
+        return "仅音频字幕";
+    }
+    "完整视频"
+}
+
+fn video_pipeline_stage_label(stage: &str) -> &'static str {
+    match stage {
+        "image" => "图片",
+        "subtitle" => "字幕",
+        _ => "视频",
+    }
+}
+
+fn count_image_files_in_dir(path: &Path) -> Option<i64> {
+    let entries = fs::read_dir(path).ok()?;
+    let count = entries
+        .filter_map(Result::ok)
+        .filter(|entry| {
+            entry
+                .path()
+                .extension()
+                .and_then(|value| value.to_str())
+                .map(|ext| matches!(ext.to_ascii_lowercase().as_str(), "png" | "jpg" | "jpeg" | "webp"))
+                .unwrap_or(false)
+        })
+        .count();
+    Some(count.min(i64::MAX as usize) as i64)
 }
 
 fn collect_video_pipeline_progress_stream<R: std::io::Read>(
@@ -5147,7 +5245,7 @@ fn normalize_material_task_outputs_from_disk(file: &mut MaterialFile) {
         file.message = "文本素材缺失，请按需重新生成文本。".to_string();
     }
 
-    if !path_option_exists(&file.audio_file) {
+    if file.audio_status != "generating" && !path_option_exists(&file.audio_file) {
         file.audio_status = "pending".to_string();
         file.audio_progress = 0;
         file.audio_file = None;
@@ -5155,19 +5253,19 @@ fn normalize_material_task_outputs_from_disk(file: &mut MaterialFile) {
         file.audio_chunks = None;
         file.audio_message = "音频文件缺失，请按需重新生成音频。".to_string();
     }
-    if !path_option_exists(&file.image_output_dir) {
+    if file.image_status != "generating" && !path_option_exists(&file.image_output_dir) {
         file.image_status = "pending".to_string();
         file.image_progress = 0;
         file.image_output_dir = None;
         file.image_message = "图片素材缺失，请按需重新生成图片。".to_string();
     }
-    if !path_option_exists(&file.subtitle_file) {
+    if file.subtitle_status != "generating" && !path_option_exists(&file.subtitle_file) {
         file.subtitle_status = "pending".to_string();
         file.subtitle_progress = 0;
         file.subtitle_file = None;
         file.subtitle_message = "字幕文件缺失，请按需重新生成字幕。".to_string();
     }
-    if !path_option_exists(&file.video_file) {
+    if file.video_status != "generating" && !path_option_exists(&file.video_file) {
         file.video_status = "pending".to_string();
         file.video_progress = 0;
         file.video_file = None;
@@ -5686,7 +5784,7 @@ fn update_material_task_progress_db(
         if let Ok(file) = material_file_from_path(path, DEFAULT_MATERIAL_CATEGORY) {
             let _ = upsert_material_task(&connection, &file);
         }
-        let now = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+        let now = chrono::Local::now().format("%Y-%m-%d %H:%M:%S%.3f").to_string();
         let _ = connection.execute(
             "UPDATE material_tasks
              SET status = ?2, progress = ?3, message = ?4, updated_at = ?5
@@ -5780,9 +5878,15 @@ fn upsert_material_task_step_db(
 }
 
 fn elapsed_between_ms(start: &str, finish: &str) -> Option<i64> {
-    let start_time = chrono::NaiveDateTime::parse_from_str(start, "%Y-%m-%d %H:%M:%S").ok()?;
-    let finish_time = chrono::NaiveDateTime::parse_from_str(finish, "%Y-%m-%d %H:%M:%S").ok()?;
-    Some((finish_time - start_time).num_milliseconds().max(0))
+    let start_time = parse_step_datetime(start)?;
+    let finish_time = parse_step_datetime(finish)?;
+    Some((finish_time - start_time).num_milliseconds().max(1))
+}
+
+fn parse_step_datetime(value: &str) -> Option<chrono::NaiveDateTime> {
+    chrono::NaiveDateTime::parse_from_str(value, "%Y-%m-%d %H:%M:%S%.3f")
+        .or_else(|_| chrono::NaiveDateTime::parse_from_str(value, "%Y-%m-%d %H:%M:%S"))
+        .ok()
 }
 
 fn ensure_speech_region_key_table(connection: &Connection) -> Result<(), CommandError> {
@@ -5991,6 +6095,10 @@ fn json_string(value: &serde_json::Value, key: &str) -> Option<String> {
 
 fn json_i64(value: &serde_json::Value, key: &str) -> Option<i64> {
     value.get(key).and_then(|item| item.as_i64())
+}
+
+fn json_f64(value: &serde_json::Value, key: &str) -> Option<f64> {
+    value.get(key).and_then(|item| item.as_f64())
 }
 
 fn json_bool(value: &serde_json::Value, key: &str) -> Option<bool> {

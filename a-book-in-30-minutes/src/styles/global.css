@@ -549,8 +549,23 @@ button {
 
 .pipeline-stop-row {
   display: flex;
-  justify-content: flex-end;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
   margin-top: 10px;
+}
+
+.pipeline-status-stack {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pipeline-status-stack .status {
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .terminate-task-btn {

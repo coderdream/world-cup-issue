@@ -103,6 +103,7 @@ export function HomePage() {
   const allTaskPaths = scanResult?.files.map((file) => file.path) ?? [];
   const selectedTaskSet = new Set(selectedTaskPaths);
   const allTasksSelected = allTaskPaths.length > 0 && allTaskPaths.every((path) => selectedTaskSet.has(path));
+  const pipelineLocked = Boolean(currentTraceId && (activePipelineStage === "image" || activePipelineStage === "subtitle" || activePipelineStage === "video"));
   return (
     <div className="page material-page" onClick={() => setContextMenu(null)}>
       <Panel className="material-analyze-panel">
@@ -140,13 +141,15 @@ export function HomePage() {
           <span>状态：{scanResult ? `${scanResult.files.length} 个任务` : "等待扫描"}</span>
         </div>
         <div className="pipeline-stop-row">
+          <div className="pipeline-status-stack">
+            {error && <p className="status error">{error}</p>}
+            {copyState && <p className="status success">{copyState}</p>}
+            {exportState && <p className="status success">{exportState}</p>}
+          </div>
           <button className="terminate-task-btn" disabled={!busy && !currentTraceId} type="button" onClick={() => void terminateCurrentTask()}>
             <Ban size={16} /> 终止任务
           </button>
         </div>
-          {error && <p className="status error">{error}</p>}
-          {copyState && <p className="status success">{copyState}</p>}
-          {exportState && <p className="status success">{exportState}</p>}
       </Panel>
 
       <Panel className="task-list-panel">
@@ -318,28 +321,28 @@ export function HomePage() {
   function renderPipelineActions() {
     return (
       <div className="pipeline-actions">
-        <button className={getPipelineStageClass("materials")} disabled={busy} type="button" onClick={() => void generateSelectedMaterials()}>
-          {busy && activePipelineStage === "materials" ? <Loader2 className="spin" size={16} /> : <BookOpenText size={16} />}
+        <button className={getPipelineStageClass("materials")} disabled={pipelineLocked || busy} type="button" onClick={() => void generateSelectedMaterials()}>
+          {(pipelineLocked || busy) && activePipelineStage === "materials" ? <Loader2 className="spin" size={16} /> : <BookOpenText size={16} />}
           文本
         </button>
-        <button className={getPipelineStageClass("image")} disabled={busy || !hasPipelineTarget("image")} type="button" title="生成图片素材" onClick={() => void runVisualPipeline("image")}>
-          {busy && activePipelineStage === "image" ? <Loader2 className="spin" size={16} /> : <Image size={16} />}
+        <button className={getPipelineStageClass("image")} disabled={pipelineLocked || busy || !hasPipelineTarget("image")} type="button" title="生成图片素材" onClick={() => void runVisualPipeline("image")}>
+          {(pipelineLocked || busy) && activePipelineStage === "image" ? <Loader2 className="spin" size={16} /> : <Image size={16} />}
           图片
         </button>
-        <button className={getPipelineStageClass("audio")} disabled={busy} type="button" onClick={() => void runAudioPipeline()}>
-          {busy && activePipelineStage === "audio" ? <Loader2 className="spin" size={16} /> : <Volume2 size={16} />}
+        <button className={getPipelineStageClass("audio")} disabled={pipelineLocked || busy} type="button" onClick={() => void runAudioPipeline()}>
+          {(pipelineLocked || busy) && activePipelineStage === "audio" ? <Loader2 className="spin" size={16} /> : <Volume2 size={16} />}
           音频
         </button>
-        <button className={getPipelineStageClass("subtitle")} disabled={busy || !hasPipelineTarget("subtitle")} type="button" title="生成 SRT/ASS 字幕" onClick={() => void runVisualPipeline("subtitle")}>
-          {busy && activePipelineStage === "subtitle" ? <Loader2 className="spin" size={16} /> : <MessageSquareText size={16} />}
+        <button className={getPipelineStageClass("subtitle")} disabled={pipelineLocked || busy || !hasPipelineTarget("subtitle")} type="button" title="生成 SRT/ASS 字幕" onClick={() => void runVisualPipeline("subtitle")}>
+          {(pipelineLocked || busy) && activePipelineStage === "subtitle" ? <Loader2 className="spin" size={16} /> : <MessageSquareText size={16} />}
           字幕
         </button>
-        <button className={getPipelineStageClass("video")} disabled={busy || !hasPipelineTarget("video")} type="button" title="一键生成视频" onClick={() => void runVideoPipeline()}>
-          {busy && activePipelineStage === "video" ? <Loader2 className="spin" size={16} /> : <Video size={16} />}
+        <button className={getPipelineStageClass("video")} disabled={pipelineLocked || busy || !hasPipelineTarget("video")} type="button" title="一键生成视频" onClick={() => void runVideoPipeline()}>
+          {(pipelineLocked || busy) && activePipelineStage === "video" ? <Loader2 className="spin" size={16} /> : <Video size={16} />}
           视频
         </button>
-        <button className={getPipelineStageClass("publish")} disabled={busy || !hasPipelineTarget("publish")} type="button" title="生成 YouTube 发布资料" onClick={() => void generatePublishMaterials()}>
-          {busy && activePipelineStage === "publish" ? <Loader2 className="spin" size={16} /> : <Send size={16} />}
+        <button className={getPipelineStageClass("publish")} disabled={pipelineLocked || busy || !hasPipelineTarget("publish")} type="button" title="生成 YouTube 发布资料" onClick={() => void generatePublishMaterials()}>
+          {(pipelineLocked || busy) && activePipelineStage === "publish" ? <Loader2 className="spin" size={16} /> : <Send size={16} />}
           发布
         </button>
       </div>
@@ -545,7 +548,8 @@ export function HomePage() {
       });
       await updateVideoState(path, { status: "generating", progress: stage === "image" ? 45 : stage === "subtitle" ? 60 : 40, message: `${stageLabel}\u540e\u53f0\u751f\u6210\u4e2d\uff0c\u8bf7\u5230\u64cd\u4f5c\u65e5\u5fd7\u67e5\u770b\u5b9e\u9645\u8fdb\u5ea6\u3002` });
       updateWorkbench({
-        exportState: `${stageLabel}\u540e\u53f0\u4efb\u52a1\u5df2\u542f\u52a8\u3002\u8bf7\u5230\u64cd\u4f5c\u65e5\u5fd7\u67e5\u770b\u5b9e\u9645\u8fdb\u5ea6\u3002`,
+        busy: false,
+        exportState: `${stageLabel}\u540e\u53f0\u4efb\u52a1\u5df2\u542f\u52a8\uff0c\u5df2\u9501\u5b9a\u6d41\u6c34\u7ebf\u6309\u94ae\u3002\u8bf7\u5230\u64cd\u4f5c\u65e5\u5fd7\u67e5\u770b\u5b9e\u9645\u8fdb\u5ea6\uff0c\u9700\u8981\u6539\u9009\u65f6\u5148\u70b9\u51fb\u7ec8\u6b62\u4efb\u52a1\u3002`,
         error: ""
       });
       await loadStoredTasks(useAppStore.getState().settings.materialProfile.categoryName);
@@ -558,7 +562,8 @@ export function HomePage() {
         await setTaskSubtitleState(path, { subtitleStatus: "failed", subtitleProgress: 0, subtitleMessage: message });
       }
       await updateVideoState(path, { status: "failed", progress: 0, message });
-      updateWorkbench({ error: message, exportState: "" });
+      updateWorkbench({ error: message, exportState: "", currentTraceId: "" });
+      setActivePipelineStage(null);
     } finally {
       updateWorkbench({ busy: false });
     }
@@ -703,7 +708,7 @@ export function HomePage() {
       exporting: false,
       error: "",
       exportState: "当前任务已终止。",
-      currentTraceId: traceId
+      currentTraceId: ""
     });
     if (path) {
       await updateTaskStatus(path, { status: "failed", progress: 0, message: "用户已终止任务" });
