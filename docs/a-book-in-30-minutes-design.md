@@ -15,7 +15,7 @@
 - 应用目录：`a-book-in-30-minutes`
 - Tauri 标识：`com.abookin30minutes.desktop`
 - Rust crate：`a_book_in_30_minutes`
-- 当前版本：`0.1.143`
+- 当前版本：`0.1.144`
 
 核心输出包括视频标题、简介、标签、旁白稿、字幕文本、SRT/ASS 字幕、生成提示词、源书概览、结构化素材 JSON、微软语音 SSML、旁白 mp3、AI 原始高清图片、图片资产清单和图片-字幕时间轴。
 
@@ -55,7 +55,7 @@
 
 流水线的 `图片`、`字幕`、`视频` 属于后台任务阶段。点击其中任一按钮后，前端保留当前 `trace_id` 和高亮阶段，6 个阶段按钮全部禁用，直到用户点击【终止任务】解除锁定；这样可以避免同一个任务在后台运行时误点其它阶段。终止区左侧显示当前错误、复制或执行状态日志，右侧显示【终止任务】按钮，两者顶部对齐，日志允许多行换行。任务列表轮询 SQLite 时，正在生成的图片、字幕、音频或视频阶段不能因为产物文件暂未出现而被恢复为待处理。
 
-图片阶段的正式内容图数量必须按字幕规模动态生成，范围固定为 32~64 张。目标数量按 `字幕行数 / 28` 向上取整后夹在该范围内；例如 1000 多行字幕通常生成约 36~40 张图片。禁止沿用早期 8 段验证分镜作为正式听书视频图片数量，因为 30~35 分钟视频中 8 张图会导致单张停留数分钟，视觉变化不足。若迁移到的本地旧图片素材少于 32 张，且允许程序化视觉生成，必须重新生成满足数量范围的图片。
+图片阶段的正式内容图数量必须按字幕规模动态生成，范围固定为 32~64 张。目标数量按 `字幕行数 / 28` 向上取整后夹在该范围内；例如 1000 多行字幕通常生成约 36~40 张图片。禁止沿用早期 8 段验证分镜作为正式听书视频图片数量，因为 30~35 分钟视频中 8 张图会导致单张停留数分钟，视觉变化不足。若迁移到的本地旧图片素材少于 32 张，且允许程序化视觉生成，必须重新生成满足数量范围的图片。图片必须由正式图片生成器根据字幕区间生成 `book-illustration` 风格的内容图；禁止用低保真方框图、线框图、占位图或纯程序化示意图冒充正式图片。图片服务不可用时必须失败并在日志里写明连接错误，不允许静默降级为方框图。
 
 素材生成默认参数保存在 `settings.materialProfile`，包括 `channelName`、`categoryName`、`categories`、`language`、`targetMinChars`、`targetMaxChars` 和 ```textraDirection`。默认目标为 `7000-8300` 个中文字，最佳约 `7600` 字，用于配合 `0%` 原速语音生成约 `30-35` 分钟睡前听书音频，并尽量避免最终音频超过 `35:00`；如果用户调整目标时长，应优先调整这两个字数配置，而不是为了压缩时长提高语速。`categories` 默认包含 `半小时听完一本书`、`睡前听完一本书`、`A Book in 30 Minutes`，配置页允许新增分类；`categoryName` 是当前任务入库分类，等价于后续 YouTube 播放列表名称；`channelName` 为兼容旧生成提示词保留，当前选择分类时会同步更新。素材生成页不再直接编辑这些参数，生成请求会把当前配置合并进请求体。文件级生成状态同时保存在 `materialsWorkbench.fileStatuses` 和 SQLite `material_tasks`，按文件路径记录状态、五档进度、成稿字数和失败信息。
 
@@ -1617,3 +1617,9 @@ Subtitle coverage validation is tightened from 95% to 99.5% of narration Chinese
 ## 2026-07-04 0.1.141 Disable Local Material Fallback
 
 Initial AI material generation no longer falls back to local template-based material payloads. Empty or failed AI responses now fail the Text stage directly. This prevents repeated local excerpt paragraphs from being written to `narration.txt` and then propagated into `subtitles.txt`.
+
+## 2026-07-05 0.1.144 MacMini Image Model Isolation
+
+Formal image generation uses the MacMini image service by default through `OPENAI_IMAGE_MODE=macmini-realistic` and `MACMINI_IMAGE_ENDPOINT=http://100.96.199.26:30020/v1/images/generations` for the home-network Tailscale path. In this mode the pipeline must not inherit the text-generation model from `ABOOK_AI_MODEL`; it explicitly passes a valid image model, defaulting to `SG161222/Realistic_Vision_V5.1_noVAE`, so text models such as `gpt-5.5` are never sent to the Hugging Face image backend.
+
+The whiteboard image skill may still have its own `.env` for standalone use. The pipeline therefore passes the image mode, endpoint, and image model in the subprocess environment so app runs override any stale standalone text-model setting.

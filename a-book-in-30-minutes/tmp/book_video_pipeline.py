@@ -1593,52 +1593,19 @@ def generate_controlled_programmatic_assets(
     material_root: Path,
     video_dir: Path,
 ) -> tuple[list[Path], Path | None, str]:
-    script_dir = Path(__file__).resolve().parent
-    design_script = script_dir / "build_no_future_visual_design.py"
-    render_script = script_dir / "render_no_future_programmatic_illustrations.py"
-    if not design_script.exists() or not render_script.exists():
-        raise FileNotFoundError("Controlled programmatic visual scripts are missing")
-
-    book_dir = epub.parent
-    design_dir = video_dir / "controlled_visual_design"
-    image_dir = video_dir / "controlled_programmatic_visuals"
-    design_dir.mkdir(parents=True, exist_ok=True)
-    image_dir.mkdir(parents=True, exist_ok=True)
-
-    scene_count = target_visual_scene_count(material_root)
-    specs = whiteboard_scene_specs()
-    content_images: list[Path] = []
-    for index in range(1, scene_count + 1):
-        spec = specs[(index - 1) % len(specs)]
-        path = image_dir / f"scene_{index:02d}.png"
-        render_semantic_whiteboard_scene(path, ((index - 1) % len(specs)) + 1, spec)
-        content_images.append(path)
-    if not content_images:
-        raise RuntimeError("Controlled programmatic visual generation produced no images")
-
-    clean_lines = load_chinese_subtitle_lines(material_root)
-    manifest_path = image_dir / "programmatic_visual_manifest.json"
-    manifest = {
-        "sceneCount": scene_count,
-        "minSceneCount": VISUAL_SCENE_MIN_COUNT,
-        "maxSceneCount": VISUAL_SCENE_MAX_COUNT,
-        "subtitleLineCount": len(clean_lines),
-        "subtitleLinesPerImage": VISUAL_SUBTITLE_LINES_PER_IMAGE,
-        "generatedAt": time.strftime("%Y-%m-%d %H:%M:%S"),
-    }
-    manifest.update(
-        {
-            "sourceKind": "controlled_programmatic_visuals",
-            "materialRoot": str(material_root),
-            "designDir": str(design_dir),
-            "usedByVideoDir": str(video_dir),
-            "copiedAt": time.strftime("%Y-%m-%d %H:%M:%S"),
-            "assets": [str(path) for path in content_images],
-        }
+    material = read_material_json(material_root)
+    title = str(material.get("videoTitle") or material.get("title") or epub.stem)
+    description = str(material.get("description") or "")
+    duration_ms = audio_manifest_expected_duration(material_root) or 30 * 60 * 1000
+    subtitle_lines = load_chinese_subtitle_lines(material_root)
+    events = build_subtitle_events(subtitle_lines, duration_ms, HEADER_AUDIO_DURATION_MS) if subtitle_lines else []
+    return generate_whiteboard_skill_assets(
+        video_dir,
+        material_root,
+        title,
+        description,
+        events,
     )
-    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
-    shutil.copy2(manifest_path, video_dir / "visual_assets_manifest.json")
-    return content_images, image_dir, "controlled_programmatic_visuals"
 
 
 def build_whiteboard_skill_prompts(
@@ -1649,7 +1616,7 @@ def build_whiteboard_skill_prompts(
     scene_count: int | None = None,
 ) -> list[str]:
     scene_count = scene_count or target_visual_scene_count(material_root, subtitle_events)
-    prompt_style = os.environ.get("BOOK_IMAGE_PROMPT_STYLE", "").strip().lower()
+    prompt_style = os.environ.get("BOOK_IMAGE_PROMPT_STYLE", "book-illustration").strip().lower()
     clean_lines = load_chinese_subtitle_lines(material_root)
     clean_groups: list[str] = []
     if clean_lines:
@@ -1725,36 +1692,52 @@ def run_whiteboard_image_skill(prompts: list[str], output_dir: Path) -> list[Pat
         env["OPENAI_API_BASE"] = env["ABOOK_AI_BASE_URL"]
     if env.get("ABOOK_AI_API_KEY") and not env.get("OPENAI_API_KEY"):
         env["OPENAI_API_KEY"] = env["ABOOK_AI_API_KEY"]
-    if env.get("ABOOK_AI_MODEL") and not env.get("OPENAI_IMAGE_MODEL"):
-        env["OPENAI_IMAGE_MODEL"] = env["ABOOK_AI_MODEL"]
-    env.setdefault("OPENAI_IMAGE_MODE", "image")
-    completed = subprocess.run(
-        [
-            sys.executable,
-            str(WHITEBOARD_IMAGE_GENERATOR),
-            json.dumps(prompts, ensure_ascii=False),
-            "16:9",
-            str(output_dir),
-        ],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        env=env,
-    )
-    if completed.returncode != 0:
-        raise RuntimeError(
-            "whiteboard image skill failed:\nstdout:\n{}\n\nstderr:\n{}".format(
-                completed.stdout[-4000:],
-                completed.stderr[-4000:],
-            )
+    env.setdefault("OPENAI_IMAGE_MODE", "macmini-realistic")
+    env.setdefault("MACMINI_IMAGE_ENDPOINT", "http://100.96.199.26:30020/v1/images/generations")
+    image_mode = env.get("OPENAI_IMAGE_MODE", "").strip().lower()
+    if image_mode == "macmini-realistic":
+        # Text models such as gpt-5.5 are not valid Hugging Face image models.
+        # The image skill has its own .env, so pass a valid MacMini model explicitly.
+        env["OPENAI_IMAGE_MODEL"] = (
+            env.get("MACMINI_IMAGE_MODEL")
+            or env.get("BOOK_IMAGE_MODEL")
+            or "SG161222/Realistic_Vision_V5.1_noVAE"
         )
-    match = re.search(r"__RESULTS__(\[.*\])", completed.stdout, flags=re.DOTALL)
-    if not match:
-        raise RuntimeError(f"whiteboard image skill did not report results:\n{completed.stdout[-4000:]}")
-    results = json.loads(match.group(1))
-    images = [Path(str(item)) for item in results if isinstance(item, str) and Path(str(item)).is_file()]
+    elif env.get("ABOOK_AI_MODEL") and not env.get("OPENAI_IMAGE_MODEL"):
+        env["OPENAI_IMAGE_MODEL"] = env["ABOOK_AI_MODEL"]
+    batch_size = max(1, int(os.environ.get("ABOOK_IMAGE_PROMPT_BATCH_SIZE", "4") or "4"))
+    images: list[Path] = []
+    for batch_start in range(0, len(prompts), batch_size):
+        batch = prompts[batch_start : batch_start + batch_size]
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(WHITEBOARD_IMAGE_GENERATOR),
+                json.dumps(batch, ensure_ascii=False),
+                "16:9",
+                str(output_dir),
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            env=env,
+        )
+        if completed.returncode != 0:
+            raise RuntimeError(
+                "whiteboard image skill failed for batch {}-{}:\nstdout:\n{}\n\nstderr:\n{}".format(
+                    batch_start + 1,
+                    batch_start + len(batch),
+                    completed.stdout[-4000:],
+                    completed.stderr[-4000:],
+                )
+            )
+        match = re.search(r"__RESULTS__(\[.*\])", completed.stdout, flags=re.DOTALL)
+        if not match:
+            raise RuntimeError(f"whiteboard image skill did not report results:\n{completed.stdout[-4000:]}")
+        results = json.loads(match.group(1))
+        images.extend(Path(str(item)) for item in results if isinstance(item, str) and Path(str(item)).is_file())
     if len(images) != len(prompts):
         generated = sorted(
             output_dir.glob("*.png"),
@@ -1991,10 +1974,11 @@ def generate_whiteboard_skill_assets(
         assert_meaningful_image(source)
         dest = video_dir / f"visual_{index:02d}_whiteboard_skill.png"
         with Image.open(source) as image:
-            normalized = normalize_whiteboard_palette(
-                image.convert("RGB").resize((WIDTH, HEIGHT), Image.Resampling.LANCZOS)
-            )
-            normalized.save(dest, quality=94)
+            resized = image.convert("RGB").resize((WIDTH, HEIGHT), Image.Resampling.LANCZOS)
+            if os.environ.get("BOOK_IMAGE_PROMPT_STYLE", "book-illustration").strip().lower() == "book-illustration":
+                resized.save(dest, quality=94)
+            else:
+                normalize_whiteboard_palette(resized).save(dest, quality=94)
         copied.append(dest)
     body_events = [(start, end, text) for start, end, text in subtitle_events if end > HEADER_AUDIO_DURATION_MS]
     series = []
