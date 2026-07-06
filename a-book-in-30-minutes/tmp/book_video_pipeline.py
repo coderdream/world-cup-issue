@@ -55,12 +55,88 @@ CINEMATIC_MOTION_PROFILES = (
     ("descend_slow", "min(1.025+on*0.00014,1.13)", "(iw-iw/zoom)*0.48", "(ih-ih/zoom)*(0.25+0.30*on/{den})"),
     ("slow_pull_back", "max(1.13-on*0.00012,1.025)", "(iw-iw/zoom)*0.50", "(ih-ih/zoom)*0.50"),
 )
+STAGE_DIRS = {
+    "content": "01_content",
+    "audio": "02_audio",
+    "subtitles": "03_subtitles",
+    "images": "04_images",
+    "video": "05_video",
+    "publish": "06_publish",
+}
+CONTENT_FILES = {
+    "README.md",
+    "description.txt",
+    "draft.srt",
+    "materials.json",
+    "narration.txt",
+    "overview.json",
+    "prompt.txt",
+    "subtitles.txt",
+    "tags.txt",
+    "title.txt",
+}
+AUDIO_FILES = {
+    "audio_manifest.json",
+    "concat.txt",
+    "concat_video_source.txt",
+    "narration.ssml",
+}
+SUBTITLE_FILES = {
+    "aeneas_input.txt",
+    "translation_cache.json",
+}
 CINEMATIC_ENABLE_MOTION = os.environ.get("ABOOK_CINEMATIC_MOTION", "").strip().lower() in {
     "1",
     "true",
     "yes",
     "on",
 }
+
+
+def stage_dir(root: Path, stage: str) -> Path:
+    return root / STAGE_DIRS[stage]
+
+
+def stage_file(root: Path, stage: str, name: str) -> Path:
+    return stage_dir(root, stage) / name
+
+
+def ensure_stage_dir(root: Path, stage: str) -> Path:
+    directory = stage_dir(root, stage)
+    directory.mkdir(parents=True, exist_ok=True)
+    return directory
+
+
+def stage_for_name(name: str) -> str | None:
+    lower = name.lower()
+    if name in CONTENT_FILES:
+        return "content"
+    if name in AUDIO_FILES or re.match(r"part_\d+\.(mp3|ssml)$", lower) or lower.endswith(".epub.mp3") or lower.endswith("_video_mix.mp3") or lower == "narration_for_video.mp3":
+        return "audio"
+    if name in SUBTITLE_FILES or lower.startswith("hard_subtitle") or lower.endswith((".srt", ".ass", ".lrc")):
+        return "subtitles"
+    if lower.startswith(("visual_", "xiaohei_", "qwen_image")) or lower in {"cover.jpg", "visual_assets_manifest.json", "visual_story_plan.json", "visual_timeline.json", "source_visual_timeline.json"}:
+        return "images"
+    if lower.endswith(".mp4") or lower == "pipeline_manifest.json":
+        return "video"
+    if lower.startswith("youtube") or lower in {"publish.md", "youtube_publish.md"}:
+        return "publish"
+    return None
+
+
+def preferred_stage_path(root: Path, name: str, stage: str | None = None) -> Path:
+    selected = stage or stage_for_name(name)
+    return stage_file(root, selected, name) if selected else root / name
+
+
+def resolve_stage_path(root: Path, name: str, stage: str | None = None) -> Path:
+    preferred = preferred_stage_path(root, name, stage)
+    if preferred.exists():
+        return preferred
+    legacy = root / name
+    if legacy.exists():
+        return legacy
+    return preferred
 
 
 def safe_stem(path: Path) -> str:
@@ -159,7 +235,7 @@ def newest_audio(material_root: Path, exclude_names: set[str] | None = None) -> 
 
 
 def audio_manifest_expected_duration(material_root: Path) -> int | None:
-    manifest_path = material_root / "audio_manifest.json"
+    manifest_path = resolve_stage_path(material_root, "audio_manifest.json", "audio")
     if not manifest_path.exists():
         return None
     try:
@@ -171,7 +247,7 @@ def audio_manifest_expected_duration(material_root: Path) -> int | None:
 
 
 def audio_manifest_final_audio(material_root: Path) -> Path | None:
-    manifest_path = material_root / "audio_manifest.json"
+    manifest_path = resolve_stage_path(material_root, "audio_manifest.json", "audio")
     if not manifest_path.exists():
         return None
     try:
@@ -188,7 +264,9 @@ def audio_manifest_final_audio(material_root: Path) -> Path | None:
 
 
 def audio_part_files(material_root: Path) -> list[Path]:
-    return sorted(material_root.glob("part_*.mp3"), key=lambda path: path.name)
+    candidates = list(stage_dir(material_root, "audio").glob("part_*.mp3"))
+    candidates.extend(material_root.glob("part_*.mp3"))
+    return sorted((path for path in candidates if path.is_file()), key=lambda path: path.name)
 
 
 def concat_audio_parts(parts: list[Path], output: Path) -> Path:
@@ -257,26 +335,38 @@ def find_material_root(epub: Path, output_dir: Path | None) -> Path | None:
     if output_dir:
         current = output_dir
         for candidate in [current, *current.parents]:
-            if (candidate / "narration.txt").exists() or (candidate / "materials.json").exists():
+            if (
+                resolve_stage_path(candidate, "narration.txt", "content").exists()
+                or resolve_stage_path(candidate, "materials.json", "content").exists()
+            ):
                 return candidate
     output_root = epub.parent / "output"
     if not output_root.exists():
         return None
     matches = []
     for child in output_root.iterdir():
-        if child.is_dir() and ((child / "narration.txt").exists() or (child / "materials.json").exists()):
+        if child.is_dir() and (
+            resolve_stage_path(child, "narration.txt", "content").exists()
+            or resolve_stage_path(child, "materials.json", "content").exists()
+        ):
             matches.append(child)
     return max(matches, key=lambda path: path.stat().st_mtime) if matches else None
 
 
 def read_text(path: Path, fallback: str = "") -> str:
     if not path.exists():
+        stage = stage_for_name(path.name)
+        if stage:
+            candidate = stage_file(path.parent, stage, path.name)
+            if candidate.exists():
+                path = candidate
+    if not path.exists():
         return fallback
     return path.read_text(encoding="utf-8", errors="ignore").strip()
 
 
 def read_material_json(material_root: Path) -> dict:
-    path = material_root / "materials.json"
+    path = resolve_stage_path(material_root, "materials.json", "content")
     if not path.exists():
         return {}
     try:
@@ -635,7 +725,7 @@ def read_srt_events(path: Path) -> list[tuple[int, int, str]]:
 
 def find_timed_chinese_srt(material_root: Path, video_dir: Path, audio_language: str = "cmn") -> Path | None:
     candidates: list[Path] = []
-    manifest_path = video_dir / "pipeline_manifest.json"
+    manifest_path = resolve_stage_path(video_dir, "pipeline_manifest.json", "video")
     if manifest_path.exists():
         try:
             manifest = json.loads(manifest_path.read_text(encoding="utf-8", errors="ignore"))
@@ -652,7 +742,7 @@ def find_timed_chinese_srt(material_root: Path, video_dir: Path, audio_language:
         "hard_subtitle.aeneas.chn.srt",
         "hard_subtitle.aeneas.zh.srt",
     ]
-    for root in (video_dir, material_root):
+    for root in (stage_dir(video_dir, "subtitles"), video_dir, stage_dir(material_root, "subtitles"), material_root):
         candidates.extend(root / name for name in names)
     seen: set[str] = set()
     for candidate in candidates:
@@ -1101,14 +1191,15 @@ def build_aeneas_subtitles(
     force_aeneas: bool,
     subtitle_offset_ms: int,
 ) -> tuple[Path, Path, list[tuple[int, int, str]], dict]:
+    subtitle_dir = ensure_stage_dir(video_dir, "subtitles")
     existing_ass = None if force_aeneas else find_existing_aeneas_ass(material_root)
     if existing_ass:
-        ass_file = video_dir / "hard_subtitle.aeneas.zh-en.ass"
+        ass_file = subtitle_dir / "hard_subtitle.aeneas.zh-en.ass"
         raw_events = read_ass_dialogue_events(existing_ass)
         events, delay_ms = offset_events_for_header_once(raw_events, subtitle_offset_ms)
         write_ass(ass_file, events)
-        srt_file = video_dir / "hard_subtitle.aeneas.zh-en.srt"
-        lrc_file = video_dir / "hard_subtitle.aeneas.zh-en.lrc"
+        srt_file = subtitle_dir / "hard_subtitle.aeneas.zh-en.srt"
+        lrc_file = subtitle_dir / "hard_subtitle.aeneas.zh-en.lrc"
         write_srt(srt_file, events)
         write_lrc(lrc_file, events)
         return ass_file, srt_file, events, {
@@ -1124,12 +1215,12 @@ def build_aeneas_subtitles(
     chinese_lines = load_chinese_subtitle_lines(material_root)
     if not chinese_lines:
         raise RuntimeError("No Chinese subtitle lines found for aeneas alignment.")
-    aeneas_dir = video_dir
+    aeneas_dir = subtitle_dir
     zh_srt, subtitle_manifest = run_aeneas_alignment(audio, chinese_lines, aeneas_dir, audio_language)
     zh_events = read_srt_events(zh_srt)
     aligned_events = offset_events(zh_events, subtitle_offset_ms) if subtitle_offset_ms else zh_events
-    single_srt_file = video_dir / f"hard_subtitle.aeneas.{audio_language}.srt"
-    single_lrc_file = video_dir / f"hard_subtitle.aeneas.{audio_language}.lrc"
+    single_srt_file = subtitle_dir / f"hard_subtitle.aeneas.{audio_language}.srt"
+    single_lrc_file = subtitle_dir / f"hard_subtitle.aeneas.{audio_language}.lrc"
     write_srt(single_srt_file, aligned_events)
     write_lrc(single_lrc_file, aligned_events)
     english_lines = load_english_lines(material_root, len(zh_events), chinese_lines)
@@ -1137,9 +1228,9 @@ def build_aeneas_subtitles(
         (start + subtitle_offset_ms, end + subtitle_offset_ms, f"{zh}\n{en}")
         for (start, end, zh), en in zip(zh_events, english_lines)
     ]
-    srt_file = video_dir / "hard_subtitle.aeneas.zh-en.srt"
-    ass_file = video_dir / "hard_subtitle.aeneas.zh-en.ass"
-    lrc_file = video_dir / "hard_subtitle.aeneas.zh-en.lrc"
+    srt_file = subtitle_dir / "hard_subtitle.aeneas.zh-en.srt"
+    ass_file = subtitle_dir / "hard_subtitle.aeneas.zh-en.ass"
+    lrc_file = subtitle_dir / "hard_subtitle.aeneas.zh-en.lrc"
     write_srt(srt_file, bilingual_events)
     write_ass(ass_file, bilingual_events)
     write_lrc(lrc_file, bilingual_events)
@@ -1598,7 +1689,7 @@ def migrate_visual_assets(material_root: Path, video_dir: Path) -> tuple[list[Pa
     if source_dir is None:
         return [], None, "none"
 
-    dest_dir = video_dir
+    dest_dir = ensure_stage_dir(video_dir, "images")
     dest_dir.mkdir(parents=True, exist_ok=True)
     copied: list[Path] = []
     for index, source in enumerate(image_candidates(source_dir)[:VISUAL_SCENE_MAX_COUNT], 1):
@@ -1610,14 +1701,14 @@ def migrate_visual_assets(material_root: Path, video_dir: Path) -> tuple[list[Pa
 
     source_timeline = source_dir / "visual_timeline.json"
     if source_timeline.exists():
-        shutil.copy2(source_timeline, video_dir / "source_visual_timeline.json")
+        shutil.copy2(source_timeline, dest_dir / "source_visual_timeline.json")
     manifest = {
         "sourceKind": source_kind,
         "sourceDir": str(source_dir),
         "copiedAt": time.strftime("%Y-%m-%d %H:%M:%S"),
         "assets": [str(path) for path in copied],
     }
-    (video_dir / "visual_assets_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    (dest_dir / "visual_assets_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     return copied, dest_dir, source_kind
 
 
@@ -1854,7 +1945,9 @@ def generate_qwen_image_assets(
     poll_seconds = int(os.environ.get("QWEN_IMAGE_POLL_SECONDS", "10") or "10")
     max_wait_seconds = int(os.environ.get("QWEN_IMAGE_MAX_WAIT_SECONDS", str(2 * 60 * 60)) or str(2 * 60 * 60))
     max_polls = max(1, max_wait_seconds // max(1, poll_seconds))
-    image_dir = video_dir / "qwen_image_2512"
+    image_root = stage_dir(video_dir, "images")
+    image_root.mkdir(parents=True, exist_ok=True)
+    image_dir = image_root / "qwen_image_2512"
     image_dir.mkdir(parents=True, exist_ok=True)
     prompts = build_whiteboard_skill_prompts(
         material_root,
@@ -1912,7 +2005,7 @@ def generate_qwen_image_assets(
         source = image_dir / f"{prefix}.png"
         source.write_bytes(raw)
         assert_meaningful_image(source)
-        dest = video_dir / f"visual_{index:02d}_qwen_image.png"
+        dest = image_root / f"visual_{index:02d}_qwen_image.png"
         with Image.open(source) as image:
             image.convert("RGB").resize((WIDTH, HEIGHT), Image.Resampling.LANCZOS).save(dest, quality=94)
         copied.append(dest)
@@ -1932,8 +2025,8 @@ def generate_qwen_image_assets(
         "assets": [str(path) for path in copied],
         "prompts": prompts,
     }
-    (video_dir / "qwen_image_2512_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
-    (video_dir / "visual_assets_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    (image_root / "qwen_image_2512_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    (image_root / "visual_assets_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     return copied, image_dir, "qwen_image_2512"
 
 
@@ -2259,7 +2352,8 @@ def generate_xiaohei_sequence_assets(
     subtitle_events: list[tuple[int, int, str]],
 ) -> tuple[list[Path], Path, str]:
     scene_count = target_visual_scene_count(material_root, subtitle_events)
-    image_dir = video_dir / "xiaohei_sequence_images"
+    image_root = stage_dir(video_dir, "images")
+    image_dir = image_root / "xiaohei_sequence_images"
     image_dir.mkdir(parents=True, exist_ok=True)
     groups = xiaohei_scene_groups(material_root, subtitle_events, scene_count)
     copied: list[Path] = []
@@ -2269,7 +2363,7 @@ def generate_xiaohei_sequence_assets(
         source = image_dir / f"xiaohei_{index:02d}.png"
         meta = draw_xiaohei_scene(source, title or description or "book", group, scene_count)
         assert_xiaohei_image(source)
-        dest = video_dir / f"visual_{index:02d}_xiaohei_sequence.png"
+        dest = image_root / f"visual_{index:02d}_xiaohei_sequence.png"
         shutil.copy2(source, dest)
         copied.append(dest)
         series.append(
@@ -2291,8 +2385,9 @@ def generate_xiaohei_sequence_assets(
         "assets": [str(path) for path in copied],
         "series": series,
     }
-    (video_dir / "xiaohei_sequence_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
-    (video_dir / "visual_assets_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    image_root.mkdir(parents=True, exist_ok=True)
+    (image_root / "xiaohei_sequence_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    (image_root / "visual_assets_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     return copied, image_dir, "xiaohei_sequence"
 
 
@@ -2359,7 +2454,9 @@ def generate_xiaohei_production_assets(
 ) -> tuple[list[Path], Path, str]:
     scene_count = target_visual_scene_count(material_root, subtitle_events)
     groups = xiaohei_scene_groups(material_root, subtitle_events, scene_count)
-    base_dir = video_dir / "xiaohei_production"
+    image_root = stage_dir(video_dir, "images")
+    image_root.mkdir(parents=True, exist_ok=True)
+    base_dir = image_root / "xiaohei_production"
     spec_dir = base_dir / "specs"
     raw_dir = base_dir / "raw_3200x1800"
     spec_dir.mkdir(parents=True, exist_ok=True)
@@ -2395,7 +2492,7 @@ def generate_xiaohei_production_assets(
             candidates = sorted(raw_dir.glob(f"{index:02d}-*.png"))
             raw_path = candidates[0] if candidates else raw_path
         assert_xiaohei_image(raw_path)
-        dest = video_dir / f"visual_{index:02d}_xiaohei_production.png"
+        dest = image_root / f"visual_{index:02d}_xiaohei_production.png"
         with Image.open(raw_path) as image:
             image.convert("RGB").resize((WIDTH, HEIGHT), Image.Resampling.LANCZOS).save(dest, quality=95)
         copied.append(dest)
@@ -2412,8 +2509,8 @@ def generate_xiaohei_production_assets(
         "assets": [str(path) for path in copied],
         "series": series,
     }
-    (video_dir / "xiaohei_production_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
-    (video_dir / "visual_assets_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    (image_root / "xiaohei_production_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    (image_root / "visual_assets_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     return copied, raw_dir, "xiaohei_production"
 
 
@@ -2521,7 +2618,8 @@ def generate_whiteboard_skill_assets(
             return generate_qwen_image_assets(video_dir, material_root, title, description, subtitle_events)
         except Exception as error:
             print(f"Qwen Image backend failed, falling back to whiteboard image skill: {error}", file=sys.stderr, flush=True)
-    image_dir = video_dir / "whiteboard_skill_images"
+    image_root = ensure_stage_dir(video_dir, "images")
+    image_dir = image_root / "whiteboard_skill_images"
     prompts = build_whiteboard_skill_prompts(
         material_root,
         title,
@@ -2533,7 +2631,7 @@ def generate_whiteboard_skill_assets(
     copied: list[Path] = []
     for index, source in enumerate(raw_images, 1):
         assert_meaningful_image(source)
-        dest = video_dir / f"visual_{index:02d}_whiteboard_skill.png"
+        dest = image_root / f"visual_{index:02d}_whiteboard_skill.png"
         with Image.open(source) as image:
             resized = image.convert("RGB").resize((WIDTH, HEIGHT), Image.Resampling.LANCZOS)
             if os.environ.get("BOOK_IMAGE_PROMPT_STYLE", "book-illustration").strip().lower() == "book-illustration":
@@ -2576,8 +2674,8 @@ def generate_whiteboard_skill_assets(
         "series": series,
         "prompts": prompts,
     }
-    (video_dir / "visual_assets_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
-    (video_dir / "whiteboard_series_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    (image_root / "visual_assets_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    (image_root / "whiteboard_series_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     return copied, image_dir, "whiteboard_skill_images"
 
 
@@ -2590,7 +2688,7 @@ def render_cover_image(
     epub_stem: str = "",
     kicker: str = "",
 ) -> Path:
-    cover = video_dir / "cover.jpg"
+    cover = ensure_stage_dir(video_dir, "images") / "cover.jpg"
     book_title = extract_book_title(title or epub_stem, epub_stem)
     title_text, title_font_size = split_cover_title(book_title)
     if base_image and base_image.is_file():
@@ -3171,8 +3269,11 @@ def main() -> int:
     cover_kicker = cover_kicker_from_material(material, overview)
     subtitle_label = description.splitlines()[0].strip() if description else "Tonight's book"
     output_stem = safe_output_name(extract_book_title(title, epub.stem) or epub.stem, safe_stem(epub))
-    source_audio_target = video_dir / f"{output_stem}.mp3"
-    prepared_audio_target = video_dir / f"{output_stem}_video_mix.mp3"
+    audio_dir = ensure_stage_dir(video_dir, "audio")
+    image_dir = ensure_stage_dir(video_dir, "images")
+    video_stage_dir = ensure_stage_dir(video_dir, "video")
+    source_audio_target = audio_dir / f"{output_stem}.mp3"
+    prepared_audio_target = audio_dir / f"{output_stem}_video_mix.mp3"
 
     if args.subtitles_only:
         reference_file = Path(args.subtitle_reference) if args.subtitle_reference else None
@@ -3183,10 +3284,11 @@ def main() -> int:
             batch_chars=max(0, args.subtitle_batch_chars),
         )
         output_name = args.subtitle_output_name.strip() or "subtitles_ai_test.txt"
-        subtitle_output = material_root / output_name
+        subtitle_output = preferred_stage_path(material_root, output_name, "content")
+        subtitle_output.parent.mkdir(parents=True, exist_ok=True)
         subtitle_output.write_text("\n".join(lines) + "\n", encoding="utf-8")
         report["subtitleOutput"] = str(subtitle_output)
-        report_file = material_root / f"{Path(output_name).stem}_report.json"
+        report_file = subtitle_output.parent / f"{Path(output_name).stem}_report.json"
         report_file.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
         result = {
             "materialDir": str(material_root),
@@ -3200,7 +3302,7 @@ def main() -> int:
         return 0
 
     if args.visual_assets_only:
-        manifest = video_dir / "pipeline_manifest.json"
+        manifest = video_stage_dir / "pipeline_manifest.json"
         header_duration_ms = HEADER_AUDIO_DURATION_MS
         header_seconds = header_duration_ms / 1000.0
         timed_srt = find_timed_chinese_srt(material_root, video_dir, args.audio_language)
@@ -3263,8 +3365,8 @@ def main() -> int:
             header_duration_ms,
             events,
         )
-        visual_story_plan = video_dir / "visual_story_plan.json"
-        visual_timeline = video_dir / "visual_timeline.json"
+        visual_story_plan = image_dir / "visual_story_plan.json"
+        visual_timeline = image_dir / "visual_timeline.json"
         write_visual_story_plan(
             visual_story_plan,
             title,
@@ -3330,7 +3432,7 @@ def main() -> int:
 
     narration_audio, narration_duration_ms, stretch_ratio = prepare_narration_audio(
         source_audio,
-        video_dir / "narration_for_video.mp3",
+        audio_dir / "narration_for_video.mp3",
         TARGET_MIN_SECONDS,
     )
     header_audio = ensure_header_audio(Path(args.header_audio) if args.header_audio else default_header_audio_path())
@@ -3347,7 +3449,7 @@ def main() -> int:
         header_duration_ms,
     )
 
-    manifest = video_dir / "pipeline_manifest.json"
+    manifest = video_stage_dir / "pipeline_manifest.json"
     base_result = {
         "materialDir": str(material_root),
         "pipelineManifest": str(manifest),
@@ -3433,7 +3535,7 @@ def main() -> int:
         header_duration_ms,
         events,
     )
-    visual_story_plan = video_dir / "visual_story_plan.json"
+    visual_story_plan = image_dir / "visual_story_plan.json"
     write_visual_story_plan(
         visual_story_plan,
         title,
@@ -3450,7 +3552,7 @@ def main() -> int:
             "visualSourceKind": visual_source_kind,
             "visualAssetCount": len(content_images),
             "visualStoryPlan": str(visual_story_plan),
-            "visualTimeline": str(video_dir / "visual_timeline.json"),
+            "visualTimeline": str(image_dir / "visual_timeline.json"),
             "noSubtitleVideo": None,
             "hardSubtitleVideo": None,
             "backgroundMusic": None,
@@ -3459,7 +3561,7 @@ def main() -> int:
             "visualAssetsOnly": True,
         }
         build_visual_timeline(
-            video_dir / "visual_timeline.json",
+            image_dir / "visual_timeline.json",
             cover,
             content_images,
             duration_ms,
@@ -3472,8 +3574,8 @@ def main() -> int:
         print(json.dumps(result, ensure_ascii=False))
         return 0
     background_music = Path(args.background_music) if args.background_music else None
-    no_subtitle_video = video_dir / f"{output_stem}_无字幕母版.mp4"
-    hard_video = video_dir / f"{output_stem}_中英双语字幕_精修版.mp4"
+    no_subtitle_video = video_stage_dir / f"{output_stem}_无字幕母版.mp4"
+    hard_video = video_stage_dir / f"{output_stem}_中英双语字幕_精修版.mp4"
     render_no_subtitle_video(
         no_subtitle_video,
         cover,
@@ -3495,7 +3597,7 @@ def main() -> int:
         "visualSourceKind": visual_source_kind,
         "visualAssetCount": len(content_images),
         "visualStoryPlan": str(visual_story_plan),
-        "visualTimeline": str(video_dir / "visual_timeline.json"),
+        "visualTimeline": str(image_dir / "visual_timeline.json"),
         "noSubtitleVideo": str(no_subtitle_video),
         "hardSubtitleVideo": str(hard_video),
         "backgroundMusic": str(background_music) if background_music and background_music.is_file() else None,
@@ -3503,7 +3605,7 @@ def main() -> int:
         "videoDurationMs": video_duration_ms,
     }
     build_visual_timeline(
-        video_dir / "visual_timeline.json",
+        image_dir / "visual_timeline.json",
         cover,
         content_images,
         duration_ms,

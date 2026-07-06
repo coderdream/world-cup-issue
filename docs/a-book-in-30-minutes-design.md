@@ -1685,3 +1685,13 @@ Pipeline stage buttons are ordered actions, not isolated commands. Clicking a la
 - Publish first ensures Text -> Audio -> Subtitle -> Image -> Video, waiting for Video success when it had to start video generation, then generates the publish Markdown.
 
 The only time the UI should ask the user to click an earlier button is when there is no valid selected/requested task. Missing prerequisite artifacts are handled by the pipeline itself.
+
+## 2026-07-06 0.1.154 Staged Output Directory Contract
+
+Each book `output` directory is now the stable task root and contains six stage folders that match the pipeline buttons: `01_content`, `02_audio`, `03_subtitles`, `04_images`, `05_video`, and `06_publish`.
+
+The Text stage writes the material package (`materials.json`, `narration.txt`, `subtitles.txt`, title, description, tags, prompt, overview, draft SRT, README) into `01_content`. The Audio stage writes SSML, part mp3 files, the final narration mp3, and `audio_manifest.json` into `02_audio`. Subtitle alignment writes Aeneas input, Chinese SRT, bilingual SRT/ASS/LRC, translation cache, and subtitle manifests into `03_subtitles`. Image generation writes source image folders, final `visual_XX_*` PNGs, cover art, visual story plans, visual timelines, and image manifests into `04_images`. Video assembly writes `pipeline_manifest.json` and final mp4 outputs into `05_video`. Publish material generation writes `youtube_publish.md` into `06_publish`.
+
+`material_output_dir` remains the root `output` path so the UI opens a single organized folder. Stage-specific database fields point to their stage folders or files: `audio_output_dir` to `02_audio`, `image_output_dir` to `04_images`, `subtitle_file` to `03_subtitles/...srt`, and `video_file` to `05_video/...mp4` when a video exists.
+
+The backend keeps backward-compatible readers for older root-level outputs. Path resolution first checks the staged location, then falls back to the legacy root-level file. This allows existing tasks to keep working during migration while all new writes use the staged layout.

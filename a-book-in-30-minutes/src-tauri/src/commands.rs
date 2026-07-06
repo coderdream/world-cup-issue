@@ -45,6 +45,11 @@ const MICROSOFT_TTS_LANGUAGE_SUPPORT_URL: &str =
 const DEFAULT_MATERIAL_CATEGORY: &str = "半小时听完一本书";
 const MATERIAL_TASK_SELECT_COLUMNS: &str = "path, name, extension, size, category, status, progress, narration_chars, material_output_dir, message, audio_status, audio_progress, audio_output_dir, audio_file, audio_duration_ms, audio_chunks, audio_message, image_status, image_progress, image_output_dir, image_message, subtitle_status, subtitle_progress, subtitle_file, subtitle_message, video_status, video_progress, video_file, video_duration_ms, video_file_size, video_message";
 const MATERIAL_PROGRESS_STEPS: usize = 4;
+const STAGE_CONTENT_DIR: &str = "01_content";
+const STAGE_AUDIO_DIR: &str = "02_audio";
+const STAGE_SUBTITLES_DIR: &str = "03_subtitles";
+const STAGE_VIDEO_DIR: &str = "05_video";
+const STAGE_PUBLISH_DIR: &str = "06_publish";
 
 const SPEECH_VOICE_SEEDS: &[(&str, &str, &str, &str, &str, &str, &str)] = &[
     ("zh-CN", "中文（普通话，简体）", "Neural", "zh-CN-XiaoxiaoNeural", "Female", "assistant, chat, customerservice, newscast, affectionate, angry, calm, cheerful, disgruntled, fearful, gentle, lyrical, sad, serious", "Girl, YoungAdult"),
@@ -421,7 +426,7 @@ pub async fn run_e2e_audio_cli(epub_path: &str) -> Result<(), CommandError> {
         return Err(command_error(format!("EPUB file does not exist: {epub_path}")));
     }
     let output_dir = source_output_dir(&epub)?;
-    let narration_file = output_dir.join("narration.txt");
+    let narration_file = staged_material_path(&output_dir, "narration.txt");
     let narration = fs::read_to_string(&narration_file).map_err(|error| {
         command_error(format!(
             "Read narration file failed: {} ({error})",
@@ -2336,7 +2341,7 @@ pub async fn generate_material_task_audio(
     } else {
         return Err(command_error("Operation completed."));
     };
-    let narration_file = material_dir.join("narration.txt");
+    let narration_file = staged_material_path(&material_dir, "narration.txt");
     if !narration_file.exists() {
         return Err(command_error(
             "Narration file operation failed.",
@@ -2676,7 +2681,7 @@ fn has_aligned_chinese_srt(dir: Option<&Path>) -> bool {
         "hard_subtitle.aeneas.zh.srt",
     ]
     .iter()
-    .map(|name| dir.join(name))
+    .flat_map(|name| [dir.join(STAGE_SUBTITLES_DIR).join(name), dir.join(name)])
     .any(|path| path.is_file())
 }
 
@@ -2695,7 +2700,7 @@ pub fn generate_publish_materials(
         return Err(command_error(format!("EPUB file does not exist: {epub_path}")));
     }
     let output_dir = resolve_publish_output_dir(&data.db_path, epub_path, &epub)?;
-    let materials_path = output_dir.join("materials.json");
+    let materials_path = staged_material_path(&output_dir, "materials.json");
     if !materials_path.exists() {
         return Err(command_error(format!(
             "找不到 materials.json，请先生成素材：{}",
@@ -2711,13 +2716,21 @@ pub fn generate_publish_materials(
         .unwrap_or_else(|| epub.file_stem().and_then(|value| value.to_str()).unwrap_or("book").to_string());
     let description = json_string(&materials_json, "description").unwrap_or_default();
     let tags = json_string_array(&materials_json, "tags");
-    let markdown_file = output_dir.join("youtube_publish.md");
-    let srt_path = output_dir.join("hard_subtitle.aeneas.zh-en.srt");
+    let publish_dir = output_dir.join(STAGE_PUBLISH_DIR);
+    fs::create_dir_all(&publish_dir).map_err(|error| {
+        command_error(format!("Operation failed: {error}"))
+    })?;
+    let markdown_file = publish_dir.join("youtube_publish.md");
+    let srt_path = output_dir
+        .join(STAGE_SUBTITLES_DIR)
+        .join("hard_subtitle.aeneas.zh-en.srt");
     let chapters = build_publish_chapters(&srt_path);
-    let video_path = output_dir.join(format!(
-        "{}_中英双语字幕_精修版.mp4",
-        sanitize_file_name(&extract_publish_book_title(&title))
-    ));
+    let video_path = output_dir
+        .join(STAGE_VIDEO_DIR)
+        .join(format!(
+            "{}_中英双语字幕_精修版.mp4",
+            sanitize_file_name(&extract_publish_book_title(&title))
+        ));
     let markdown = build_youtube_publish_markdown(
         &title,
         &description,
@@ -3662,7 +3675,7 @@ async fn generate_audio_from_text(
     } else {
         file_stem
     };
-    let output_dir = base_dir;
+    let output_dir = base_dir.join(STAGE_AUDIO_DIR);
     let parts_dir = output_dir.clone();
     let ssml_dir = output_dir.clone();
     fs::create_dir_all(&output_dir).map_err(|error| {
@@ -5567,9 +5580,9 @@ fn normalize_material_task_outputs(file: &mut MaterialFile) {
 
 fn material_dir_has_text_assets(path: &Path) -> bool {
     path.is_dir()
-        && path.join("narration.txt").is_file()
-        && path.join("subtitles.txt").is_file()
-        && path.join("materials.json").is_file()
+        && staged_material_path(path, "narration.txt").is_file()
+        && staged_material_path(path, "subtitles.txt").is_file()
+        && staged_material_path(path, "materials.json").is_file()
 }
 
 fn normalize_material_task_outputs_from_disk(file: &mut MaterialFile) {
@@ -5683,7 +5696,7 @@ fn persist_reconciled_task_status(
 }
 
 fn count_narration_chars_in_dir(path: &Path) -> Option<i64> {
-    fs::read_to_string(path.join("narration.txt"))
+    fs::read_to_string(staged_material_path(path, "narration.txt"))
         .ok()
         .map(|content| count_han_chars(&content) as i64)
         .filter(|count| *count > 0)
@@ -6033,7 +6046,7 @@ fn find_existing_material_output_dir(
         if !base_dir.exists() {
             continue;
         }
-        if base_dir.join("materials.json").exists() || base_dir.join("narration.txt").exists() {
+        if has_material_package_files(&base_dir) {
             candidates.push((
                 base_dir
                     .metadata()
@@ -6057,7 +6070,7 @@ fn find_existing_material_output_dir(
                 .and_then(|value| value.to_str())
                 .unwrap_or("")
                 .to_lowercase();
-            if path.join("materials.json").exists() || path.join("narration.txt").exists() {
+            if has_material_package_files(&path) {
                 if !hints
                     .iter()
                     .any(|hint| !hint.is_empty() && name.contains(hint))
@@ -6076,7 +6089,7 @@ fn find_existing_material_output_dir(
     Ok(candidates.into_iter().map(|(_, path)| path).next())
 }
 fn material_output_dir_matches(file: &MaterialFile, path: &Path) -> bool {
-    if path.join("materials.json").exists() || path.join("narration.txt").exists() {
+    if has_material_package_files(path) {
         return true;
     }
     let name = path
@@ -7395,6 +7408,26 @@ fn resolve_export_base_dir(data: &AppData, output_dir: &str) -> Result<PathBuf, 
     Ok(PathBuf::from(output_dir))
 }
 
+fn stage_dir(root: &Path, stage: &str) -> PathBuf {
+    root.join(stage)
+}
+
+fn staged_material_path(root: &Path, file_name: &str) -> PathBuf {
+    let content_path = stage_dir(root, STAGE_CONTENT_DIR).join(file_name);
+    if content_path.exists() {
+        content_path
+    } else {
+        root.join(file_name)
+    }
+}
+
+fn has_material_package_files(path: &Path) -> bool {
+    path.join(STAGE_CONTENT_DIR).join("materials.json").exists()
+        || path.join(STAGE_CONTENT_DIR).join("narration.txt").exists()
+        || path.join("materials.json").exists()
+        || path.join("narration.txt").exists()
+}
+
 fn write_book_materials_package(
     data: &AppData,
     output_dir: &str,
@@ -7407,54 +7440,58 @@ fn write_book_materials_package(
     })?;
 
     let output_dir = base_dir;
+    let content_dir = output_dir.join(STAGE_CONTENT_DIR);
+    fs::create_dir_all(&content_dir).map_err(|error| {
+        command_error(format!("Operation failed: {error}"))
+    })?;
 
     let mut files = Vec::new();
-    write_material_file(&output_dir, &mut files, "title.txt", &materials.video_title)?;
+    write_material_file(&content_dir, &mut files, "title.txt", &materials.video_title)?;
     write_material_file(
-        &output_dir,
+        &content_dir,
         &mut files,
         "description.txt",
         &materials.description,
     )?;
     write_material_file(
-        &output_dir,
+        &content_dir,
         &mut files,
         "tags.txt",
         &materials.tags.join(", "),
     )?;
     write_material_file(
-        &output_dir,
+        &content_dir,
         &mut files,
         "narration.txt",
         &materials.narration,
     )?;
     write_material_file(
-        &output_dir,
+        &content_dir,
         &mut files,
         "subtitles.txt",
         &materials.subtitles.join("\n"),
     )?;
     write_material_file(
-        &output_dir,
+        &content_dir,
         &mut files,
         "draft.srt",
         &build_srt(&materials.subtitles),
     )?;
-    write_material_file(&output_dir, &mut files, "prompt.txt", &materials.prompt)?;
+    write_material_file(&content_dir, &mut files, "prompt.txt", &materials.prompt)?;
     write_material_file(
-        &output_dir,
+        &content_dir,
         &mut files,
         "overview.json",
         &serde_json::to_string_pretty(&materials.overview).unwrap_or_default(),
     )?;
     write_material_file(
-        &output_dir,
+        &content_dir,
         &mut files,
         "materials.json",
         &serde_json::to_string_pretty(materials).unwrap_or_default(),
     )?;
     write_material_file(
-        &output_dir,
+        &content_dir,
         &mut files,
         "README.md",
         &build_export_readme(materials),
@@ -7468,7 +7505,7 @@ fn write_book_materials_package(
             "trace_id={} files={} output_dir={}",
             trace_id,
             files.len(),
-            output_dir.to_string_lossy()
+            content_dir.to_string_lossy()
         ),
         trace_id,
     );
