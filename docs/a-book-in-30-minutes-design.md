@@ -1705,3 +1705,11 @@ The local production renderer follows the bundled `docs/ref/ian-xiaohei-illustra
 MacMini4 remote generation remains available only when explicitly enabled with `XIAOHEI_PRODUCTION_REMOTE=1`. The generated specs now include varied template names and `subtitleSafeBottomPx`, so the remote generator can adopt the same contract after its template library is expanded.
 
 All Xiaohei images pass through a subtitle-safe-area transform before being saved: the illustration content is scaled into the upper part of the 1920x1080 frame and the bottom 300 pixels are left as clean white space. This keeps the hard Chinese/English subtitle overlay from covering the main drawing.
+
+## 2026-07-06 0.1.156 Programmatic Xiaohei Object Grounding and Quality Boundary
+
+The programmatic Xiaohei renderer now extracts concrete nouns and scene words from each subtitle group and maps them to visible objects. The mapping includes books, biographies, company signs, price tags, coins, stock tickets, medical cards, toys, houses, friendship bridges, clocks, keys, stamps, rulers, ladders, stones, lamps, and trash buckets. Each scene records these extracted `objects` plus richer handwritten `notes` in `xiaohei_production_manifest.json`, so image debugging can show which subtitle concepts were grounded into the picture.
+
+The renderer draws these objects into the existing local multi-template compositions and expands annotation density from a few keywords to a small cluster of labels and humorous handwritten notes. This improves semantic grounding and avoids empty two-label diagrams while preserving the 300px bottom subtitle-safe area.
+
+This version also clarifies the quality boundary of the local renderer. It is a deterministic Pillow-based line-art fallback and should be treated as a low-fidelity storyboard or emergency placeholder. It cannot reach the official `ian-xiaohei-illustrations` sample quality because those samples rely on image-model drawing ability and stronger visual composition. The intended production direction is to keep the programmatic renderer as `xiaohei-programmatic` fallback and route the default `xiaohei-production` path to a real image-generation backend that follows the same Xiaohei prompt contract and then applies the subtitle-safe-area postprocess.

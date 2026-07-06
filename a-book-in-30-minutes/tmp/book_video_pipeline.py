@@ -2210,6 +2210,81 @@ def xiaohei_keywords(text: str, fallback: str) -> list[str]:
     return (found[:4] or [fallback])
 
 
+XIAOHEI_OBJECT_KEYWORDS = {
+    "书": ("book", "书页"),
+    "传": ("book", "传记"),
+    "公司": ("building", "公司牌"),
+    "企业": ("building", "企业牌"),
+    "价格": ("price", "价格签"),
+    "现金": ("coin", "现金袋"),
+    "投资": ("coin", "投资币"),
+    "股票": ("ticket", "股票票根"),
+    "巴菲特": ("glasses", "老友眼镜"),
+    "芒格": ("book", "芒格笔记"),
+    "泰迪": ("medical", "病历卡"),
+    "白血病": ("medical", "病历卡"),
+    "医院": ("medical", "病历卡"),
+    "孩子": ("toy", "小玩具"),
+    "儿子": ("toy", "小玩具"),
+    "家庭": ("house", "小房子"),
+    "朋友": ("bridge", "友情桥"),
+    "友谊": ("bridge", "友情桥"),
+    "信任": ("bridge", "信任桥"),
+    "时间": ("clock", "慢钟表"),
+    "选择": ("sign", "选择牌"),
+    "机会": ("key", "机会钥匙"),
+    "错误": ("trash", "错题桶"),
+    "判断": ("stamp", "判断章"),
+    "理性": ("ruler", "理性尺"),
+    "耐心": ("clock", "耐心钟"),
+    "复利": ("ladder", "复利梯"),
+    "生活": ("house", "生活屋"),
+    "痛苦": ("stone", "痛苦石"),
+    "智慧": ("lamp", "智慧灯"),
+}
+
+
+def xiaohei_scene_objects(text: str) -> list[tuple[str, str]]:
+    objects: list[tuple[str, str]] = []
+    for keyword, item in XIAOHEI_OBJECT_KEYWORDS.items():
+        if keyword in text and item not in objects:
+            objects.append(item)
+    if not objects:
+        compact = re.sub(r"[^\u4e00-\u9fff]", "", text)
+        for chunk in [compact[i : i + 3] for i in range(0, min(len(compact), 12), 3)]:
+            if chunk:
+                objects.append(("paper", chunk))
+    while len(objects) < 5:
+        fallback = [("paper", "材料"), ("box", "证据箱"), ("ticket", "小票据"), ("stamp", "慢判断"), ("key", "钥匙")][len(objects) % 5]
+        if fallback not in objects:
+            objects.append(fallback)
+        else:
+            break
+    return objects[:7]
+
+
+def xiaohei_funny_notes(labels: list[str], objects: list[tuple[str, str]]) -> list[str]:
+    seeds = [
+        "先别急",
+        "证据排队",
+        "慢慢筛",
+        "别被带跑",
+        "小心这里",
+        "留给字幕",
+        "这块很贵",
+        "先称一下",
+        "不是玄学",
+        "再想三秒",
+    ]
+    object_labels = [label for _, label in objects]
+    notes = []
+    for value in labels + object_labels + seeds:
+        value = compact_text(str(value).strip(), 6)
+        if value and value not in notes:
+            notes.append(value)
+    return notes[:8]
+
+
 def draw_xiaohei(draw: ImageDraw.ImageDraw, x: int, y: int, scale: float, pose: str, ink: tuple[int, int, int]) -> None:
     w = int(94 * scale)
     h = int(128 * scale)
@@ -2276,6 +2351,104 @@ def draw_small_box(draw: ImageDraw.ImageDraw, box: tuple[int, int, int, int], la
     draw_hand_label(draw, label, (box[0] + 18, box[1] + 16), font, color)
 
 
+def draw_scene_object(
+    draw: ImageDraw.ImageDraw,
+    kind: str,
+    label: str,
+    x: int,
+    y: int,
+    font: ImageFont.ImageFont,
+    ink: tuple[int, int, int],
+    accent: tuple[int, int, int],
+) -> None:
+    label = compact_text(label, 5)
+    if kind == "book":
+        draw_sketch_rect(draw, (x, y, x + 115, y + 76), ink, 4)
+        draw_sketch_line(draw, [(x + 56, y), (x + 56, y + 76)], ink, 3)
+        draw_hand_label(draw, label, (x + 18, y + 20), font, accent)
+    elif kind == "building":
+        draw_sketch_rect(draw, (x, y + 16, x + 128, y + 98), ink, 4)
+        for i in range(3):
+            draw_sketch_rect(draw, (x + 18 + i * 34, y + 38, x + 38 + i * 34, y + 58), ink, 2)
+        draw_hand_label(draw, label, (x + 12, y - 20), font, accent)
+    elif kind == "price":
+        draw_loose_paper(draw, x + 55, y + 35, ink, 1.1, -1)
+        draw_hand_label(draw, label, (x + 6, y + 18), font, accent)
+        draw_sketch_line(draw, [(x + 106, y + 20), (x + 145, y - 8)], ink, 3)
+    elif kind == "coin":
+        for i in range(3):
+            draw.ellipse((x + i * 26, y - i * 8, x + 72 + i * 26, y + 50 - i * 8), outline=ink, width=4)
+        draw_hand_label(draw, label, (x, y + 58), font, accent)
+    elif kind == "medical":
+        draw_sketch_rect(draw, (x, y, x + 120, y + 86), ink, 4)
+        draw_sketch_line(draw, [(x + 60, y + 20), (x + 60, y + 60)], accent, 4)
+        draw_sketch_line(draw, [(x + 40, y + 40), (x + 80, y + 40)], accent, 4)
+        draw_hand_label(draw, label, (x + 4, y + 96), font, accent)
+    elif kind == "toy":
+        draw.ellipse((x + 30, y + 6, x + 90, y + 66), outline=ink, width=4)
+        draw_sketch_line(draw, [(x + 60, y + 66), (x + 40, y + 112), (x + 82, y + 112), (x + 60, y + 66)], ink, 4)
+        draw_hand_label(draw, label, (x, y + 118), font, accent)
+    elif kind == "house":
+        draw_sketch_line(draw, [(x, y + 58), (x + 65, y), (x + 130, y + 58)], ink, 4)
+        draw_sketch_rect(draw, (x + 18, y + 58, x + 112, y + 130), ink, 4)
+        draw_hand_label(draw, label, (x + 5, y + 138), font, accent)
+    elif kind == "bridge":
+        draw.arc((x, y + 30, x + 170, y + 150), 180, 360, fill=ink, width=5)
+        for i in range(4):
+            draw_sketch_line(draw, [(x + 30 + i * 35, y + 91), (x + 30 + i * 35, y + 130)], ink, 3)
+        draw_hand_label(draw, label, (x + 20, y), font, accent)
+    elif kind == "clock":
+        draw.ellipse((x, y, x + 100, y + 100), outline=ink, width=4)
+        draw_sketch_line(draw, [(x + 50, y + 50), (x + 50, y + 18), (x + 72, y + 58)], ink, 4)
+        draw_hand_label(draw, label, (x - 4, y + 110), font, accent)
+    elif kind == "key":
+        draw.ellipse((x, y + 22, x + 52, y + 74), outline=ink, width=4)
+        draw_sketch_line(draw, [(x + 52, y + 48), (x + 145, y + 48)], ink, 5)
+        draw_sketch_line(draw, [(x + 112, y + 48), (x + 112, y + 70), (x + 132, y + 48), (x + 132, y + 68)], ink, 3)
+        draw_hand_label(draw, label, (x + 8, y + 85), font, accent)
+    elif kind == "stamp":
+        draw_sketch_rect(draw, (x + 25, y, x + 95, y + 50), ink, 4)
+        draw_sketch_rect(draw, (x, y + 50, x + 122, y + 92), ink, 4)
+        draw_hand_label(draw, label, (x + 2, y + 102), font, accent)
+    elif kind == "ruler":
+        draw_sketch_rect(draw, (x, y, x + 165, y + 38), ink, 4)
+        for i in range(8):
+            draw_sketch_line(draw, [(x + 18 + i * 18, y), (x + 18 + i * 18, y + 16)], ink, 2)
+        draw_hand_label(draw, label, (x + 14, y + 50), font, accent)
+    elif kind == "ladder":
+        draw_sketch_line(draw, [(x, y + 130), (x + 70, y)], ink, 4)
+        draw_sketch_line(draw, [(x + 75, y + 130), (x + 145, y)], ink, 4)
+        for i in range(5):
+            draw_sketch_line(draw, [(x + 18 + i * 13, y + 105 - i * 22), (x + 95 + i * 13, y + 105 - i * 22)], ink, 3)
+        draw_hand_label(draw, label, (x + 6, y + 138), font, accent)
+    elif kind == "stone":
+        draw.polygon([(x + 10, y + 70), (x + 42, y + 10), (x + 120, y + 26), (x + 150, y + 88), (x + 82, y + 125)], outline=ink, fill=(255, 255, 255))
+        draw_hand_label(draw, label, (x + 24, y + 138), font, accent)
+    elif kind == "lamp":
+        draw.ellipse((x + 35, y, x + 110, y + 75), outline=ink, width=4)
+        draw_sketch_line(draw, [(x + 72, y + 75), (x + 72, y + 128)], ink, 4)
+        draw_hand_label(draw, label, (x, y + 136), font, accent)
+    elif kind == "trash":
+        draw_sketch_rect(draw, (x + 20, y + 28, x + 120, y + 120), ink, 4)
+        draw_sketch_line(draw, [(x + 10, y + 28), (x + 130, y + 28)], ink, 4)
+        draw_hand_label(draw, label, (x + 2, y + 130), font, accent)
+    else:
+        draw_loose_paper(draw, x + 55, y + 38, ink, 1.0, 1)
+        draw_hand_label(draw, label, (x + 4, y + 82), font, accent)
+
+
+def draw_object_cluster(
+    draw: ImageDraw.ImageDraw,
+    objects: list[tuple[str, str]],
+    positions: list[tuple[int, int]],
+    font: ImageFont.ImageFont,
+    ink: tuple[int, int, int],
+    colors: tuple[tuple[int, int, int], ...],
+) -> None:
+    for index, ((kind, label), (x, y)) in enumerate(zip(objects, positions)):
+        draw_scene_object(draw, kind, label, x, y, font, ink, colors[index % len(colors)])
+
+
 def apply_subtitle_safe_area(image: Image.Image, bottom_px: int = SUBTITLE_SAFE_BOTTOM_PX) -> Image.Image:
     source = image.convert("RGB")
     safe_height = max(1, source.height - bottom_px)
@@ -2289,6 +2462,8 @@ def draw_xiaohei_scene(path: Path, title: str, group: dict, scene_count: int) ->
     index = int(group["index"])
     text = str(group.get("text") or "")
     labels = xiaohei_keywords(text, "清醒")
+    objects = xiaohei_scene_objects(text)
+    notes = xiaohei_funny_notes(labels, objects)
     patterns = ("workflow", "filter", "balance", "repair", "map", "layers", "well", "choice")
     pattern = patterns[(index - 1) % len(patterns)]
     bg = (255, 255, 255)
@@ -2307,23 +2482,25 @@ def draw_xiaohei_scene(path: Path, title: str, group: dict, scene_count: int) ->
         draw_sketch_rect(draw, (210, 395, 520, 620), ink, 6)
         draw_sketch_rect(draw, (1310, 395, 1620, 620), ink, 6)
         draw_paper_stack(draw, 145, 610, ink, 5)
-        for i, word in enumerate(labels[:3]):
+        draw_object_cluster(draw, objects[:4], [(250, 650), (555, 300), (760, 645), (1390, 650)], tiny_font, ink, (blue, red, orange))
+        for i, word in enumerate(notes[:5]):
             draw_loose_paper(draw, 620 + i * 120, 365 - (i % 2) * 42, ink, 0.75, i - 1)
             draw_hand_label(draw, word, (580 + i * 118, 290 - (i % 2) * 36), tiny_font, (blue, red, orange)[i % 3])
         draw_sketch_line(draw, [(545, 505), (835, 505), (1085, 505), (1285, 505)], orange, 10)
         draw.polygon([(1285, 505), (1235, 475), (1235, 535)], fill=orange)
         draw_xiaohei(draw, 930, 650, 1.35, "pull", ink)
         draw_small_box(draw, (1365, 640, 1545, 730), "结果", tiny_font, ink, red)
-        draw_hand_label(draw, labels[0], (258, 330), label_font, blue)
-        draw_hand_label(draw, labels[1] if len(labels) > 1 else "输出", (1372, 330), label_font, red)
+        draw_hand_label(draw, notes[0], (258, 330), label_font, blue)
+        draw_hand_label(draw, notes[1] if len(notes) > 1 else "输出", (1372, 330), label_font, red)
     elif pattern == "filter":
         draw.polygon([(600, 260), (1220, 260), (1030, 585), (790, 585)], outline=ink)
         draw_sketch_line(draw, [(600, 260), (790, 585), (790, 820)], ink, 7)
         draw_sketch_line(draw, [(1220, 260), (1030, 585), (1030, 820)], ink, 7)
+        draw_object_cluster(draw, objects[:5], [(230, 600), (385, 560), (1280, 430), (1410, 545), (1510, 720)], tiny_font, ink, (blue, red, orange))
         for i in range(7):
             draw_loose_paper(draw, 260 + i * 95, 480 + (i % 3) * 38, ink, 0.68, (i % 5) - 2)
             draw_sketch_line(draw, [(330 + i * 95, 490 + (i % 3) * 38), (610, 410)], orange, 4)
-        for i, word in enumerate(labels[:4]):
+        for i, word in enumerate(notes[:6]):
             draw_hand_label(draw, word, (250 + i * 235, 205 + (i % 2) * 70), label_font, (blue, red, orange, ink)[i % 4])
             draw.arc((330 + i * 235, 295, 455 + i * 235, 420), 190, 350, fill=muted, width=4)
         draw_xiaohei(draw, 920, 820, 1.25, "carry", ink)
@@ -2333,41 +2510,46 @@ def draw_xiaohei_scene(path: Path, title: str, group: dict, scene_count: int) ->
         draw_sketch_line(draw, [(960, 485), (960, 770)], ink, 8)
         draw.arc((650, 465, 890, 745), 0, 180, fill=orange, width=7)
         draw.arc((1070, 465, 1310, 745), 0, 180, fill=blue, width=7)
+        draw_object_cluster(draw, objects[:5], [(420, 650), (640, 610), (1110, 585), (1320, 650), (1460, 370)], tiny_font, ink, (orange, blue, red))
         for i in range(4):
             draw_loose_paper(draw, 690 + i * 42, 630 - i * 18, ink, 0.65, i - 2)
             draw_loose_paper(draw, 1110 + i * 48, 612 + i * 8, ink, 0.62, 2 - i)
         draw_xiaohei(draw, 960, 465, 1.05, "fix", ink)
         draw_hand_label(draw, "称一称", (890, 255), tiny_font, red)
-        draw_hand_label(draw, labels[0], (650, 765), label_font, orange)
-        draw_hand_label(draw, labels[1] if len(labels) > 1 else "边界", (1120, 765), label_font, blue)
+        draw_hand_label(draw, notes[0], (650, 765), label_font, orange)
+        draw_hand_label(draw, notes[1] if len(notes) > 1 else "边界", (1120, 765), label_font, blue)
     elif pattern == "repair":
         draw_sketch_rect(draw, (430, 330, 1480, 700), ink, 7)
         for x in range(540, 1370, 150):
             draw_sketch_line(draw, [(x, 330), (x + 80, 700)], muted, 4)
         draw_sketch_line(draw, [(505, 520), (730, 480), (890, 560), (1110, 470), (1390, 535)], red, 9)
+        draw_object_cluster(draw, objects[:6], [(480, 720), (650, 410), (825, 610), (1040, 385), (1210, 610), (1390, 720)], tiny_font, ink, (red, blue, orange))
         for i in range(5):
             draw_loose_paper(draw, 560 + i * 170, 410 + (i % 2) * 95, ink, 0.62, i - 2)
         draw_xiaohei(draw, 910, 825, 1.28, "fix", ink)
-        draw_hand_label(draw, labels[0], (485, 240), label_font, red)
-        draw_hand_label(draw, labels[1] if len(labels) > 1 else "修正", (1240, 745), label_font, blue)
+        draw_hand_label(draw, notes[0], (485, 240), label_font, red)
+        draw_hand_label(draw, notes[1] if len(notes) > 1 else "修正", (1240, 745), label_font, blue)
     elif pattern == "map":
         points = [(290, 760), (520, 590), (760, 685), (980, 455), (1250, 545), (1560, 330)]
         draw_sketch_line(draw, points, orange, 10)
         for x, y in points:
             draw.ellipse((x - 28, y - 28, x + 28, y + 28), outline=ink, width=6)
+        draw_object_cluster(draw, objects[:5], [(240, 620), (520, 430), (930, 295), (1240, 395), (1510, 205)], tiny_font, ink, (blue, red, orange))
         for i, (x, y) in enumerate(points[1:-1], 1):
-            draw_small_box(draw, (x - 70, y - 110, x + 65, y - 50), compact_text(labels[(i - 1) % len(labels)], 4), tiny_font, ink, (blue, red, orange)[i % 3])
+            draw_small_box(draw, (x - 70, y - 110, x + 65, y - 50), compact_text(notes[(i - 1) % len(notes)], 4), tiny_font, ink, (blue, red, orange)[i % 3])
         draw_xiaohei(draw, 790, 590, 1.12, "pull", ink)
-        for i, word in enumerate(labels[:3]):
+        for i, word in enumerate(notes[:4]):
             draw_hand_label(draw, word, (330 + i * 440, 825 - i * 70), label_font, (blue, red, orange)[i % 3])
     elif pattern == "layers":
         for i in range(4):
             y = 720 - i * 115
             draw_sketch_rect(draw, (565 + i * 55, y, 1355 - i * 55, y + 70), ink, 6)
             draw_loose_paper(draw, 690 + i * 120, y + 35, ink, 0.55, i - 1)
+            draw_hand_label(draw, compact_text(notes[i % len(notes)], 5), (760 + i * 90, y + 16), tiny_font, (orange, blue, red, ink)[i % 4])
         draw_xiaohei(draw, 430, 780, 1.12, "carry", ink)
         draw_paper_stack(draw, 305, 685, ink, 4)
-        for i, word in enumerate(labels[:4]):
+        draw_object_cluster(draw, objects[:4], [(280, 455), (1410, 395), (1450, 560), (1500, 710)], tiny_font, ink, (orange, blue, red))
+        for i, word in enumerate(notes[:4]):
             draw_hand_label(draw, word, (1410, 717 - i * 115), label_font, (orange, blue, red, ink)[i % 4])
     elif pattern == "well":
         for i in range(5):
@@ -2375,25 +2557,27 @@ def draw_xiaohei_scene(path: Path, title: str, group: dict, scene_count: int) ->
         draw_sketch_line(draw, [(960, 305), (960, 690)], blue, 8)
         for i in range(16):
             draw_loose_paper(draw, 760 + (i % 6) * 70, 455 + (i // 6) * 70, ink, 0.48, (i % 5) - 2)
+        draw_object_cluster(draw, objects[:5], [(520, 360), (690, 695), (1160, 380), (1330, 555), (1460, 690)], tiny_font, ink, (blue, red, orange))
         draw_small_box(draw, (1290, 555, 1515, 660), "可行动", tiny_font, ink, orange)
         draw_xiaohei(draw, 960, 870, 1.22, "pull", ink)
-        draw_hand_label(draw, labels[0], (510, 260), label_font, blue)
-        draw_hand_label(draw, labels[1] if len(labels) > 1 else "捞出来", (1240, 760), label_font, red)
+        draw_hand_label(draw, notes[0], (510, 260), label_font, blue)
+        draw_hand_label(draw, notes[1] if len(notes) > 1 else "捞出来", (1240, 760), label_font, red)
     else:
         draw_sketch_rect(draw, (360, 360, 700, 650), ink, 7)
         draw_sketch_rect(draw, (1215, 360, 1555, 650), ink, 7)
         draw_paper_stack(draw, 265, 620, ink, 4)
+        draw_object_cluster(draw, objects[:5], [(395, 680), (565, 250), (825, 570), (1215, 680), (1460, 250)], tiny_font, ink, (red, blue, orange))
         draw_small_box(draw, (830, 340, 1080, 430), "判断", tiny_font, ink, red)
         draw_sketch_line(draw, [(830, 505), (1080, 505)], orange, 10)
         draw.polygon([(1080, 505), (1030, 475), (1030, 535)], fill=orange)
         draw_xiaohei(draw, 960, 760, 1.18, "stand", ink)
-        draw_hand_label(draw, labels[0], (430, 285), label_font, red)
-        draw_hand_label(draw, labels[1] if len(labels) > 1 else "下一步", (1280, 285), label_font, blue)
+        draw_hand_label(draw, notes[0], (430, 285), label_font, red)
+        draw_hand_label(draw, notes[1] if len(notes) > 1 else "下一步", (1280, 285), label_font, blue)
 
     preview = compact_text(re.sub(r"\s+", "", text), 28)
     image = apply_subtitle_safe_area(image)
     image.save(path, quality=95)
-    return {"pattern": pattern, "labels": labels, "preview": preview}
+    return {"pattern": pattern, "labels": labels, "objects": objects, "notes": notes, "preview": preview}
 
 
 def assert_xiaohei_image(path: Path) -> None:
@@ -2568,7 +2752,9 @@ def generate_xiaohei_production_assets(
         for group in groups:
             index = int(group["index"])
             raw_path = raw_dir / f"{index:02d}-munger-xiaohei-{index:02d}.png"
-            draw_xiaohei_scene(raw_path, title or description or "book", group, scene_count)
+            meta = draw_xiaohei_scene(raw_path, title or description or "book", group, scene_count)
+            if 0 < index <= len(series):
+                series[index - 1].update(meta)
 
     copied: list[Path] = []
     for item in series:
