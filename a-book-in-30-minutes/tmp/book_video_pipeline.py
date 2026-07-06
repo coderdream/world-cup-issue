@@ -20,6 +20,7 @@ from PIL import Image, ImageDraw, ImageEnhance, ImageFont
 
 WIDTH = 1920
 HEIGHT = 1080
+SUBTITLE_SAFE_BOTTOM_PX = 300
 TARGET_MIN_SECONDS = 30 * 60
 MAX_SUBTITLE_LINE_CHARS = 18
 HEADER_SECONDS = 3
@@ -2245,6 +2246,45 @@ def draw_hand_label(
     draw.text(xy, text, font=font, fill=color)
 
 
+def draw_loose_paper(
+    draw: ImageDraw.ImageDraw,
+    cx: int,
+    cy: int,
+    ink: tuple[int, int, int],
+    scale: float = 1.0,
+    tilt: int = 0,
+) -> None:
+    w = int(70 * scale)
+    h = int(44 * scale)
+    points = [
+        (cx - w // 2, cy - h // 2 + tilt),
+        (cx + w // 2, cy - h // 2 - tilt),
+        (cx + w // 2 - int(10 * scale), cy + h // 2),
+        (cx - w // 2 + int(8 * scale), cy + h // 2 - tilt),
+    ]
+    draw.polygon(points, fill=(255, 255, 255))
+    draw_sketch_line(draw, points + [points[0]], ink, max(3, int(4 * scale)))
+
+
+def draw_paper_stack(draw: ImageDraw.ImageDraw, x: int, y: int, ink: tuple[int, int, int], count: int = 4) -> None:
+    for i in range(count):
+        draw_loose_paper(draw, x + i * 12, y - i * 22, ink, 0.85, tilt=(i % 3) - 1)
+
+
+def draw_small_box(draw: ImageDraw.ImageDraw, box: tuple[int, int, int, int], label: str, font: ImageFont.ImageFont, ink, color) -> None:
+    draw_sketch_rect(draw, box, ink, 5)
+    draw_hand_label(draw, label, (box[0] + 18, box[1] + 16), font, color)
+
+
+def apply_subtitle_safe_area(image: Image.Image, bottom_px: int = SUBTITLE_SAFE_BOTTOM_PX) -> Image.Image:
+    source = image.convert("RGB")
+    safe_height = max(1, source.height - bottom_px)
+    resized = source.resize((source.width, safe_height), Image.Resampling.LANCZOS)
+    canvas = Image.new("RGB", source.size, (255, 255, 255))
+    canvas.paste(resized, (0, 0))
+    return canvas
+
+
 def draw_xiaohei_scene(path: Path, title: str, group: dict, scene_count: int) -> dict:
     index = int(group["index"])
     text = str(group.get("text") or "")
@@ -2266,26 +2306,38 @@ def draw_xiaohei_scene(path: Path, title: str, group: dict, scene_count: int) ->
     if pattern == "workflow":
         draw_sketch_rect(draw, (210, 395, 520, 620), ink, 6)
         draw_sketch_rect(draw, (1310, 395, 1620, 620), ink, 6)
+        draw_paper_stack(draw, 145, 610, ink, 5)
+        for i, word in enumerate(labels[:3]):
+            draw_loose_paper(draw, 620 + i * 120, 365 - (i % 2) * 42, ink, 0.75, i - 1)
+            draw_hand_label(draw, word, (580 + i * 118, 290 - (i % 2) * 36), tiny_font, (blue, red, orange)[i % 3])
         draw_sketch_line(draw, [(545, 505), (835, 505), (1085, 505), (1285, 505)], orange, 10)
         draw.polygon([(1285, 505), (1235, 475), (1235, 535)], fill=orange)
         draw_xiaohei(draw, 930, 650, 1.35, "pull", ink)
+        draw_small_box(draw, (1365, 640, 1545, 730), "结果", tiny_font, ink, red)
         draw_hand_label(draw, labels[0], (258, 330), label_font, blue)
         draw_hand_label(draw, labels[1] if len(labels) > 1 else "输出", (1372, 330), label_font, red)
     elif pattern == "filter":
         draw.polygon([(600, 260), (1220, 260), (1030, 585), (790, 585)], outline=ink)
         draw_sketch_line(draw, [(600, 260), (790, 585), (790, 820)], ink, 7)
         draw_sketch_line(draw, [(1220, 260), (1030, 585), (1030, 820)], ink, 7)
+        for i in range(7):
+            draw_loose_paper(draw, 260 + i * 95, 480 + (i % 3) * 38, ink, 0.68, (i % 5) - 2)
+            draw_sketch_line(draw, [(330 + i * 95, 490 + (i % 3) * 38), (610, 410)], orange, 4)
         for i, word in enumerate(labels[:4]):
             draw_hand_label(draw, word, (250 + i * 235, 205 + (i % 2) * 70), label_font, (blue, red, orange, ink)[i % 4])
             draw.arc((330 + i * 235, 295, 455 + i * 235, 420), 190, 350, fill=muted, width=4)
         draw_xiaohei(draw, 920, 820, 1.25, "carry", ink)
-        draw_sketch_rect(draw, (1340, 635, 1570, 770), ink, 6)
+        draw_small_box(draw, (1340, 635, 1570, 770), "留下", tiny_font, ink, red)
     elif pattern == "balance":
         draw_sketch_line(draw, [(450, 485), (1470, 485)], ink, 8)
         draw_sketch_line(draw, [(960, 485), (960, 770)], ink, 8)
         draw.arc((650, 465, 890, 745), 0, 180, fill=orange, width=7)
         draw.arc((1070, 465, 1310, 745), 0, 180, fill=blue, width=7)
+        for i in range(4):
+            draw_loose_paper(draw, 690 + i * 42, 630 - i * 18, ink, 0.65, i - 2)
+            draw_loose_paper(draw, 1110 + i * 48, 612 + i * 8, ink, 0.62, 2 - i)
         draw_xiaohei(draw, 960, 465, 1.05, "fix", ink)
+        draw_hand_label(draw, "称一称", (890, 255), tiny_font, red)
         draw_hand_label(draw, labels[0], (650, 765), label_font, orange)
         draw_hand_label(draw, labels[1] if len(labels) > 1 else "边界", (1120, 765), label_font, blue)
     elif pattern == "repair":
@@ -2293,6 +2345,8 @@ def draw_xiaohei_scene(path: Path, title: str, group: dict, scene_count: int) ->
         for x in range(540, 1370, 150):
             draw_sketch_line(draw, [(x, 330), (x + 80, 700)], muted, 4)
         draw_sketch_line(draw, [(505, 520), (730, 480), (890, 560), (1110, 470), (1390, 535)], red, 9)
+        for i in range(5):
+            draw_loose_paper(draw, 560 + i * 170, 410 + (i % 2) * 95, ink, 0.62, i - 2)
         draw_xiaohei(draw, 910, 825, 1.28, "fix", ink)
         draw_hand_label(draw, labels[0], (485, 240), label_font, red)
         draw_hand_label(draw, labels[1] if len(labels) > 1 else "修正", (1240, 745), label_font, blue)
@@ -2301,6 +2355,8 @@ def draw_xiaohei_scene(path: Path, title: str, group: dict, scene_count: int) ->
         draw_sketch_line(draw, points, orange, 10)
         for x, y in points:
             draw.ellipse((x - 28, y - 28, x + 28, y + 28), outline=ink, width=6)
+        for i, (x, y) in enumerate(points[1:-1], 1):
+            draw_small_box(draw, (x - 70, y - 110, x + 65, y - 50), compact_text(labels[(i - 1) % len(labels)], 4), tiny_font, ink, (blue, red, orange)[i % 3])
         draw_xiaohei(draw, 790, 590, 1.12, "pull", ink)
         for i, word in enumerate(labels[:3]):
             draw_hand_label(draw, word, (330 + i * 440, 825 - i * 70), label_font, (blue, red, orange)[i % 3])
@@ -2308,19 +2364,26 @@ def draw_xiaohei_scene(path: Path, title: str, group: dict, scene_count: int) ->
         for i in range(4):
             y = 720 - i * 115
             draw_sketch_rect(draw, (565 + i * 55, y, 1355 - i * 55, y + 70), ink, 6)
+            draw_loose_paper(draw, 690 + i * 120, y + 35, ink, 0.55, i - 1)
         draw_xiaohei(draw, 430, 780, 1.12, "carry", ink)
+        draw_paper_stack(draw, 305, 685, ink, 4)
         for i, word in enumerate(labels[:4]):
             draw_hand_label(draw, word, (1410, 717 - i * 115), label_font, (orange, blue, red, ink)[i % 4])
     elif pattern == "well":
         for i in range(5):
             draw.ellipse((670 - i * 35, 335 - i * 18, 1250 + i * 35, 735 + i * 18), outline=ink if i == 0 else muted, width=6 if i == 0 else 3)
         draw_sketch_line(draw, [(960, 305), (960, 690)], blue, 8)
+        for i in range(16):
+            draw_loose_paper(draw, 760 + (i % 6) * 70, 455 + (i // 6) * 70, ink, 0.48, (i % 5) - 2)
+        draw_small_box(draw, (1290, 555, 1515, 660), "可行动", tiny_font, ink, orange)
         draw_xiaohei(draw, 960, 870, 1.22, "pull", ink)
         draw_hand_label(draw, labels[0], (510, 260), label_font, blue)
         draw_hand_label(draw, labels[1] if len(labels) > 1 else "捞出来", (1240, 760), label_font, red)
     else:
         draw_sketch_rect(draw, (360, 360, 700, 650), ink, 7)
         draw_sketch_rect(draw, (1215, 360, 1555, 650), ink, 7)
+        draw_paper_stack(draw, 265, 620, ink, 4)
+        draw_small_box(draw, (830, 340, 1080, 430), "判断", tiny_font, ink, red)
         draw_sketch_line(draw, [(830, 505), (1080, 505)], orange, 10)
         draw.polygon([(1080, 505), (1030, 475), (1030, 535)], fill=orange)
         draw_xiaohei(draw, 960, 760, 1.18, "stand", ink)
@@ -2328,6 +2391,7 @@ def draw_xiaohei_scene(path: Path, title: str, group: dict, scene_count: int) ->
         draw_hand_label(draw, labels[1] if len(labels) > 1 else "下一步", (1280, 285), label_font, blue)
 
     preview = compact_text(re.sub(r"\s+", "", text), 28)
+    image = apply_subtitle_safe_area(image)
     image.save(path, quality=95)
     return {"pattern": pattern, "labels": labels, "preview": preview}
 
@@ -2399,11 +2463,21 @@ def xiaohei_production_spec(group: dict, index: int) -> dict:
     stuck = labels[2] if len(labels) > 2 else "卡住"
     missing = labels[3] if len(labels) > 3 else "断点"
     return {
-        "template": "trust_bridge",
+        "template": (
+            "workflow",
+            "filter",
+            "balance",
+            "repair",
+            "map",
+            "layers",
+            "well",
+            "choice",
+        )[(index - 1) % 8],
         "slug": f"munger-xiaohei-{index:02d}",
         "seed": 20260706 + index,
         "title": f"{index:02d}",
         "output_scale": 2,
+        "subtitleSafeBottomPx": SUBTITLE_SAFE_BOTTOM_PX,
         "labels": {
             "before": before,
             "after": after,
@@ -2481,8 +2555,20 @@ def generate_xiaohei_production_assets(
             }
         )
 
-    print(f"Xiaohei production remote generation start: {scene_count} images", file=sys.stderr, flush=True)
-    run_xiaohei_production_remote(spec_dir, raw_dir, scene_count)
+    use_remote = os.environ.get("XIAOHEI_PRODUCTION_REMOTE", "").strip().lower() in {"1", "true", "yes", "on"}
+    if use_remote:
+        print(f"Xiaohei production remote generation start: {scene_count} images", file=sys.stderr, flush=True)
+        run_xiaohei_production_remote(spec_dir, raw_dir, scene_count)
+    else:
+        print(
+            f"Xiaohei production local multi-template generation start: {scene_count} images",
+            file=sys.stderr,
+            flush=True,
+        )
+        for group in groups:
+            index = int(group["index"])
+            raw_path = raw_dir / f"{index:02d}-munger-xiaohei-{index:02d}.png"
+            draw_xiaohei_scene(raw_path, title or description or "book", group, scene_count)
 
     copied: list[Path] = []
     for item in series:
@@ -2494,7 +2580,10 @@ def generate_xiaohei_production_assets(
         assert_xiaohei_image(raw_path)
         dest = image_root / f"visual_{index:02d}_xiaohei_production.png"
         with Image.open(raw_path) as image:
-            image.convert("RGB").resize((WIDTH, HEIGHT), Image.Resampling.LANCZOS).save(dest, quality=95)
+            prepared = image.convert("RGB").resize((WIDTH, HEIGHT), Image.Resampling.LANCZOS)
+            if use_remote:
+                prepared = apply_subtitle_safe_area(prepared)
+            prepared.save(dest, quality=95)
         copied.append(dest)
         item["rawImage"] = str(raw_path)
         item["image"] = str(dest)
@@ -2504,6 +2593,8 @@ def generate_xiaohei_production_assets(
         "sourceKind": "xiaohei_production",
         "styleReference": "docs/xiaohei-production-solution-handoff.md",
         "remoteHost": os.environ.get("XIAOHEI_REMOTE_HOST", "macmini4"),
+        "generationMode": "remote" if use_remote else "local_multi_template",
+        "subtitleSafeBottomPx": SUBTITLE_SAFE_BOTTOM_PX,
         "generatedAt": time.strftime("%Y-%m-%d %H:%M:%S"),
         "promptCount": scene_count,
         "assets": [str(path) for path in copied],

@@ -1695,3 +1695,13 @@ The Text stage writes the material package (`materials.json`, `narration.txt`, `
 `material_output_dir` remains the root `output` path so the UI opens a single organized folder. Stage-specific database fields point to their stage folders or files: `audio_output_dir` to `02_audio`, `image_output_dir` to `04_images`, `subtitle_file` to `03_subtitles/...srt`, and `video_file` to `05_video/...mp4` when a video exists.
 
 The backend keeps backward-compatible readers for older root-level outputs. Path resolution first checks the staged location, then falls back to the legacy root-level file. This allows existing tasks to keep working during migration while all new writes use the staged layout.
+
+## 2026-07-06 0.1.155 Xiaohei Production Diversity and Subtitle Safe Area
+
+The Image stage no longer sends the default `xiaohei-production` path to the MacMini4 single-template `trust_bridge` generator. That remote generator currently only supports one composition, which made finished videos look like the same picture repeated with different labels. By default, `xiaohei-production` now uses the app-side Ian Xiaohei multi-template renderer and records `generationMode=local_multi_template` in `xiaohei_production_manifest.json`.
+
+The local production renderer follows the bundled `docs/ref/ian-xiaohei-illustrations` contract: white 16:9 canvas, black hand-drawn linework, small solid-black Xiaohei as the action subject, sparse red/orange/blue Chinese handwritten annotations, and one concrete metaphor per scene. The templates rotate through workflow, filter, balance, repair, route map, layers, information well, and choice/decision compositions. Each template includes concrete objects such as paper stacks, loose notes, boxes, route nodes, wells, or low-tech machines so the image reads as a content illustration rather than a repeated icon.
+
+MacMini4 remote generation remains available only when explicitly enabled with `XIAOHEI_PRODUCTION_REMOTE=1`. The generated specs now include varied template names and `subtitleSafeBottomPx`, so the remote generator can adopt the same contract after its template library is expanded.
+
+All Xiaohei images pass through a subtitle-safe-area transform before being saved: the illustration content is scaled into the upper part of the 1920x1080 frame and the bottom 300 pixels are left as clean white space. This keeps the hard Chinese/English subtitle overlay from covering the main drawing.
