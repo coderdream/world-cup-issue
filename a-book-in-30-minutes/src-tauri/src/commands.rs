@@ -2805,7 +2805,10 @@ fn run_book_video_pipeline_background(
         .env("ABOOK_AI_API_KEY", settings.ai_profile.api_key.trim())
         .env("ABOOK_AI_MODEL", settings.ai_profile.model.trim())
         .env("ABOOK_SUBTITLE_SOURCE_LANGUAGE", "cmn")
-        .env("BOOK_IMAGE_BACKEND", "xiaohei-sequence")
+        .env(
+            "BOOK_IMAGE_BACKEND",
+            settings.pipeline_profile.image_backend.trim(),
+        )
         .arg(&script)
         .arg("--epub")
         .arg(&epub)

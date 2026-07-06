@@ -61,7 +61,7 @@
 
 步骤跟踪中的发布阶段不能复用视频阶段的 `generating` 状态。发布只有在真实发布资料步骤执行时才显示进行中；视频已生成但发布资料未生成时显示等待生成发布资料，避免用户看到视频和发布两个阶段同时运行。
 
-图片阶段的正式内容图数量必须按字幕规模动态生成，范围固定为 32~64 张。目标数量按 `字幕行数 / 28` 向上取整后夹在该范围内；例如 1000 多行字幕通常生成约 36~40 张图片。禁止沿用早期 8 段验证分镜作为正式听书视频图片数量，因为 30~35 分钟视频中 8 张图会导致单张停留数分钟，视觉变化不足。若迁移到的本地旧图片素材少于 32 张，且允许程序化视觉生成，必须重新生成满足数量范围的图片。默认正式图片后端为 `BOOK_IMAGE_BACKEND=xiaohei-sequence`：参考 `helloianneo/ian-xiaohei-illustrations` 的纯白背景、黑色手绘线稿、小黑角色、少量红/橙/蓝中文批注和单图单隐喻规则，按字幕区间快速生成 16:9 小黑序列图。禁止用低保真方框图、线框图或占位图冒充正式图片；但 `xiaohei-sequence` 这种有明确视觉规范、时间轴和 manifest 的轻量程序化序列图是正式后端，不依赖远程大模型。
+图片阶段的正式内容图数量必须按字幕规模动态生成，范围固定为 32~64 张。目标数量按 `字幕行数 / 28` 向上取整后夹在该范围内；例如 1000 多行字幕通常生成约 36~40 张图片。禁止沿用早期 8 段验证分镜作为正式听书视频图片数量，因为 30~35 分钟视频中 8 张图会导致单张停留数分钟，视觉变化不足。若迁移到的本地旧图片素材少于 32 张，且允许程序化视觉生成，必须重新生成满足数量范围的图片。配置页 `pipelineProfile.imageBackend` 控制图片生成方案，默认正式后端为 `BOOK_IMAGE_BACKEND=xiaohei-production`：本机按字幕区间生成 JSON spec，通过 `ssh macmini4` 调用 MacMini4 `/Volumes/System/AI/apps/xiaohei-local-generator/xiaohei_local_generate.py` 输出 3200x1800 生产图，再 `scp` 拉回并缩放为 1920x1080 视频图。旧 `xiaohei-sequence` 快速本机方案保留为可回退选项；`qwen-image-2512` 和 `whiteboard-skill` 仅作为显式实验/兼容选项。禁止用低保真方框图、线框图或占位图冒充正式图片；但有明确视觉规范、时间轴和 manifest 的小黑序列图是正式后端。
 
 图片阶段不得早于字幕阶段执行。若缺少最终 mp3、中文字幕 SRT 或字幕对齐清单，图片阶段必须失败并提示先生成音频和字幕。图片分段以中文字幕 SRT 为准，而不是用 `subtitles.txt` 和估算时长临时切分。`visual_assets_manifest.json` 和 `visual_timeline.json` 都必须能追溯每张图覆盖的 `startMs`、`endMs`、字幕文本范围和源图片文件，视频阶段以该时间轴控制图片显示开始和结束。
 
@@ -1649,6 +1649,14 @@ The Image stage now defaults to `BOOK_IMAGE_BACKEND=xiaohei-sequence` instead of
 Each generated image is written as `visual_XX_xiaohei_sequence.png`; source images are kept in `xiaohei_sequence_images`; `xiaohei_sequence_manifest.json` and `visual_assets_manifest.json` record `sourceKind=xiaohei_sequence`, scene count, paths, short labels, preview text, and `startMs`/`endMs` coverage. Minimal-image validation uses dimensions, file size, and color count rather than the high-detail photographic checks used for AI-generated illustrations.
 
 The Qwen Image and MacMini image paths remain available only when explicitly selected through environment variables or future configuration, but the packaged app no longer sends the default Image stage to remote heavy image models.
+
+## 2026-07-06 0.1.153 Switchable Xiaohei Production Backend
+
+`settings.pipelineProfile.imageBackend` now controls the Image stage backend. The Settings page exposes a 图片生成方案 selector with `xiaohei-production` as the default production path, while `xiaohei-sequence` remains available as a fast local fallback and `qwen-image-2512` / `whiteboard-skill` remain explicit experimental or compatibility options.
+
+`xiaohei-production` follows `docs/xiaohei-production-solution-handoff.md`: the Windows pipeline writes one JSON spec per subtitle-aligned scene, copies those specs to MacMini4, runs `/Volumes/System/AI/apps/xiaohei-local-generator/xiaohei_local_generate.py` over SSH, pulls back the 3200x1800 PNG outputs, then downsizes them to 1920x1080 `visual_XX_xiaohei_production.png` files for video assembly. The manifest records `sourceKind=xiaohei_production`, `remoteHost=macmini4`, raw image paths, final image paths, labels, preview text, and `startMs`/`endMs` coverage.
+
+The current MacMini4 generator only implements the `trust_bridge` template, so the first end-to-end integration intentionally produces structurally consistent images with different labels. The pipeline contract is ready for future template expansion without changing the app-side backend switch.
 
 ## 2026-07-05 0.1.146 Timeline Driven Image Stage
 

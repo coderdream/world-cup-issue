@@ -130,6 +130,18 @@ export function SettingsPage() {
         <p className="settings-help">菜单字体作用于左侧导航；内容字体作用于页面正文、表格和配置项。默认菜单 13px、内容 12px。</p>
         <div className="field-grid">
           <label className="field">
+            <span>图片生成方案</span>
+            <select
+              value={settings.pipelineProfile.imageBackend ?? "xiaohei-production"}
+              onChange={(event) => void updatePipelineProfile({ imageBackend: event.target.value as typeof settings.pipelineProfile.imageBackend })}
+            >
+              <option value="xiaohei-production">小黑生产版（MacMini4）</option>
+              <option value="xiaohei-sequence">小黑快速版（可回退）</option>
+              <option value="qwen-image-2512">Qwen Image（实验）</option>
+              <option value="whiteboard-skill">白板图片 Skill</option>
+            </select>
+          </label>
+          <label className="field">
             <span>文本已有则跳过</span>
             <select
               value={(settings.pipelineProfile.skipExistingText ?? settings.pipelineProfile.skipExistingMaterials) ? "yes" : "no"}

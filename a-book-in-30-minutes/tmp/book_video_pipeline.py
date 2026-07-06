@@ -2243,7 +2243,7 @@ def assert_xiaohei_image(path: Path) -> None:
     if not path.is_file() or path.stat().st_size < 8 * 1024:
         raise RuntimeError(f"Xiaohei sequence image is missing or too small: {path}")
     with Image.open(path) as image:
-        if image.size != (WIDTH, HEIGHT):
+        if image.size not in {(WIDTH, HEIGHT), (3200, 1800), (1600, 900)}:
             raise RuntimeError(f"Xiaohei sequence image has unexpected size {image.size}: {path}")
         colors = image.convert("RGB").getcolors(maxcolors=512000)
         color_count = len(colors or [])
@@ -2294,6 +2294,127 @@ def generate_xiaohei_sequence_assets(
     (video_dir / "xiaohei_sequence_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     (video_dir / "visual_assets_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     return copied, image_dir, "xiaohei_sequence"
+
+
+def xiaohei_production_spec(group: dict, index: int) -> dict:
+    text = str(group.get("text") or "")
+    labels = xiaohei_keywords(text, "清醒")
+    before = labels[0] if labels else "开始"
+    after = labels[1] if len(labels) > 1 else "下一步"
+    stuck = labels[2] if len(labels) > 2 else "卡住"
+    missing = labels[3] if len(labels) > 3 else "断点"
+    return {
+        "template": "trust_bridge",
+        "slug": f"munger-xiaohei-{index:02d}",
+        "seed": 20260706 + index,
+        "title": f"{index:02d}",
+        "output_scale": 2,
+        "labels": {
+            "before": before,
+            "after": after,
+            "nope": "不是哦",
+            "stuck": stuck,
+            "missing": missing,
+            "content": "内容",
+        },
+    }
+
+
+def run_xiaohei_production_remote(local_spec_dir: Path, local_raw_dir: Path, scene_count: int) -> None:
+    remote_host = os.environ.get("XIAOHEI_REMOTE_HOST", "macmini4").strip() or "macmini4"
+    remote_python = os.environ.get("XIAOHEI_REMOTE_PYTHON", "/Volumes/System/AI/apps/ComfyUI/venv/bin/python")
+    remote_generator = os.environ.get(
+        "XIAOHEI_REMOTE_GENERATOR",
+        "/Volumes/System/AI/apps/xiaohei-local-generator/xiaohei_local_generate.py",
+    )
+    remote_root = os.environ.get("XIAOHEI_REMOTE_ROOT", "/Volumes/System/AI/outputs/xiaohei-local/abook")
+    run_id = f"run-{int(time.time())}-{os.getpid()}"
+    remote_dir = f"{remote_root.rstrip('/')}/{run_id}"
+    remote_spec_dir = f"{remote_dir}/specs"
+    remote_out_dir = f"{remote_dir}/images"
+    local_raw_dir.mkdir(parents=True, exist_ok=True)
+
+    subprocess.run(["ssh", remote_host, f"rm -rf {remote_dir!r} && mkdir -p {remote_spec_dir!r} {remote_out_dir!r}"], check=True)
+    spec_files = [str(path) for path in sorted(local_spec_dir.glob("*.json"))]
+    subprocess.run(["scp", *spec_files, f"{remote_host}:{remote_spec_dir}/"], check=True)
+    remote_script = (
+        "set -e; "
+        f"for spec in {remote_spec_dir}/*.json; do "
+        "name=$(basename \"$spec\" .json); "
+        f"{remote_python!r} {remote_generator!r} --spec \"$spec\" --out {remote_out_dir}/\"$name\".png --output-scale 2; "
+        "done; "
+        f"count=$(find {remote_out_dir!r} -name '*.png' | wc -l | tr -d ' '); "
+        f"test \"$count\" = \"{scene_count}\""
+    )
+    subprocess.run(["ssh", remote_host, remote_script], check=True)
+    subprocess.run(["scp", "-r", f"{remote_host}:{remote_out_dir}/.", str(local_raw_dir)], check=True)
+
+
+def generate_xiaohei_production_assets(
+    video_dir: Path,
+    material_root: Path,
+    title: str,
+    description: str,
+    subtitle_events: list[tuple[int, int, str]],
+) -> tuple[list[Path], Path, str]:
+    scene_count = target_visual_scene_count(material_root, subtitle_events)
+    groups = xiaohei_scene_groups(material_root, subtitle_events, scene_count)
+    base_dir = video_dir / "xiaohei_production"
+    spec_dir = base_dir / "specs"
+    raw_dir = base_dir / "raw_3200x1800"
+    spec_dir.mkdir(parents=True, exist_ok=True)
+    raw_dir.mkdir(parents=True, exist_ok=True)
+    for old in list(spec_dir.glob("*.json")) + list(raw_dir.glob("*.png")):
+        old.unlink()
+
+    series = []
+    for group in groups:
+        index = int(group["index"])
+        spec = xiaohei_production_spec(group, index)
+        spec_path = spec_dir / f"{index:02d}-{spec['slug']}.json"
+        spec_path.write_text(json.dumps(spec, ensure_ascii=False, indent=2), encoding="utf-8")
+        series.append(
+            {
+                "index": index,
+                "spec": str(spec_path),
+                "startMs": group.get("startMs"),
+                "endMs": group.get("endMs"),
+                "labels": spec["labels"],
+                "preview": compact_text(re.sub(r"\s+", "", str(group.get("text") or "")), 28),
+            }
+        )
+
+    print(f"Xiaohei production remote generation start: {scene_count} images", file=sys.stderr, flush=True)
+    run_xiaohei_production_remote(spec_dir, raw_dir, scene_count)
+
+    copied: list[Path] = []
+    for item in series:
+        index = int(item["index"])
+        raw_path = raw_dir / f"{index:02d}-munger-xiaohei-{index:02d}.png"
+        if not raw_path.exists():
+            candidates = sorted(raw_dir.glob(f"{index:02d}-*.png"))
+            raw_path = candidates[0] if candidates else raw_path
+        assert_xiaohei_image(raw_path)
+        dest = video_dir / f"visual_{index:02d}_xiaohei_production.png"
+        with Image.open(raw_path) as image:
+            image.convert("RGB").resize((WIDTH, HEIGHT), Image.Resampling.LANCZOS).save(dest, quality=95)
+        copied.append(dest)
+        item["rawImage"] = str(raw_path)
+        item["image"] = str(dest)
+        print(f"Xiaohei production generated {index}/{scene_count}: {dest}", file=sys.stderr, flush=True)
+
+    manifest = {
+        "sourceKind": "xiaohei_production",
+        "styleReference": "docs/xiaohei-production-solution-handoff.md",
+        "remoteHost": os.environ.get("XIAOHEI_REMOTE_HOST", "macmini4"),
+        "generatedAt": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "promptCount": scene_count,
+        "assets": [str(path) for path in copied],
+        "series": series,
+    }
+    (video_dir / "xiaohei_production_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    (video_dir / "visual_assets_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    return copied, raw_dir, "xiaohei_production"
 
 
 def render_semantic_whiteboard_scene(path: Path, index: int, spec: dict) -> None:
@@ -2391,6 +2512,8 @@ def generate_whiteboard_skill_assets(
     subtitle_events: list[tuple[int, int, str]],
 ) -> tuple[list[Path], Path, str]:
     image_backend = os.environ.get("BOOK_IMAGE_BACKEND", "").strip().lower()
+    if image_backend == "xiaohei-production":
+        return generate_xiaohei_production_assets(video_dir, material_root, title, description, subtitle_events)
     if image_backend == "xiaohei-sequence":
         return generate_xiaohei_sequence_assets(video_dir, material_root, title, description, subtitle_events)
     if image_backend == "qwen-image-2512":

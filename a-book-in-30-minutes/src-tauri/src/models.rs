@@ -68,6 +68,7 @@ impl Default for UiProfile {
 #[serde(default)]
 #[serde(rename_all = "camelCase")]
 pub struct PipelineProfile {
+    pub image_backend: String,
     pub skip_existing_materials: bool,
     pub skip_existing_text: bool,
     pub skip_existing_images: bool,
@@ -80,6 +81,7 @@ pub struct PipelineProfile {
 impl Default for PipelineProfile {
     fn default() -> Self {
         Self {
+            image_backend: "xiaohei-production".to_string(),
             skip_existing_materials: true,
             skip_existing_text: true,
             skip_existing_images: true,
