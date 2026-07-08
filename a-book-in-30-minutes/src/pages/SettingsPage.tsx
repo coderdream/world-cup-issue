@@ -137,6 +137,7 @@ export function SettingsPage() {
             >
               <option value="xiaohei-production">小黑生产版（MacMini4）</option>
               <option value="xiaohei-sequence">小黑快速版（可回退）</option>
+              <option value="xiaohei-ai-y9000p">小黑 AI（本机 187）</option>
               <option value="qwen-image-2512">Qwen Image（实验）</option>
               <option value="whiteboard-skill">白板图片 Skill</option>
             </select>

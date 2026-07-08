@@ -1029,12 +1029,13 @@ pub async fn generate_book_materials(
             content
         }
         Err(error) => {
+            let detail = format!("AI 素材请求失败：{}", error.message);
             update_material_task_progress_db(
                 &data.db_path,
                 request.epub_path.trim(),
-                "generating",
-                45,
-                "AI material generation failed. Using local fallback when possible.",
+                "failed",
+                0,
+                &detail,
             );
             upsert_material_task_step_db(
                 &data.db_path,
@@ -1044,7 +1045,7 @@ pub async fn generate_book_materials(
                 "文本：标题简介标签",
                 "failed",
                 45,
-                "AI 素材请求失败。",
+                &detail,
             );
             data.logger.trace_error(
                 "materials",
@@ -1053,7 +1054,7 @@ pub async fn generate_book_materials(
                 &error.message,
                 &trace_id,
             );
-            String::new()
+            return Err(command_error(detail));
         }
     };
 
@@ -1062,7 +1063,7 @@ pub async fn generate_book_materials(
             "materials",
             "ai.initial.empty",
             "AI returned no usable material content.",
-            "AI response was empty or failed.",
+            "AI response was empty.",
             &trace_id,
         );
         upsert_material_task_step_db(
@@ -4346,7 +4347,7 @@ fn should_retry_ai_status(status: reqwest::StatusCode) -> bool {
 
 #[derive(Debug, Deserialize)]
 struct StreamingChatChunk {
-    choices: Vec<StreamingChatChoice>,
+    choices: Option<Vec<StreamingChatChoice>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -4361,6 +4362,7 @@ struct StreamingChatDelta {
 
 fn parse_streaming_chat_content(body: &str) -> Result<String, CommandError> {
     let mut content = String::new();
+    let mut saw_data = false;
     for line in body.lines() {
         let trimmed = line.trim();
         if !trimmed.starts_with("data:") {
@@ -4370,16 +4372,38 @@ fn parse_streaming_chat_content(body: &str) -> Result<String, CommandError> {
         if data.is_empty() || data == "[DONE]" {
             continue;
         }
-        let chunk = serde_json::from_str::<StreamingChatChunk>(data).map_err(|error| {
-            command_error(format!("Parse AI streaming response failed: {error}"))
+        saw_data = true;
+        let value = serde_json::from_str::<serde_json::Value>(data).map_err(|error| {
+            command_error(format!(
+                "Parse AI streaming response failed: {error}; chunk={}",
+                text_preview(data, 500)
+            ))
         })?;
-        for choice in chunk.choices {
+        if let Some(error) = value.get("error") {
+            return Err(command_error(format!(
+                "AI streaming response returned error: {}",
+                text_preview(&error.to_string(), 500)
+            )));
+        }
+        let chunk = serde_json::from_value::<StreamingChatChunk>(value).map_err(|error| {
+            command_error(format!(
+                "Parse AI streaming response failed: {error}; chunk={}",
+                text_preview(data, 500)
+            ))
+        })?;
+        let Some(choices) = chunk.choices else {
+            continue;
+        };
+        for choice in choices {
             if let Some(delta) = choice.delta {
                 if let Some(part) = delta.content {
                     content.push_str(&part);
                 }
             }
         }
+    }
+    if !saw_data && content.trim().is_empty() {
+        return Err(command_error("AI streaming response did not contain data chunks."));
     }
     Ok(content)
 }

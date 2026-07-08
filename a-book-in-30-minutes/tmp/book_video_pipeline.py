@@ -1931,6 +1931,238 @@ def qwen_image_request_json(url: str, payload: dict | None = None, timeout: int 
         return json.loads(response.read().decode("utf-8", errors="replace"))
 
 
+def y9000p_comfyui_workflow(
+    prompt: str,
+    *,
+    checkpoint: str,
+    width: int,
+    height: int,
+    steps: int,
+    cfg: float,
+    seed: int,
+    prefix: str,
+    guide_image: str | None = None,
+    denoise: float = 1.0,
+) -> tuple[dict, str]:
+    positive_prefix = os.environ.get(
+        "Y9000P_COMFYUI_POSITIVE_PREFIX",
+        "flat 2D editorial doodle, black ink line art, white background, simple little black character, "
+        "minimal visual metaphor for a Chinese book summary video, clean thick outline, "
+        "large blank lower area for Chinese subtitles, no text, no letters, no logo",
+    )
+    negative = os.environ.get(
+        "Y9000P_COMFYUI_NEGATIVE_PROMPT",
+        "photorealistic, realistic photo, 3d render, oil painting, glossy, gradients, dense background, "
+        "messy text, readable words, watermark, logo, bad hands, extra fingers, horror, dark scene, cluttered layout",
+    )
+    sampler = os.environ.get("Y9000P_COMFYUI_SAMPLER", "lcm" if guide_image else "euler")
+    scheduler = os.environ.get("Y9000P_COMFYUI_SCHEDULER", "sgm_uniform" if guide_image else "normal")
+    latent_node = ["4", 0]
+    nodes = {
+        "1": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": checkpoint}},
+        "2": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["1", 1], "text": f"{positive_prefix}. {prompt}"}},
+        "3": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["1", 1], "text": negative}},
+    }
+    if guide_image:
+        nodes["4"] = {"class_type": "LoadImage", "inputs": {"image": guide_image}}
+        nodes["5"] = {"class_type": "VAEEncode", "inputs": {"pixels": ["4", 0], "vae": ["1", 2]}}
+        latent_node = ["5", 0]
+        sampler_node = "6"
+        decode_node = "7"
+        save_node = "8"
+    else:
+        nodes["4"] = {"class_type": "EmptyLatentImage", "inputs": {"width": width, "height": height, "batch_size": 1}}
+        sampler_node = "5"
+        decode_node = "6"
+        save_node = "7"
+    nodes.update({
+        sampler_node: {
+            "class_type": "KSampler",
+            "inputs": {
+                "model": ["1", 0],
+                "positive": ["2", 0],
+                "negative": ["3", 0],
+                "latent_image": latent_node,
+                "seed": seed,
+                "steps": steps,
+                "cfg": cfg,
+                "sampler_name": sampler,
+                "scheduler": scheduler,
+                "denoise": denoise,
+            },
+        },
+        decode_node: {"class_type": "VAEDecode", "inputs": {"samples": [sampler_node, 0], "vae": ["1", 2]}},
+        save_node: {"class_type": "SaveImage", "inputs": {"images": [decode_node, 0], "filename_prefix": prefix}},
+    })
+    return nodes, save_node
+
+
+def generate_y9000p_comfyui_assets(
+    video_dir: Path,
+    material_root: Path,
+    title: str,
+    description: str,
+    subtitle_events: list[tuple[int, int, str]],
+) -> tuple[list[Path], Path, str]:
+    base_url = os.environ.get("Y9000P_COMFYUI_BASE_URL", "http://127.0.0.1:8188").rstrip("/")
+    workflow_mode = os.environ.get("Y9000P_COMFYUI_WORKFLOW", "img2img").strip().lower()
+    controlled = workflow_mode not in {"txt2img", "text", "empty"}
+    checkpoint = os.environ.get("Y9000P_COMFYUI_CHECKPOINT", "DreamShaper8_LCM.safetensors" if controlled else "v1-5-pruned-emaonly.safetensors")
+    width = int(os.environ.get("Y9000P_COMFYUI_WIDTH", "768") or "768")
+    height = int(os.environ.get("Y9000P_COMFYUI_HEIGHT", "432") or "432")
+    steps = int(os.environ.get("Y9000P_COMFYUI_STEPS", "8" if controlled else "16") or ("8" if controlled else "16"))
+    cfg = float(os.environ.get("Y9000P_COMFYUI_CFG", "1.7" if controlled else "7.0") or ("1.7" if controlled else "7.0"))
+    denoise = float(os.environ.get("Y9000P_COMFYUI_DENOISE", "0.28" if controlled else "1.0") or ("0.28" if controlled else "1.0"))
+    request_timeout = int(os.environ.get("Y9000P_COMFYUI_REQUEST_TIMEOUT_SECONDS", "600") or "600")
+    poll_seconds = int(os.environ.get("Y9000P_COMFYUI_POLL_SECONDS", "3") or "3")
+    max_wait_seconds = int(os.environ.get("Y9000P_COMFYUI_MAX_WAIT_SECONDS", str(2 * 60 * 60)) or str(2 * 60 * 60))
+    max_polls = max(1, max_wait_seconds // max(1, poll_seconds))
+    image_root = ensure_stage_dir(video_dir, "images")
+    image_dir = image_root / "xiaohei_ai_y9000p"
+    image_dir.mkdir(parents=True, exist_ok=True)
+    guide_dir = image_root / "xiaohei_ai_y9000p_guides"
+    guide_dir.mkdir(parents=True, exist_ok=True)
+    comfy_input_dir = Path(os.environ.get("Y9000P_COMFYUI_INPUT_DIR", r"D:\AI\apps\ComfyUI\input")) / "xiaohei_y9000p_guides"
+    if controlled:
+        comfy_input_dir.mkdir(parents=True, exist_ok=True)
+        scene_count = target_visual_scene_count(material_root, subtitle_events)
+        groups = xiaohei_scene_groups(material_root, subtitle_events, scene_count)
+        prompts = [
+            (
+                "Refine this exact simple black-line composition into a clean Xiaohei editorial doodle. "
+                f"Scene {int(group['index'])} of {scene_count}. "
+                f"Book title: {title or description or 'book'}. "
+                f"Scene meaning: {compact_text(str(group.get('text') or ''), 160)}"
+            )
+            for group in groups
+        ]
+    else:
+        groups = []
+        prompts = build_whiteboard_skill_prompts(
+            material_root,
+            title,
+            description,
+            subtitle_events,
+            target_visual_scene_count(material_root, subtitle_events),
+        )
+    copied: list[Path] = []
+    series = []
+    for index, prompt in enumerate(prompts, 1):
+        prefix = f"xiaohei_ai_y9000p_{index:02d}"
+        seed = int(os.environ.get("Y9000P_COMFYUI_SEED", "20260708") or "20260708") + index
+        guide_image = None
+        guide_source = None
+        guide_comfy = None
+        guide_meta = None
+        if controlled:
+            group = groups[index - 1]
+            guide_source = guide_dir / f"guide_{index:02d}.png"
+            guide_meta = draw_official_xiaohei_guide(guide_source, title or description or "book", group, len(groups))
+            assert_xiaohei_image(guide_source)
+            guide_comfy = comfy_input_dir / f"guide_{index:02d}.png"
+            with Image.open(guide_source) as image:
+                image.convert("RGB").resize((width, height), Image.Resampling.LANCZOS).save(guide_comfy, quality=95)
+            guide_image = f"xiaohei_y9000p_guides/{guide_comfy.name}"
+        workflow, save_node = y9000p_comfyui_workflow(
+            prompt,
+            checkpoint=checkpoint,
+            width=width,
+            height=height,
+            steps=steps,
+            cfg=cfg,
+            seed=seed,
+            prefix=f"xiaohei_ai_y9000p/{prefix}",
+            guide_image=guide_image,
+            denoise=denoise,
+        )
+        print(
+            f"Y9000P ComfyUI queue {index}/{len(prompts)} via {base_url} ({workflow_mode}, {checkpoint}, {width}x{height}, steps={steps}, cfg={cfg}, denoise={denoise}, seed={seed})",
+            file=sys.stderr,
+            flush=True,
+        )
+        queued = qwen_image_request_json(
+            f"{base_url}/prompt",
+            {"prompt": workflow, "client_id": str(uuid.uuid4())},
+            timeout=request_timeout,
+        )
+        prompt_id = queued.get("prompt_id")
+        if not prompt_id:
+            raise RuntimeError(f"Y9000P ComfyUI did not return prompt_id: {queued}")
+        info = None
+        started_at = time.time()
+        for _ in range(max_polls):
+            history = qwen_image_request_json(f"{base_url}/history/{prompt_id}", timeout=request_timeout)
+            if prompt_id in history:
+                if history[prompt_id].get("status", {}).get("status_str") == "error":
+                    raise RuntimeError(f"Y9000P ComfyUI prompt failed: {history[prompt_id]}")
+                outputs = history[prompt_id].get("outputs", {})
+                images = outputs.get(save_node, {}).get("images", [])
+                if not images:
+                    raise RuntimeError(f"Y9000P ComfyUI finished without image output: {history[prompt_id]}")
+                info = images[0]
+                break
+            waited = int(time.time() - started_at)
+            print(
+                f"Y9000P ComfyUI waiting {index}/{len(prompts)} prompt_id={prompt_id} waited={waited}s",
+                file=sys.stderr,
+                flush=True,
+            )
+            time.sleep(poll_seconds)
+        if info is None:
+            raise TimeoutError(f"Timed out after {max_wait_seconds}s waiting for Y9000P ComfyUI prompt {prompt_id}")
+        params = urllib.parse.urlencode(
+            {
+                "filename": info["filename"],
+                "subfolder": info.get("subfolder", ""),
+                "type": info.get("type", "output"),
+            }
+        )
+        raw = urllib.request.urlopen(f"{base_url}/view?{params}", timeout=request_timeout).read()
+        source = image_dir / f"{prefix}.png"
+        source.write_bytes(raw)
+        assert_meaningful_image(source)
+        dest = image_root / f"visual_{index:02d}_xiaohei_ai_y9000p.png"
+        with Image.open(source) as image:
+            final_image = image.convert("RGB").resize((WIDTH, HEIGHT), Image.Resampling.LANCZOS)
+            if guide_source and os.environ.get("Y9000P_COMFYUI_RESTORE_GUIDE_LINE_ART", "1").strip().lower() not in {"0", "false", "no"}:
+                final_image = restore_guide_line_art(final_image, guide_source)
+            final_image.save(dest, quality=94)
+        copied.append(dest)
+        series.append(
+            {
+                "index": index,
+                "image": str(dest),
+                "source": str(source),
+                "guide": str(guide_source) if guide_source else None,
+                "comfyGuide": str(guide_comfy) if guide_comfy else None,
+                "prompt": prompt,
+                **(guide_meta or {}),
+            }
+        )
+        print(f"Y9000P ComfyUI generated {index}/{len(prompts)}: {dest}", file=sys.stderr, flush=True)
+    manifest = {
+        "sourceKind": "xiaohei_ai_y9000p",
+        "workflow": "controlled-img2img" if controlled else "txt2img",
+        "baseUrl": base_url,
+        "checkpoint": checkpoint,
+        "width": width,
+        "height": height,
+        "steps": steps,
+        "cfg": cfg,
+        "denoise": denoise,
+        "restoreGuideLineArt": bool(controlled and os.environ.get("Y9000P_COMFYUI_RESTORE_GUIDE_LINE_ART", "1").strip().lower() not in {"0", "false", "no"}),
+        "generatedAt": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "promptCount": len(prompts),
+        "assets": [str(path) for path in copied],
+        "series": series,
+        "prompts": prompts,
+        "qualityNote": "The default Y9000P path uses programmatic Xiaohei guide images plus low-denoise ComfyUI img2img so composition stays controlled while the local GPU refines line texture. Set Y9000P_COMFYUI_WORKFLOW=txt2img to use the older free-generation smoke path.",
+    }
+    (image_root / "xiaohei_ai_y9000p_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    (image_root / "visual_assets_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    return copied, image_dir, "xiaohei_ai_y9000p"
+
+
 def generate_qwen_image_assets(
     video_dir: Path,
     material_root: Path,
@@ -2592,6 +2824,173 @@ def assert_xiaohei_image(path: Path) -> None:
             raise RuntimeError(f"Xiaohei sequence image has too few colors: {path} ({color_count})")
 
 
+def official_xiaohei_labels(text: str) -> list[str]:
+    compact = re.sub(r"[^\u4e00-\u9fffA-Za-z0-9]", "", text)
+    labels = [compact[i : i + 4] for i in range(0, min(len(compact), 24), 4) if compact[i : i + 4]]
+    defaults = ["写之前", "写完之后", "好素材", "再判断", "可行动", "慢慢铺"]
+    for value in defaults:
+        if len(labels) >= 6:
+            break
+        labels.append(value)
+    return labels[:6]
+
+
+def draw_official_xiaohei_blob(draw: ImageDraw.ImageDraw, x: int, y: int, scale: float = 1.0) -> None:
+    w = int(84 * scale)
+    h = int(118 * scale)
+    draw.rounded_rectangle((x - w // 2, y - h, x + w // 2, y), radius=int(34 * scale), fill=(8, 8, 8))
+    eye = max(3, int(5 * scale))
+    draw.ellipse((x - int(18 * scale) - eye, y - int(72 * scale) - eye, x - int(18 * scale) + eye, y - int(72 * scale) + eye), fill=(255, 255, 255))
+    draw.ellipse((x + int(17 * scale) - eye, y - int(72 * scale) - eye, x + int(17 * scale) + eye, y - int(72 * scale) + eye), fill=(255, 255, 255))
+    draw_sketch_line(draw, [(x - int(24 * scale), y), (x - int(38 * scale), y + int(72 * scale))], (8, 8, 8), max(4, int(6 * scale)))
+    draw_sketch_line(draw, [(x + int(24 * scale), y), (x + int(38 * scale), y + int(72 * scale))], (8, 8, 8), max(4, int(6 * scale)))
+
+
+def draw_official_arrow(
+    draw: ImageDraw.ImageDraw,
+    start: tuple[int, int],
+    end: tuple[int, int],
+    color: tuple[int, int, int],
+    width: int = 4,
+) -> None:
+    draw_sketch_line(draw, [start, end], color, width)
+    angle = math.atan2(end[1] - start[1], end[0] - start[0])
+    size = 16
+    p1 = (end[0] - int(math.cos(angle - 0.55) * size), end[1] - int(math.sin(angle - 0.55) * size))
+    p2 = (end[0] - int(math.cos(angle + 0.55) * size), end[1] - int(math.sin(angle + 0.55) * size))
+    draw.polygon([end, p1, p2], fill=color)
+
+
+def draw_official_xiaohei_guide(path: Path, title: str, group: dict, scene_count: int) -> dict:
+    index = int(group["index"])
+    text = str(group.get("text") or "")
+    labels = official_xiaohei_labels(text)
+    pattern = ("conveyor", "sorter", "fishbone", "well", "press", "ferment", "bridge")[(index - 1) % 7]
+    ink = (18, 18, 18)
+    red = (216, 58, 50)
+    orange = (228, 126, 38)
+    blue = (58, 126, 210)
+    image = Image.new("RGB", (WIDTH, HEIGHT), (255, 255, 255))
+    draw = ImageDraw.Draw(image)
+    font = load_font(34)
+    small_font = load_font(26)
+
+    def label(text_value: str, xy: tuple[int, int], color: tuple[int, int, int] = ink, small: bool = False) -> None:
+        draw.text(xy, compact_text(text_value, 8), font=small_font if small else font, fill=color)
+
+    if pattern == "conveyor":
+        draw_sketch_line(draw, [(190, 600), (1630, 600)], ink, 5)
+        for x in range(260, 1550, 120):
+            draw.ellipse((x, 585, x + 24, 609), outline=ink, width=3)
+        for i in range(5):
+            draw_loose_paper(draw, 185 + i * 48, 545 - i * 8, ink, 0.6, i - 2)
+        draw_official_xiaohei_blob(draw, 620, 545, 1.0)
+        draw_sketch_rect(draw, (535, 340, 725, 450), ink, 5)
+        label(labels[2], (560, 370), ink, True)
+        draw_sketch_rect(draw, (980, 505, 1160, 585), ink, 5)
+        label(labels[3], (1022, 528), ink, True)
+        draw_official_arrow(draw, (355, 455), (520, 455), orange)
+        draw_official_arrow(draw, (1200, 455), (1460, 455), orange)
+        label(labels[0], (250, 380), blue, True)
+        label(labels[1], (1230, 380), blue, True)
+        label("两个断点", (840, 265), red, True)
+    elif pattern == "sorter":
+        draw_sketch_rect(draw, (250, 355, 470, 675), ink, 5)
+        for i, name in enumerate(labels[:3]):
+            draw_sketch_rect(draw, (280, 390 + i * 85, 435, 450 + i * 85), ink, 3)
+            label(name, (300, 405 + i * 85), ink, True)
+            draw_official_arrow(draw, (500, 420 + i * 85), (700, 500), orange, 3)
+        draw.rounded_rectangle((800, 420, 1050, 660), radius=30, fill=(8, 8, 8))
+        draw.ellipse((900, 520, 910, 530), fill=(255, 255, 255))
+        draw.ellipse((950, 520, 960, 530), fill=(255, 255, 255))
+        for i, name in enumerate(labels[3:6]):
+            y = 390 + i * 100
+            draw_official_arrow(draw, (1065, 500), (1280, y + 35), orange, 3)
+            draw_sketch_rect(draw, (1300, y, 1490, y + 72), ink, 4)
+            label(name, (1340, y + 18), ink, True)
+        label("判断转写", (880, 300), red, True)
+        label("先判断", (930, 680), blue, True)
+    elif pattern == "fishbone":
+        draw_sketch_line(draw, [(250, 680), (1550, 680)], orange, 5)
+        draw_sketch_rect(draw, (165, 470, 610, 680), ink, 5)
+        for i in range(6):
+            draw_sketch_line(draw, [(210 + i * 58, 500), (290 + i * 58, 650)], ink, 3)
+        draw_official_xiaohei_blob(draw, 690, 430, 0.9)
+        for i, name in enumerate(labels[:4]):
+            x = 840 + i * 220
+            draw_sketch_rect(draw, (x, 455 + (i % 2) * 30, x + 150, 565 + (i % 2) * 30), ink, 4)
+            label(name, (x + 28, 495 + (i % 2) * 30), ink, True)
+            draw_official_arrow(draw, (x - 50, 520), (x - 8, 520), orange, 3)
+        label(labels[0], (300, 520), ink, True)
+        label("别一次发完", (900, 750), red, True)
+    elif pattern == "well":
+        draw.ellipse((420, 285, 1040, 835), outline=ink, width=5)
+        for y in range(350, 765, 80):
+            draw.arc((420, y - 110, 1040, y + 110), 10, 170, fill=ink, width=2)
+        for x in range(500, 1000, 110):
+            draw_sketch_line(draw, [(x, 330), (x - 80, 770)], ink, 2)
+        for i in range(25):
+            draw_loose_paper(draw, 540 + (i % 7) * 65, 500 + (i // 7) * 58, ink, 0.45, (i % 5) - 2)
+        draw_official_xiaohei_blob(draw, 1020, 300, 0.9)
+        draw_official_arrow(draw, (1160, 585), (1420, 655), orange, 4)
+        draw_sketch_rect(draw, (1430, 610, 1690, 750), ink, 4)
+        label("可行动", (1260, 520), orange, True)
+        label(labels[0], (280, 760), red, True)
+        label(labels[1], (1500, 785), blue, True)
+    elif pattern == "press":
+        draw_loose_paper(draw, 360, 565, ink, 1.3, -1)
+        label(labels[0], (275, 500), red, True)
+        draw_official_xiaohei_blob(draw, 440, 705, 0.9)
+        draw_sketch_rect(draw, (770, 350, 1050, 750), ink, 6)
+        draw_sketch_line(draw, [(910, 275), (910, 350)], ink, 6)
+        draw_sketch_rect(draw, (840, 245, 980, 285), ink, 5)
+        label("压一下", (855, 665), ink, True)
+        draw_official_arrow(draw, (520, 560), (760, 555), orange, 4)
+        draw_official_arrow(draw, (1080, 555), (1255, 555), orange, 4)
+        draw_sketch_rect(draw, (1270, 500, 1375, 610), ink, 4)
+        label("小测试", (1220, 440), ink, True)
+        label(labels[2], (1420, 430), blue, True)
+    elif pattern == "ferment":
+        draw_official_xiaohei_blob(draw, 350, 680, 0.95)
+        draw_sketch_line(draw, [(430, 535), (735, 420)], orange, 5)
+        draw_sketch_rect(draw, (720, 275, 1130, 805), ink, 5)
+        for i in range(12):
+            draw_loose_paper(draw, 815 + (i % 4) * 75, 440 + (i // 4) * 78, ink, 0.5, (i % 5) - 2)
+        for i in range(5):
+            draw.ellipse((820 + i * 70, 560 + (i % 2) * 40, 828 + i * 70, 568 + (i % 2) * 40), fill=orange)
+        draw_sketch_rect(draw, (1370, 630, 1650, 720), ink, 4)
+        draw_official_arrow(draw, (1140, 610), (1360, 675), orange, 4)
+        label(labels[0], (230, 420), red, True)
+        label("慢慢发酵", (1320, 555), ink, True)
+        label(labels[1], (1485, 745), blue, True)
+    else:
+        draw_sketch_line(draw, [(290, 690), (760, 610), (1120, 665), (1580, 600)], ink, 5)
+        draw_sketch_rect(draw, (160, 450, 350, 520), ink, 4)
+        draw_sketch_rect(draw, (1550, 410, 1740, 480), ink, 4)
+        label("陌生", (205, 465), ink, True)
+        label("愿意聊", (1585, 425), ink, True)
+        draw_official_xiaohei_blob(draw, 690, 610, 0.9)
+        for i, name in enumerate(labels[:5]):
+            x = 760 + i * 145
+            draw_sketch_rect(draw, (x, 610 + (i % 2) * 36, x + 110, 670 + (i % 2) * 36), ink, 3)
+            label(name, (x + 18, 625 + (i % 2) * 36), ink, True)
+        label(labels[0], (520, 470), red, True)
+        label("小证据", (1070, 475), blue, True)
+
+    image = apply_subtitle_safe_area(image)
+    image.save(path, quality=95)
+    return {"pattern": pattern, "labels": labels, "preview": compact_text(re.sub(r"\s+", "", text), 28)}
+
+
+def restore_guide_line_art(ai_image: Image.Image, guide_path: Path) -> Image.Image:
+    restored = ai_image.convert("RGB")
+    with Image.open(guide_path) as guide:
+        guide_rgb = guide.convert("RGB").resize(restored.size, Image.Resampling.LANCZOS)
+        mask = guide_rgb.convert("L").point(lambda value: 255 if value < 248 else 0)
+        restored.paste(guide_rgb, (0, 0), mask)
+    return restored
+
+
 def generate_xiaohei_sequence_assets(
     video_dir: Path,
     material_root: Path,
@@ -2890,6 +3289,12 @@ def generate_whiteboard_skill_assets(
         return generate_xiaohei_production_assets(video_dir, material_root, title, description, subtitle_events)
     if image_backend == "xiaohei-sequence":
         return generate_xiaohei_sequence_assets(video_dir, material_root, title, description, subtitle_events)
+    if image_backend == "xiaohei-ai-y9000p":
+        try:
+            return generate_y9000p_comfyui_assets(video_dir, material_root, title, description, subtitle_events)
+        except Exception as error:
+            print(f"Y9000P ComfyUI backend failed, falling back to xiaohei-sequence: {error}", file=sys.stderr, flush=True)
+            return generate_xiaohei_sequence_assets(video_dir, material_root, title, description, subtitle_events)
     if image_backend == "qwen-image-2512":
         try:
             return generate_qwen_image_assets(video_dir, material_root, title, description, subtitle_events)

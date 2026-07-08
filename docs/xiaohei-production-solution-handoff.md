@@ -358,11 +358,46 @@ xiaohei-generate \
 8. 不启动 Qwen，不依赖 ComfyUI 常驻服务。
 9. 保留 SD1.5/ComfyUI/Draw Things 作为探索方案说明，但不作为主链路。
 
+## MochiDiffusion 探索结论（2026-07-06）
+
+用户要求额外验证 [MochiDiffusion/MochiDiffusion](https://github.com/MochiDiffusion/MochiDiffusion) 是否可以作为 MacMini4 主力出图 AI。当前实测结论：
+
+- 已安装 Mochi Diffusion 6.0：`/Applications/Mochi Diffusion.app`。
+- Bundle ID：`com.joshua-park.Mochi-Diffusion`。
+- 已通过 Hysteria2 代理下载 Core ML SD1.5 split-einsum 模型 zip：
+  `/Volumes/System/AI/downloads/mochi-coreml/v1-5_split-einsum.zip`，约 `1.8G`。
+- 已安装到 Mochi 默认模型目录：
+  `/Users/coderdream/MochiDiffusion/models/v1-5_split-einsum`，约 `2.0G`。
+- 已确认模型必需文件齐全：
+  `TextEncoder.mlmodelc`、`Unet.mlmodelc`、`VAEDecoder.mlmodelc`、`VAEEncoder.mlmodelc`、`merges.txt`、`vocab.json`。
+- 官方 README 与该目录结构一致；`split_einsum` 是适合普通/低配 M 芯片的路线，会用到 Neural Engine。`original` 更偏高配 Mac，低配机器可能加载失败或内存压力过大。
+- 参考用户提供的视频字幕 `BV1wnFaeSEKg`：Mochi 提示词只支持英文；40 步质量较稳，20 步以下容易明显跑偏；M1 8G 示例使用 split 模型可在几十秒内生成 512/HD 图。
+
+生产判断：
+
+- MochiDiffusion 可以作为“人工挑图/风格探索”的候选工具。
+- 暂不建议作为读书视频插图生产主链路，因为它是 SwiftUI GUI App，当前未发现 CLI、HTTP API、URL scheme 或 AppleScript 字典；`Info.plist` 中没有 `CFBundleURLTypes` / `NSAppleScriptEnabled`。
+- 在 SSH 远程环境下，`System Events` UI 探测和 `screencapture` 均不可稳定使用，说明远程无人值守批量生成难以保证。
+- 即使 GUI 能手工出图，也无法保证一条命令批量生成、稳定命名、自动 QA、失败重试和与文章分镜流水线集成。
+
+因此当前主链路仍保持为：
+
+```text
+文章/分镜 -> ian-xiaohei-illustrations 结构化 spec -> Pillow 本地确定性绘图 -> 3200x1800 PNG -> QA
+```
+
+MochiDiffusion 保留为可选探索路线：
+
+```text
+英文 prompt -> Mochi GUI -> 人工挑图/参考风格 -> 必要时再转成结构化小黑 spec
+```
+
 ## 需要避免的坑
 
 - 不要再把 Qwen Image 作为主路线，用户已明确表示效率太低。
 - 不要让扩散模型直接生成中文标注。
 - 不要依赖 Draw Things GUI 做批量自动化。
+- 不要依赖 MochiDiffusion GUI 做无人值守批量主链路；除非后续发现稳定 CLI/API 或可控自动化入口。
 - 不要让 ComfyUI 常驻占用 8188，除非用户明确要继续调模型。
 - 不要只生成 1600x900 低清图；生产默认应输出 3200x1800。
 - 不要把图做成 PPT 流程图，要保持白纸手绘和怪诞感。
@@ -373,5 +408,6 @@ xiaohei-generate \
 
 ```text
 请在 D:\0030_codex\MacMini4 工作区继续实现“小黑读书视频插图本地生产工具”。先读取 AGENTS.md 和 docs/xiaohei-production-solution-handoff.md。目标是把当前 tools/xiaohei_local_generate.py 重构成可维护项目，并在 MacMini4 上形成可批量生成 3200x1800 PNG 的 CLI。不要继续 Qwen 路线，不要依赖 ComfyUI 常驻服务；SD1.5/ComfyUI/Draw Things 只保留为探索说明。生产主链路是 ian-xiaohei-illustrations Skill 生成结构/spec，Pillow 本地结构化绘图输出最终图片。请完成至少 5 个模板、批量 spec 目录生成、基础 QA 检查和 README。
-```
 
+补充：MochiDiffusion 6.0 已在 MacMini4 安装并配好 Core ML SD1.5 split-einsum 模型，路径为 /Users/coderdream/MochiDiffusion/models/v1-5_split-einsum。它可作为 GUI 人工探索工具，但当前没有确认可用的 CLI/API/URL scheme/AppleScript 自动化入口，不要把 MochiDiffusion 作为无人值守批量生产主链路。
+```

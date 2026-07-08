@@ -25,7 +25,7 @@ export interface UiProfile {
 }
 
 export interface PipelineProfile {
-  imageBackend: "xiaohei-production" | "xiaohei-sequence" | "qwen-image-2512" | "whiteboard-skill";
+  imageBackend: "xiaohei-production" | "xiaohei-sequence" | "xiaohei-ai-y9000p" | "qwen-image-2512" | "whiteboard-skill";
   skipExistingMaterials: boolean;
   skipExistingText: boolean;
   skipExistingImages: boolean;
