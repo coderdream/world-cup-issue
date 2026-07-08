@@ -472,6 +472,7 @@ export function HomePage() {
         error: "",
         exportState: candidates.length > 0 ? "素材已存在，已按配置跳过生成。" : "没有可生成素材的任务。"
       });
+      setActivePipelineStage(null);
       return;
     }
     await generateMaterials(target.path);
@@ -777,8 +778,10 @@ export function HomePage() {
       await updateTaskStatus(path, { status: "failed", progress: 0, message });
     } finally {
       if (!isTraceTerminated(traceId)) {
-        updateWorkbench({ busy: false });
+        updateWorkbench({ busy: false, currentTraceId: "" });
       }
+      setActivePipelineStage(null);
+      await loadStoredTasks(useAppStore.getState().settings.materialProfile.categoryName);
     }
   }
 
