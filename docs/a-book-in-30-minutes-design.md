@@ -1721,3 +1721,15 @@ This version is a release-only verification build after the local Windows operat
 No product workflow or UI behavior is changed in this version. The purpose is to confirm the restored local environment can still run the fixed GNU Rust/Tauri build flow and produce the desktop shortcut release exe.
 
 The expected artifact remains `a-book-in-30-minutes/src-tauri/target/x86_64-pc-windows-gnu/release/a_book_in_30_minutes.exe`. Installer generation is intentionally skipped unless explicitly requested.
+
+## 2026-07-08 0.1.158 Reinstalled Windows MinGW Path Recovery
+
+After the Windows reinstall, the previous Scoop MinGW path no longer exists. The GNU build contract now points Cargo and the packaging helper script at the restored MinGW toolchain under `D:/03_Dev/mingw64/bin`.
+
+The Tauri release build continues to use `x86_64-pc-windows-gnu` and the repo-local Rust toolchain under `.tooling/rustup`. This keeps the desktop shortcut exe build independent from MSVC and avoids the missing `link.exe` path.
+
+## 2026-07-08 0.1.159 Scoop MinGW Release Path Restore
+
+After `C:/Users/Administrator/scoop/` was restored, the release build contract was switched back to the historical Scoop MinGW location under `C:/Users/Administrator/scoop/apps/mingw/current/bin`.
+
+Cargo uses the restored Scoop `x86_64-w64-mingw32-gcc.exe` as the GNU linker and the available `ar.exe` from the same directory for archiving. The packaging helper script also places the Scoop MinGW `bin` directory before the repo-local Rust toolchain in `PATH`, matching the previously verified build order.
