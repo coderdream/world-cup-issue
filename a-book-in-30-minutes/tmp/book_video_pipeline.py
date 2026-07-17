@@ -15,7 +15,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageEnhance, ImageFont
+from PIL import Image, ImageChops, ImageDraw, ImageEnhance, ImageFilter, ImageFont
 
 
 WIDTH = 1920
@@ -1504,6 +1504,13 @@ def load_font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont | ImageFo
     return ImageFont.load_default()
 
 
+def load_kaiti_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+    path = os.environ.get("XIAOHEI_KAITI_FONT") or font_path("simkai.ttf", "STKAITI.TTF", "stkaiti.ttf", "KaiTi.ttf")
+    if path and Path(path).exists():
+        return ImageFont.truetype(path, size)
+    return load_font(size)
+
+
 def text_size(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.ImageFont) -> tuple[int, int]:
     bbox = draw.textbbox((0, 0), text, font=font)
     return bbox[2] - bbox[0], bbox[3] - bbox[1]
@@ -2008,11 +2015,11 @@ def generate_y9000p_comfyui_assets(
     workflow_mode = os.environ.get("Y9000P_COMFYUI_WORKFLOW", "img2img").strip().lower()
     controlled = workflow_mode not in {"txt2img", "text", "empty"}
     checkpoint = os.environ.get("Y9000P_COMFYUI_CHECKPOINT", "DreamShaper8_LCM.safetensors" if controlled else "v1-5-pruned-emaonly.safetensors")
-    width = int(os.environ.get("Y9000P_COMFYUI_WIDTH", "768") or "768")
-    height = int(os.environ.get("Y9000P_COMFYUI_HEIGHT", "432") or "432")
-    steps = int(os.environ.get("Y9000P_COMFYUI_STEPS", "8" if controlled else "16") or ("8" if controlled else "16"))
-    cfg = float(os.environ.get("Y9000P_COMFYUI_CFG", "1.7" if controlled else "7.0") or ("1.7" if controlled else "7.0"))
-    denoise = float(os.environ.get("Y9000P_COMFYUI_DENOISE", "0.28" if controlled else "1.0") or ("0.28" if controlled else "1.0"))
+    width = int(os.environ.get("Y9000P_COMFYUI_WIDTH", "1536" if controlled else "768") or ("1536" if controlled else "768"))
+    height = int(os.environ.get("Y9000P_COMFYUI_HEIGHT", "864" if controlled else "432") or ("864" if controlled else "432"))
+    steps = int(os.environ.get("Y9000P_COMFYUI_STEPS", "32" if controlled else "16") or ("32" if controlled else "16"))
+    cfg = float(os.environ.get("Y9000P_COMFYUI_CFG", "1.9" if controlled else "7.0") or ("1.9" if controlled else "7.0"))
+    denoise = float(os.environ.get("Y9000P_COMFYUI_DENOISE", "0.38" if controlled else "1.0") or ("0.38" if controlled else "1.0"))
     request_timeout = int(os.environ.get("Y9000P_COMFYUI_REQUEST_TIMEOUT_SECONDS", "600") or "600")
     poll_seconds = int(os.environ.get("Y9000P_COMFYUI_POLL_SECONDS", "3") or "3")
     max_wait_seconds = int(os.environ.get("Y9000P_COMFYUI_MAX_WAIT_SECONDS", str(2 * 60 * 60)) or str(2 * 60 * 60))
@@ -2052,6 +2059,7 @@ def generate_y9000p_comfyui_assets(
         seed = int(os.environ.get("Y9000P_COMFYUI_SEED", "20260708") or "20260708") + index
         guide_image = None
         guide_source = None
+        guide_model_source = None
         guide_comfy = None
         guide_meta = None
         if controlled:
@@ -2059,8 +2067,11 @@ def generate_y9000p_comfyui_assets(
             guide_source = guide_dir / f"guide_{index:02d}.png"
             guide_meta = draw_official_xiaohei_guide(guide_source, title or description or "book", group, len(groups))
             assert_xiaohei_image(guide_source)
+            guide_model_source = guide_dir / f"guide_{index:02d}_no_text.png"
+            draw_official_xiaohei_guide(guide_model_source, title or description or "book", group, len(groups), include_labels=False)
+            assert_xiaohei_image(guide_model_source)
             guide_comfy = comfy_input_dir / f"guide_{index:02d}.png"
-            with Image.open(guide_source) as image:
+            with Image.open(guide_model_source) as image:
                 image.convert("RGB").resize((width, height), Image.Resampling.LANCZOS).save(guide_comfy, quality=95)
             guide_image = f"xiaohei_y9000p_guides/{guide_comfy.name}"
         workflow, save_node = y9000p_comfyui_workflow(
@@ -2120,12 +2131,12 @@ def generate_y9000p_comfyui_assets(
         raw = urllib.request.urlopen(f"{base_url}/view?{params}", timeout=request_timeout).read()
         source = image_dir / f"{prefix}.png"
         source.write_bytes(raw)
-        assert_meaningful_image(source)
+        assert_xiaohei_image(source)
         dest = image_root / f"visual_{index:02d}_xiaohei_ai_y9000p.png"
         with Image.open(source) as image:
             final_image = image.convert("RGB").resize((WIDTH, HEIGHT), Image.Resampling.LANCZOS)
             if guide_source and os.environ.get("Y9000P_COMFYUI_RESTORE_GUIDE_LINE_ART", "1").strip().lower() not in {"0", "false", "no"}:
-                final_image = restore_guide_line_art(final_image, guide_source)
+                final_image = restore_guide_line_art(final_image, guide_source, guide_model_source)
             final_image.save(dest, quality=94)
         copied.append(dest)
         series.append(
@@ -2134,6 +2145,7 @@ def generate_y9000p_comfyui_assets(
                 "image": str(dest),
                 "source": str(source),
                 "guide": str(guide_source) if guide_source else None,
+                "modelGuide": str(guide_model_source) if guide_model_source else None,
                 "comfyGuide": str(guide_comfy) if guide_comfy else None,
                 "prompt": prompt,
                 **(guide_meta or {}),
@@ -2816,7 +2828,7 @@ def assert_xiaohei_image(path: Path) -> None:
     if not path.is_file() or path.stat().st_size < 8 * 1024:
         raise RuntimeError(f"Xiaohei sequence image is missing or too small: {path}")
     with Image.open(path) as image:
-        if image.size not in {(WIDTH, HEIGHT), (3200, 1800), (1600, 900)}:
+        if image.size not in {(WIDTH, HEIGHT), (3200, 1800), (1600, 900), (768, 432)}:
             raise RuntimeError(f"Xiaohei sequence image has unexpected size {image.size}: {path}")
         colors = image.convert("RGB").getcolors(maxcolors=512000)
         color_count = len(colors or [])
@@ -2853,15 +2865,79 @@ def draw_official_arrow(
     color: tuple[int, int, int],
     width: int = 4,
 ) -> None:
-    draw_sketch_line(draw, [start, end], color, width)
-    angle = math.atan2(end[1] - start[1], end[0] - start[0])
+    mid = ((start[0] + end[0]) // 2, (start[1] + end[1]) // 2 - 18)
+    points = []
+    for step in range(18):
+        t = step / 17
+        x = int((1 - t) ** 2 * start[0] + 2 * (1 - t) * t * mid[0] + t**2 * end[0])
+        y = int((1 - t) ** 2 * start[1] + 2 * (1 - t) * t * mid[1] + t**2 * end[1] + math.sin(step * 1.7) * 2)
+        points.append((x, y))
+    draw_sketch_line(draw, points, color, width)
+    angle = math.atan2(end[1] - points[-2][1], end[0] - points[-2][0])
     size = 16
     p1 = (end[0] - int(math.cos(angle - 0.55) * size), end[1] - int(math.sin(angle - 0.55) * size))
     p2 = (end[0] - int(math.cos(angle + 0.55) * size), end[1] - int(math.sin(angle + 0.55) * size))
     draw.polygon([end, p1, p2], fill=color)
 
 
-def draw_official_xiaohei_guide(path: Path, title: str, group: dict, scene_count: int) -> dict:
+def draw_official_wavy_line(
+    draw: ImageDraw.ImageDraw,
+    points: list[tuple[int, int]],
+    color: tuple[int, int, int],
+    width: int = 4,
+    wobble: int = 3,
+) -> None:
+    if len(points) < 2:
+        return
+    expanded: list[tuple[int, int]] = []
+    for start, end in zip(points, points[1:]):
+        for step in range(10):
+            t = step / 10
+            x = int(start[0] + (end[0] - start[0]) * t)
+            y = int(start[1] + (end[1] - start[1]) * t + math.sin((x + step * 19) * 0.035) * wobble)
+            expanded.append((x, y))
+    expanded.append(points[-1])
+    draw_sketch_line(draw, expanded, color, width)
+
+
+def draw_official_paper(
+    draw: ImageDraw.ImageDraw,
+    box: tuple[int, int, int, int],
+    ink: tuple[int, int, int],
+    width: int = 4,
+) -> None:
+    x1, y1, x2, y2 = box
+    points = [
+        (x1 + 3, y1 + 8),
+        (x2 - 7, y1 + 2),
+        (x2 - 2, y2 - 6),
+        (x1 + 8, y2 + 2),
+        (x1 + 3, y1 + 8),
+    ]
+    draw.polygon(points, fill=(255, 255, 255))
+    draw_official_wavy_line(draw, points, ink, width, 2)
+
+
+def draw_official_label_paper(
+    draw: ImageDraw.ImageDraw,
+    box: tuple[int, int, int, int],
+    text: str,
+    font: ImageFont.ImageFont,
+    ink: tuple[int, int, int],
+    text_color: tuple[int, int, int],
+    include_labels: bool,
+) -> None:
+    if include_labels:
+        x = box[0] + 10
+        y = box[1] + 10
+        value = compact_text(text, 7)
+        draw.text((x, y), value, font=font, fill=text_color)
+        bbox = draw.textbbox((x, y), value, font=font)
+        underline_y = bbox[3] + 6
+        draw_official_wavy_line(draw, [(bbox[0], underline_y), (bbox[2] + 8, underline_y + 1)], text_color, 2, 1)
+
+
+def draw_official_xiaohei_guide(path: Path, title: str, group: dict, scene_count: int, include_labels: bool = True) -> dict:
     index = int(group["index"])
     text = str(group.get("text") or "")
     labels = official_xiaohei_labels(text)
@@ -2872,32 +2948,32 @@ def draw_official_xiaohei_guide(path: Path, title: str, group: dict, scene_count
     blue = (58, 126, 210)
     image = Image.new("RGB", (WIDTH, HEIGHT), (255, 255, 255))
     draw = ImageDraw.Draw(image)
-    font = load_font(34)
-    small_font = load_font(26)
+    font = load_kaiti_font(40)
+    small_font = load_kaiti_font(30)
 
     def label(text_value: str, xy: tuple[int, int], color: tuple[int, int, int] = ink, small: bool = False) -> None:
+        if not include_labels:
+            return
         draw.text(xy, compact_text(text_value, 8), font=small_font if small else font, fill=color)
 
     if pattern == "conveyor":
-        draw_sketch_line(draw, [(190, 600), (1630, 600)], ink, 5)
+        draw_official_wavy_line(draw, [(190, 600), (520, 602), (980, 598), (1630, 600)], ink, 5, 2)
         for x in range(260, 1550, 120):
             draw.ellipse((x, 585, x + 24, 609), outline=ink, width=3)
         for i in range(5):
             draw_loose_paper(draw, 185 + i * 48, 545 - i * 8, ink, 0.6, i - 2)
         draw_official_xiaohei_blob(draw, 620, 545, 1.0)
-        draw_sketch_rect(draw, (535, 340, 725, 450), ink, 5)
-        label(labels[2], (560, 370), ink, True)
-        draw_sketch_rect(draw, (980, 505, 1160, 585), ink, 5)
-        label(labels[3], (1022, 528), ink, True)
+        draw_official_label_paper(draw, (535, 340, 735, 450), labels[2], small_font, ink, ink, include_labels)
+        draw_official_label_paper(draw, (980, 505, 1175, 585), labels[3], small_font, ink, ink, include_labels)
         draw_official_arrow(draw, (355, 455), (520, 455), orange)
         draw_official_arrow(draw, (1200, 455), (1460, 455), orange)
         label(labels[0], (250, 380), blue, True)
         label(labels[1], (1230, 380), blue, True)
         label("两个断点", (840, 265), red, True)
     elif pattern == "sorter":
-        draw_sketch_rect(draw, (250, 355, 470, 675), ink, 5)
+        draw_official_paper(draw, (250, 355, 470, 675), ink, 5)
         for i, name in enumerate(labels[:3]):
-            draw_sketch_rect(draw, (280, 390 + i * 85, 435, 450 + i * 85), ink, 3)
+            draw_official_paper(draw, (280, 390 + i * 85, 435, 450 + i * 85), ink, 3)
             label(name, (300, 405 + i * 85), ink, True)
             draw_official_arrow(draw, (500, 420 + i * 85), (700, 500), orange, 3)
         draw.rounded_rectangle((800, 420, 1050, 660), radius=30, fill=(8, 8, 8))
@@ -2906,19 +2982,19 @@ def draw_official_xiaohei_guide(path: Path, title: str, group: dict, scene_count
         for i, name in enumerate(labels[3:6]):
             y = 390 + i * 100
             draw_official_arrow(draw, (1065, 500), (1280, y + 35), orange, 3)
-            draw_sketch_rect(draw, (1300, y, 1490, y + 72), ink, 4)
+            draw_official_paper(draw, (1300, y, 1490, y + 72), ink, 4)
             label(name, (1340, y + 18), ink, True)
         label("判断转写", (880, 300), red, True)
         label("先判断", (930, 680), blue, True)
     elif pattern == "fishbone":
-        draw_sketch_line(draw, [(250, 680), (1550, 680)], orange, 5)
-        draw_sketch_rect(draw, (165, 470, 610, 680), ink, 5)
+        draw_official_wavy_line(draw, [(250, 680), (720, 675), (1110, 683), (1550, 680)], orange, 5, 2)
+        draw_official_paper(draw, (165, 470, 610, 680), ink, 5)
         for i in range(6):
             draw_sketch_line(draw, [(210 + i * 58, 500), (290 + i * 58, 650)], ink, 3)
         draw_official_xiaohei_blob(draw, 690, 430, 0.9)
         for i, name in enumerate(labels[:4]):
             x = 840 + i * 220
-            draw_sketch_rect(draw, (x, 455 + (i % 2) * 30, x + 150, 565 + (i % 2) * 30), ink, 4)
+            draw_official_paper(draw, (x, 455 + (i % 2) * 30, x + 150, 565 + (i % 2) * 30), ink, 4)
             label(name, (x + 28, 495 + (i % 2) * 30), ink, True)
             draw_official_arrow(draw, (x - 50, 520), (x - 8, 520), orange, 3)
         label(labels[0], (300, 520), ink, True)
@@ -2933,7 +3009,7 @@ def draw_official_xiaohei_guide(path: Path, title: str, group: dict, scene_count
             draw_loose_paper(draw, 540 + (i % 7) * 65, 500 + (i // 7) * 58, ink, 0.45, (i % 5) - 2)
         draw_official_xiaohei_blob(draw, 1020, 300, 0.9)
         draw_official_arrow(draw, (1160, 585), (1420, 655), orange, 4)
-        draw_sketch_rect(draw, (1430, 610, 1690, 750), ink, 4)
+        draw_official_paper(draw, (1430, 610, 1690, 750), ink, 4)
         label("可行动", (1260, 520), orange, True)
         label(labels[0], (280, 760), red, True)
         label(labels[1], (1500, 785), blue, True)
@@ -2941,38 +3017,38 @@ def draw_official_xiaohei_guide(path: Path, title: str, group: dict, scene_count
         draw_loose_paper(draw, 360, 565, ink, 1.3, -1)
         label(labels[0], (275, 500), red, True)
         draw_official_xiaohei_blob(draw, 440, 705, 0.9)
-        draw_sketch_rect(draw, (770, 350, 1050, 750), ink, 6)
+        draw_official_paper(draw, (770, 350, 1050, 750), ink, 6)
         draw_sketch_line(draw, [(910, 275), (910, 350)], ink, 6)
-        draw_sketch_rect(draw, (840, 245, 980, 285), ink, 5)
+        draw_official_paper(draw, (840, 245, 980, 285), ink, 5)
         label("压一下", (855, 665), ink, True)
         draw_official_arrow(draw, (520, 560), (760, 555), orange, 4)
         draw_official_arrow(draw, (1080, 555), (1255, 555), orange, 4)
-        draw_sketch_rect(draw, (1270, 500, 1375, 610), ink, 4)
+        draw_official_paper(draw, (1270, 500, 1375, 610), ink, 4)
         label("小测试", (1220, 440), ink, True)
         label(labels[2], (1420, 430), blue, True)
     elif pattern == "ferment":
         draw_official_xiaohei_blob(draw, 350, 680, 0.95)
         draw_sketch_line(draw, [(430, 535), (735, 420)], orange, 5)
-        draw_sketch_rect(draw, (720, 275, 1130, 805), ink, 5)
+        draw_official_paper(draw, (720, 275, 1130, 805), ink, 5)
         for i in range(12):
             draw_loose_paper(draw, 815 + (i % 4) * 75, 440 + (i // 4) * 78, ink, 0.5, (i % 5) - 2)
         for i in range(5):
             draw.ellipse((820 + i * 70, 560 + (i % 2) * 40, 828 + i * 70, 568 + (i % 2) * 40), fill=orange)
-        draw_sketch_rect(draw, (1370, 630, 1650, 720), ink, 4)
+        draw_official_paper(draw, (1370, 630, 1650, 720), ink, 4)
         draw_official_arrow(draw, (1140, 610), (1360, 675), orange, 4)
         label(labels[0], (230, 420), red, True)
         label("慢慢发酵", (1320, 555), ink, True)
         label(labels[1], (1485, 745), blue, True)
     else:
-        draw_sketch_line(draw, [(290, 690), (760, 610), (1120, 665), (1580, 600)], ink, 5)
-        draw_sketch_rect(draw, (160, 450, 350, 520), ink, 4)
-        draw_sketch_rect(draw, (1550, 410, 1740, 480), ink, 4)
+        draw_official_wavy_line(draw, [(290, 690), (760, 610), (1120, 665), (1580, 600)], ink, 5, 4)
+        draw_official_paper(draw, (160, 450, 350, 520), ink, 4)
+        draw_official_paper(draw, (1550, 410, 1740, 480), ink, 4)
         label("陌生", (205, 465), ink, True)
         label("愿意聊", (1585, 425), ink, True)
         draw_official_xiaohei_blob(draw, 690, 610, 0.9)
         for i, name in enumerate(labels[:5]):
             x = 760 + i * 145
-            draw_sketch_rect(draw, (x, 610 + (i % 2) * 36, x + 110, 670 + (i % 2) * 36), ink, 3)
+            draw_official_paper(draw, (x, 610 + (i % 2) * 36, x + 110, 670 + (i % 2) * 36), ink, 3)
             label(name, (x + 18, 625 + (i % 2) * 36), ink, True)
         label(labels[0], (520, 470), red, True)
         label("小证据", (1070, 475), blue, True)
@@ -2982,11 +3058,32 @@ def draw_official_xiaohei_guide(path: Path, title: str, group: dict, scene_count
     return {"pattern": pattern, "labels": labels, "preview": compact_text(re.sub(r"\s+", "", text), 28)}
 
 
-def restore_guide_line_art(ai_image: Image.Image, guide_path: Path) -> Image.Image:
+def restore_guide_line_art(ai_image: Image.Image, guide_path: Path, base_guide_path: Path | None = None) -> Image.Image:
     restored = ai_image.convert("RGB")
+    white_threshold = int(os.environ.get("Y9000P_COMFYUI_BACKGROUND_WHITE_THRESHOLD", "185") or "185")
+    if white_threshold > 0:
+        r, g, b = restored.split()
+        white_mask = ImageChops.multiply(
+            ImageChops.multiply(
+                r.point(lambda value: 255 if value > white_threshold else 0),
+                g.point(lambda value: 255 if value > white_threshold else 0),
+            ),
+            b.point(lambda value: 255 if value > white_threshold else 0),
+        )
+        restored.paste(Image.new("RGB", restored.size, (255, 255, 255)), (0, 0), white_mask)
     with Image.open(guide_path) as guide:
         guide_rgb = guide.convert("RGB").resize(restored.size, Image.Resampling.LANCZOS)
-        mask = guide_rgb.convert("L").point(lambda value: 255 if value < 248 else 0)
+        if base_guide_path:
+            with Image.open(base_guide_path) as base_guide:
+                base_rgb = base_guide.convert("RGB").resize(restored.size, Image.Resampling.LANCZOS)
+            diff = ImageChops.difference(guide_rgb, base_rgb).convert("L")
+            mask = diff.point(lambda value: 255 if value > 12 else 0)
+        else:
+            mask = guide_rgb.convert("L").point(lambda value: 255 if value < 248 else 0)
+        cleanup_radius = int(os.environ.get("Y9000P_COMFYUI_GUIDE_CLEANUP_RADIUS", "5") or "5")
+        cleanup_radius = max(3, cleanup_radius | 1)
+        cleanup_mask = mask.filter(ImageFilter.MaxFilter(cleanup_radius))
+        restored.paste(Image.new("RGB", restored.size, (255, 255, 255)), (0, 0), cleanup_mask)
         restored.paste(guide_rgb, (0, 0), mask)
     return restored
 

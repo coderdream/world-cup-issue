@@ -349,7 +349,7 @@ midjourney：外部高质量备选
 
 ## 2026-07-08 本机 187 落地记录
 
-当前机器就是 187 / Y9000P，主机名 `DESKTOP-MOIQTV4`。本轮已经按 D 盘优先原则落地基础 ComfyUI 节点：
+当前机器就是 187 / Y9000P；重装系统后的主机名为 `Y9000P-23`。本轮已经按 D 盘优先原则恢复并验证基础 ComfyUI 节点：
 
 ```text
 D:\AI\runtimes\Python310
@@ -428,15 +428,16 @@ BOOK_IMAGE_BACKEND=xiaohei-ai-y9000p
 Y9000P_COMFYUI_BASE_URL=http://127.0.0.1:8188
 Y9000P_COMFYUI_WORKFLOW=img2img
 Y9000P_COMFYUI_CHECKPOINT=DreamShaper8_LCM.safetensors
-Y9000P_COMFYUI_WIDTH=768
-Y9000P_COMFYUI_HEIGHT=432
-Y9000P_COMFYUI_STEPS=8
-Y9000P_COMFYUI_CFG=1.7
-Y9000P_COMFYUI_DENOISE=0.28
+Y9000P_COMFYUI_WIDTH=1536
+Y9000P_COMFYUI_HEIGHT=864
+Y9000P_COMFYUI_STEPS=32
+Y9000P_COMFYUI_CFG=1.9
+Y9000P_COMFYUI_DENOISE=0.38
 Y9000P_COMFYUI_SAMPLER=lcm
 Y9000P_COMFYUI_SCHEDULER=sgm_uniform
 Y9000P_COMFYUI_INPUT_DIR=D:\AI\apps\ComfyUI\input
 Y9000P_COMFYUI_RESTORE_GUIDE_LINE_ART=1
+Y9000P_COMFYUI_GUIDE_CLEANUP_RADIUS=5
 ```
 
 两张 controlled img2img 芒格样张已验证：构图、留白和小黑角色明显比自由 txt2img 稳定，基本没有 logo 或复杂背景风险。随后又用用户提供的官方小黑风格截图裁剪 3 个面板，分别测试 denoise 0.28、0.36、0.44，共 9 张样张，输出到：
@@ -447,9 +448,18 @@ D:\AI\tests\official-xiaohei-style\outputs
 D:\AI\tests\official-xiaohei-style\official_xiaohei_comparison_sheet.png
 ```
 
-结论：本机 RTX 3070 + DreamShaper8 LCM 在 reference img2img 下能保住官方白底、黑线、小黑角色和构图；denoise 0.28 最接近参考，0.36 可作为轻微重绘，0.44 会明显模型化并改变角色。扩散模型会破坏中文标注，因此正式生产不能让 AI 负责最终中文。当前后端已加入 guide 线稿回填：ComfyUI 生成后默认把程序化 guide 的非白色线稿、箭头和中文覆盖回最终视频图，确保文字和图意可控。
+结论：本机 RTX 3070 + DreamShaper8 LCM 在 reference img2img 下能保住官方白底、黑线、小黑角色和构图；denoise 0.28 最接近参考，0.36 可作为轻微重绘，0.44 会明显模型化并改变角色。后续用户要求把效果从“低成本快速图”切到“30~60 秒一张的质量优先图”，因此当前默认升级为 1536x864、32 steps、cfg 1.9、denoise 0.38，单张约 30 秒。扩散模型会破坏中文标注，因此正式生产不能让 AI 负责最终中文。当前后端已加入双 guide 机制：有中文 guide 用于最终覆盖，无中文 guide 用于 ComfyUI 输入，避免模型在采样阶段生成伪中文；ComfyUI 生成后默认只把有中文 guide 与无中文 guide 的差异文字层回贴到最终图，确保中文清晰，同时保留 AI 对无文字线稿的细节增强。
 
-正式后端已按这条路线接入 `a-book-in-30-minutes\tmp\book_video_pipeline.py`：`xiaohei-ai-y9000p` 默认生成 32~64 张官方风格 guide，并通过本机 ComfyUI 精修；`Y9000P_COMFYUI_WORKFLOW=txt2img` 仅保留为旧 smoke 路线。
+正式后端已按这条路线接入 `a-book-in-30-minutes\tmp\book_video_pipeline.py`：`xiaohei-ai-y9000p` 默认生成 32~64 张官方风格 guide，并通过本机 ComfyUI 精修；`Y9000P_COMFYUI_WORKFLOW=txt2img` 仅保留为旧 smoke 路线。guide 的中文标注优先使用 Windows 楷体 `simkai.ttf`，也可通过 `XIAOHEI_KAITI_FONT` 指向自定义楷体；画法要求尽量贴近官方参考图：白底、黑色小黑角色、少用方框和直线，标签用楷体文字加手绘波浪下划线，箭头和连接线用橙/蓝/红的弯曲手绘线。
+
+芒格传真实书稿 40 张图片 smoke 已完成，输出到：
+
+```text
+D:\AI\tests\official-xiaohei-style\munger-book-smoke
+D:\AI\tests\official-xiaohei-style\munger-book-smoke\munger_book_smoke_contact_sheet.png
+```
+
+本轮验证中，40 张图片约 145 秒生成完成；最终 `visual_XX_xiaohei_ai_y9000p.png` 中文清晰、无伪中文重影，系列风格稳定，适合作为下一步视频阶段试跑输入。
 
 这条路线的定位是“本机 GPU 受控增强”，不是把构图完全交给模型。后续质量提升优先顺序：
 
@@ -457,3 +467,4 @@ D:\AI\tests\official-xiaohei-style\official_xiaohei_comparison_sheet.png
 2. 寻找更贴近小黑/手绘线稿的 SD1.5 checkpoint 或 LoRA，仍放在 `D:\AI\apps\ComfyUI\models`。
 3. 如安装 ControlNet/IPAdapter，也必须放在 D 盘，并通过 `127.0.0.1:1080` 代理下载外网资源。
 4. 每次替换模型后先跑 2~4 张样张，再跑完整 32~64 张图片阶段。
+

@@ -1,9 +1,0 @@
-﻿{
-    "version":  "0.1.102",
-    "product":  "A Book in 30 Minutes",
-    "installer":  "D:\\04_GitHub\\world-cup-issue\\release\\A Book in 30 Minutes_0.1.102_x64-setup.exe",
-    "sizeBytes":  9122214,
-    "sha256":  "60A599CF7DDF04DE431A9C9E3801AFFF127A7D56B888F94B40C6E78177CD16DC",
-    "builtAt":  "2026-07-01 07:12:09",
-    "notes":  "Restores real SQLite task refresh model and streams video pipeline logs."
-}
