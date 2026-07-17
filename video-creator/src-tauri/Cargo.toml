@@ -1,6 +1,6 @@
 [package]
 name = "video_creator"
-version = "0.1.29"
+version = "0.1.30"
 description = "视频工坊桌面工作台"
 authors = ["Coderdream"]
 license = "MIT"

@@ -43,10 +43,11 @@ impl AppData {
         let log_dir = app_local_data_dir.join("logs");
         let logger = OperationLogger::new(db_path.clone(), log_dir);
 
-        let settings = fs::read_to_string(&settings_path)
+        let mut settings = fs::read_to_string(&settings_path)
             .ok()
             .and_then(|content| serde_json::from_str::<AppSettings>(&content).ok())
             .unwrap_or_default();
+        normalize_loaded_settings(&mut settings);
 
         logger.info("app", "startup", "Video Creator started");
 
@@ -66,6 +67,24 @@ impl AppData {
         fs::write(&self.settings_path, content).map_err(|error| command_error(format!("Failed to save settings: {error}")))?;
         self.logger.info("settings", "save", "Settings saved");
         Ok(())
+    }
+}
+
+fn normalize_loaded_settings(settings: &mut AppSettings) {
+    let configured_project = PathBuf::from(settings.java_project_dir.trim());
+    if !configured_project.join("target").join("classes").exists() {
+        let fallback = PathBuf::from(r"D:\04_GitHub\video-easy-creator");
+        if fallback.join("target").join("classes").exists() {
+            settings.java_project_dir = fallback.display().to_string();
+        }
+    }
+
+    let configured_runtime = PathBuf::from(settings.java_runtime_dir.trim());
+    if !configured_runtime.exists() {
+        let fallback = PathBuf::from(r"D:\05_Green\VideoEasyCreator-Portable");
+        if fallback.exists() {
+            settings.java_runtime_dir = fallback.display().to_string();
+        }
     }
 }
 
