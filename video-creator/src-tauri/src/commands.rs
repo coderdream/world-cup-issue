@@ -5,7 +5,7 @@ use crate::models::{
     RunWorkflowResult, SkillConfigEntry, UpdateInfo, VideoCreatorDashboard,
 };
 use crate::operation_log::OperationLogger;
-use chrono::{Duration, NaiveDateTime};
+use chrono::{DateTime, Duration, Local, NaiveDateTime};
 use encoding_rs::GBK;
 use rusqlite::Connection;
 use serde_json::Value;
@@ -146,9 +146,13 @@ pub fn run_video_workflow_in_background(
     if command.is_empty() {
         return Err(command_error("Command cannot be empty."));
     }
-    let project_dir = PathBuf::from(&settings.java_project_dir);
+    let project_dir = resolve_legacy_project_dir(settings);
     if !project_dir.exists() {
         return Err(command_error(format!("Legacy Java project directory does not exist: {}", project_dir.display())));
+    }
+    let runtime_dir = resolve_legacy_runtime_dir(settings);
+    if !runtime_dir.exists() {
+        return Err(command_error(format!("Legacy Java runtime directory does not exist: {}", runtime_dir.display())));
     }
 
     let args = build_legacy_args(settings, &request);
@@ -165,7 +169,7 @@ pub fn run_video_workflow_in_background(
         .spawn(move || {
             logger.info("video", "run_workflow", &format!("Background task started: {args_text}"));
             let output = Command::new("java")
-                .current_dir(&project_dir)
+                .current_dir(&runtime_dir)
                 .arg("-Dfile.encoding=UTF-8")
                 .arg("-Dsun.stdout.encoding=UTF-8")
                 .arg("-Dsun.stderr.encoding=UTF-8")
@@ -492,25 +496,31 @@ fn read_skill_configs(settings: &AppSettings) -> Vec<SkillConfigEntry> {
 }
 
 fn build_quark_status(settings: &AppSettings) -> QuarkStatus {
-    let cookie_file = Path::new(&settings.java_project_dir).join("auth").join("cookie").join("quark").join("cookies.txt");
+    let runtime_dir = resolve_legacy_runtime_dir(settings);
+    let cookie_file = runtime_dir.join("auth").join("cookie").join("quark").join("cookies.txt");
     let updated = fs::metadata(&cookie_file)
         .and_then(|meta| meta.modified())
         .ok()
-        .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
-        .map(|duration| format!("Unix {}", duration.as_secs()))
+        .map(format_system_time)
         .unwrap_or_else(|| "-".to_string());
-    let logs = tail_lines(Path::new(LEGACY_RUNTIME_LOG), 80)
+    let runtime_log = runtime_dir.join("logs").join("app").join("runtime.log");
+    let logs = tail_lines(&runtime_log, 80)
         .into_iter()
         .filter(|line| line.to_lowercase().contains("quark"))
         .collect::<Vec<_>>();
     QuarkStatus {
-        token_valid: if cookie_file.exists() { "pending check".to_string() } else { "no".to_string() },
+        token_valid: if cookie_file.exists() { "待校验".to_string() } else { "否".to_string() },
         cookie_file: cookie_file.display().to_string(),
         cookie_updated_at: updated,
         root_item_count: 0,
-        latest_result: "Startup does not auto-resume tasks. Trigger Quark actions manually.".to_string(),
+        latest_result: "启动不自动续跑任务，请手动点击 Quark 操作。".to_string(),
         logs,
     }
+}
+
+fn format_system_time(time: SystemTime) -> String {
+    let local: DateTime<Local> = DateTime::from(time);
+    local.format("%Y-%m-%d %H:%M:%S").to_string()
 }
 
 fn build_legacy_args(settings: &AppSettings, request: &RunWorkflowRequest) -> Vec<String> {
@@ -555,15 +565,41 @@ fn legacy_classpath(project_dir: &Path) -> String {
 }
 
 fn resolve_open_target(settings: &AppSettings, target: &str) -> PathBuf {
-    let base = Path::new(&settings.java_project_dir);
+    let base = resolve_legacy_project_dir(settings);
+    let runtime = resolve_legacy_runtime_dir(settings);
     match target {
         "output" => PathBuf::from(&settings.output_dir),
         "ppt_config" => base.join("PPT_TEMPLATE.md"),
-        "quark_cookie" => base.join("auth").join("cookie").join("quark"),
-        "quark_sync" => base.join("data"),
+        "quark_cookie" => runtime.join("auth").join("cookie").join("quark"),
+        "quark_sync" => PathBuf::from(&settings.output_dir),
         "legacy_project" => base.to_path_buf(),
+        "legacy_runtime" => runtime,
         _ => PathBuf::from(target),
     }
+}
+
+fn resolve_legacy_project_dir(settings: &AppSettings) -> PathBuf {
+    let configured = PathBuf::from(settings.java_project_dir.trim());
+    if configured.join("target").join("classes").exists() {
+        return configured;
+    }
+    let fallback = PathBuf::from(r"D:\04_GitHub\video-easy-creator");
+    if fallback.join("target").join("classes").exists() {
+        return fallback;
+    }
+    configured
+}
+
+fn resolve_legacy_runtime_dir(settings: &AppSettings) -> PathBuf {
+    let configured = PathBuf::from(settings.java_runtime_dir.trim());
+    if configured.exists() {
+        return configured;
+    }
+    let fallback = PathBuf::from(r"D:\05_Green\VideoEasyCreator-Portable");
+    if fallback.exists() {
+        return fallback;
+    }
+    resolve_legacy_project_dir(settings)
 }
 
 fn default_skills() -> Vec<SkillConfigEntry> {

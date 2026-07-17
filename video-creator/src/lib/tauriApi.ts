@@ -173,7 +173,7 @@ function buildLocalDashboard(settings: AppSettings): VideoCreatorDashboard {
     runtimeLogs: [],
     quark: {
       tokenValid: "待校验",
-      cookieFile: "D:\\04_GitHub\\world-cup-issue\\video-creator\\auth\\cookie\\quark\\cookies.txt",
+      cookieFile: "D:\\05_Green\\VideoEasyCreator-Portable\\auth\\cookie\\quark\\cookies.txt",
       cookieUpdatedAt: "-",
       rootItemCount: 0,
       latestResult: "启动后不会自动续跑任务，请手动校验。",

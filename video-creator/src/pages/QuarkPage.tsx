@@ -7,16 +7,20 @@ export function QuarkPage() {
   const settings = useAppStore((state) => state.settings);
   const [years, setYears] = useState(settings.quarkYears);
   const [message, setMessage] = useState("");
+  const [busyCommand, setBusyCommand] = useState<string | null>(null);
   const { dashboard, refresh } = useDashboard();
 
-  async function run(command: string) {
-    setMessage(`正在执行 ${command}...`);
+  async function run(command: string, label: string, useInputYears = false) {
+    setBusyCommand(command);
+    setMessage(`正在执行：${label}`);
     try {
-      const result = await frameworkApi.runVideoWorkflow({ command, years });
+      const result = await frameworkApi.runVideoWorkflow({ command, years: useInputYears ? years : undefined });
       setMessage(result.message);
       await refresh();
     } catch (err) {
       setMessage(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusyCommand(null);
     }
   }
 
@@ -37,7 +41,8 @@ export function QuarkPage() {
           <h2>同步操作</h2>
           <label className="form-row"><span>同步年份</span><input value={years} onChange={(event) => setYears(event.target.value)} /></label>
           <div className="button-row">
-            <button type="button" onClick={() => void run("daily-sync")}>同步输入年份</button>
+            <button type="button" disabled={busyCommand !== null} onClick={() => void run("daily-sync", "同步默认年份")}>同步默认年份</button>
+            <button type="button" disabled={busyCommand !== null} onClick={() => void run("daily-sync", "同步输入年份", true)}>同步输入年份</button>
             <button type="button" onClick={() => void frameworkApi.openVideoCreatorPath("quark_cookie")}>打开 Cookie 目录</button>
             <button type="button" onClick={() => void frameworkApi.openVideoCreatorPath("quark_sync")}>打开同步目录</button>
           </div>
@@ -51,4 +56,3 @@ export function QuarkPage() {
     </section>
   );
 }
-

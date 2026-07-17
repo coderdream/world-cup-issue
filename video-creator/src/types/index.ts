@@ -7,6 +7,7 @@ export interface AppSettings {
   apiBaseUrl: string;
   apiKey: string;
   javaProjectDir: string;
+  javaRuntimeDir: string;
   outputDir: string;
   jianyingDraftDir: string;
   defaultEpisode: string;

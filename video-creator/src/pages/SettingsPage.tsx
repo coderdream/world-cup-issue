@@ -41,8 +41,12 @@ export function SettingsPage() {
           </label>
         </div>
         <label className="field">
-          <span>旧 Java 项目目录</span>
+          <span>旧 Java 源码目录</span>
           <input value={settings.javaProjectDir} onChange={(event) => void updateSettings({ javaProjectDir: event.target.value })} />
+        </label>
+        <label className="field">
+          <span>旧 Java 运行目录</span>
+          <input value={settings.javaRuntimeDir} onChange={(event) => void updateSettings({ javaRuntimeDir: event.target.value })} />
         </label>
         <label className="field">
           <span>剪映固定草稿目录</span>
