@@ -9,7 +9,7 @@ export function AboutPage() {
         <dl className="about-list">
           <dt>版本</dt><dd>{APP_VERSION}</dd>
           <dt>标识</dt><dd>{APP_IDENTIFIER}</dd>
-          <dt>能力层</dt><dd>D:\04_GitHub\video-easy-creator</dd>
+          <dt>能力层</dt><dd>D:\04_GitHub\world-cup-issue\video-creator</dd>
           <dt>启动策略</dt><dd>只展示历史状态，不自动续跑未完成任务。</dd>
         </dl>
       </div>

@@ -165,7 +165,7 @@ function buildLocalDashboard(settings: AppSettings): VideoCreatorDashboard {
     runningSteps: 0,
     summary: "本地预览模式，等待手动执行任务。",
     vpnStatus: "预览模式",
-    runtimeLogPath: "D:\\04_GitHub\\video-easy-creator\\logs\\app\\runtime.log",
+    runtimeLogPath: "D:\\04_GitHub\\world-cup-issue\\video-creator\\logs\\app\\runtime.log",
     recentHistory: [],
     steps,
     skills,
@@ -173,7 +173,7 @@ function buildLocalDashboard(settings: AppSettings): VideoCreatorDashboard {
     runtimeLogs: [],
     quark: {
       tokenValid: "待校验",
-      cookieFile: "D:\\04_GitHub\\video-easy-creator\\auth\\cookie\\quark\\cookies.txt",
+      cookieFile: "D:\\04_GitHub\\world-cup-issue\\video-creator\\auth\\cookie\\quark\\cookies.txt",
       cookieUpdatedAt: "-",
       rootItemCount: 0,
       latestResult: "启动后不会自动续跑任务，请手动校验。",

@@ -26,7 +26,7 @@ impl Default for AppSettings {
             notifications_enabled: true,
             api_base_url: "https://api.example.com".to_string(),
             api_key: String::new(),
-            java_project_dir: r"D:\04_GitHub\video-easy-creator".to_string(),
+            java_project_dir: r"D:\04_GitHub\world-cup-issue\video-creator".to_string(),
             output_dir: r"D:\14_LearnEnglish\6MinuteEnglish".to_string(),
             jianying_draft_dir: r"D:\03_Software\JianyingPro Drafts\六分钟英语_2606".to_string(),
             default_episode: "260625".to_string(),

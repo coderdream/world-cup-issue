@@ -6,7 +6,7 @@ export const defaultSettings: AppSettings = {
   notificationsEnabled: true,
   apiBaseUrl: "https://api.example.com",
   apiKey: "",
-  javaProjectDir: "D:\\04_GitHub\\video-easy-creator",
+  javaProjectDir: "D:\\04_GitHub\\world-cup-issue\\video-creator",
   outputDir: "D:\\14_LearnEnglish\\6MinuteEnglish",
   jianyingDraftDir: "D:\\03_Software\\JianyingPro Drafts\\六分钟英语_2606",
   defaultEpisode: "260625",
