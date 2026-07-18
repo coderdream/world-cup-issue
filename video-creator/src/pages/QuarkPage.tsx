@@ -121,6 +121,7 @@ export function QuarkPage() {
         </div>
         <div className="studio-panel">
           <h2>同步操作</h2>
+          <p aria-live="polite" className="quark-feedback">{message || "请选择一项 Quark 操作。"}</p>
           <label className="quark-year-row"><span>同步年份</span><input value={years} onChange={(event) => setYears(event.target.value)} /></label>
           <div className="quark-actions">
             <button type="button" disabled={busyCommand !== null} onClick={() => void run("quark-check", "校验 Token")}>校验 Token</button>
@@ -137,7 +138,6 @@ export function QuarkPage() {
             <li>打开 Quark 浏览器后，请完成登录，再点击获取新 Token。</li>
             <li>同步默认年份使用配置中的年份；同步输入年份使用当前输入框。</li>
           </ol>
-          {message && <p className="run-message">{message}</p>}
         </div>
       </div>
 

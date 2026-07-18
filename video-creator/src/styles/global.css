@@ -379,6 +379,21 @@ button {
   font-weight: 700;
 }
 
+.quark-page .quark-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.quark-page .studio-panel {
+  min-width: 0;
+}
+
+.quark-feedback {
+  min-height: 20px;
+  margin: -6px 0 12px;
+  color: var(--accent);
+  font-size: 13px;
+}
+
 .quark-year-row input {
   min-width: 0;
 }
@@ -1178,7 +1193,6 @@ tr:hover td {
     margin-left: 0;
   }
 
-  .quark-actions {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+  .quark-page .quark-grid,
+  .quark-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

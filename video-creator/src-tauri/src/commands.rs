@@ -201,6 +201,12 @@ pub fn save_skill_configs(data: State<'_, AppData>, skills: Vec<SkillConfigEntry
 
 #[tauri::command]
 pub fn run_video_workflow(data: State<'_, AppData>, request: RunWorkflowRequest) -> Result<RunWorkflowResult, CommandError> {
+    if is_quark_action(request.command.trim()) {
+        append_quark_session_log(
+            &data.quark_session_log_path,
+            &format!("收到 {} 请求，正在提交后台任务。", quark_action_title(request.command.trim())),
+        );
+    }
     let settings = data.settings.lock().map_err(lock_error)?.clone();
     run_video_workflow_in_background(
         &settings,
