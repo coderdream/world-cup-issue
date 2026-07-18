@@ -1760,4 +1760,12 @@ The Text pipeline button now releases the frontend run lock after success, failu
 
 This keeps the Stop Task button hidden once the Text stage has completed and restores Audio/Subtitle/Image/Video/Publish button availability for the selected task.
 
+## 2026-07-18 0.1.165 Text Content Gate and Local Convergence
+
+The Text stage now validates usable正文 content after EPUB parsing. Publisher, date, ISBN, and copyright-page fragments are excluded from this count; sources below 200 Chinese content characters fail at A-01 with a clear message instead of spending an AI request inventing a full narration from metadata.
+
+Narration repair now uses a deterministic local trim when the result is only slightly above the configured maximum (within 360 Chinese characters). This avoids sending the complete narration back to the model repeatedly for small length differences. Larger deviations still use the existing AI repair path and remain subject to the configured range check.
+
+Subtitle segmentation remains local by default. The expensive whole-narration AI subtitle rewrite is disabled unless the process environment explicitly sets `ABOOK_ENABLE_AI_SUBTITLE_REWRITE=1` or `true`; this keeps normal Text generation predictable and fast while retaining an opt-in fallback for unusual source rhythm.
+
 

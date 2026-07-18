@@ -55,6 +55,8 @@ const NARRATION_TARGET_MAX_UNIT_HAN: usize = 12;
 const SUBTITLE_MAX_CHARS: usize = 18;
 const SUBTITLE_SOFT_CHARS: usize = 10;
 const SUBTITLE_MIN_TAIL_CHARS: usize = 6;
+const SOURCE_MIN_USABLE_HAN_CHARS: usize = 200;
+const NARRATION_LOCAL_TRIM_TOLERANCE: usize = 360;
 
 const SPEECH_VOICE_SEEDS: &[(&str, &str, &str, &str, &str, &str, &str)] = &[
     ("zh-CN", "中文（普通话，简体）", "Neural", "zh-CN-XiaoxiaoNeural", "Female", "assistant, chat, customerservice, newscast, affectionate, angry, calm, cheerful, disgruntled, fearful, gentle, lyrical, sad, serious", "Girl, YoungAdult"),
@@ -355,7 +357,9 @@ pub async fn run_e2e_materials_cli(epub_path: &str) -> Result<(), CommandError> 
     }
     let mut subtitles = normalize_ai_subtitles(&payload.subtitles, &payload.narration)
         .unwrap_or_else(|| split_subtitles(&payload.narration));
-    if subtitles_need_ai_rewrite(&subtitles, &payload.narration) {
+    if subtitles_need_ai_rewrite(&subtitles, &payload.narration)
+        && ai_subtitle_rewrite_enabled()
+    {
         if let Some(rewritten) = rewrite_subtitles_with_ai(&settings, &payload.narration, &subtitles).await {
             subtitles = rewritten;
         }
@@ -924,6 +928,35 @@ pub async fn generate_book_materials(
             )));
         }
     };
+    let usable_source_chars = usable_source_han_chars(&book);
+    if usable_source_chars < SOURCE_MIN_USABLE_HAN_CHARS {
+        let detail = format!(
+            "usable_source_han_chars={} minimum={} chapters={}",
+            usable_source_chars,
+            SOURCE_MIN_USABLE_HAN_CHARS,
+            book.chapters.len()
+        );
+        data.logger.trace_error(
+            "materials",
+            "source.content_insufficient",
+            "Source book has insufficient readable正文 content.",
+            &detail,
+            &trace_id,
+        );
+        upsert_material_task_step_db(
+            &data.db_path,
+            &trace_id,
+            request.epub_path.trim(),
+            "A-01",
+            "文本：解析书籍",
+            "failed",
+            25,
+            "正文内容不足，疑似只有版权页，未继续调用 AI。",
+        );
+        return Err(command_error(
+            "源文件没有足够的正文内容，疑似只有版权页，无法生成可靠旁白。",
+        ));
+    }
     let prompt = build_book_materials_prompt(&book, &request);
     update_material_task_progress_db(
         &data.db_path,
@@ -1167,6 +1200,26 @@ pub async fn generate_book_materials(
             );
             break;
         }
+        if narration_chars > max_chars
+            && narration_chars <= max_chars.saturating_add(NARRATION_LOCAL_TRIM_TOLERANCE)
+        {
+            payload.narration = trim_narration_to_han_chars(&payload.narration, max_chars);
+            payload.narration = sanitize_generated_narration(&payload.narration);
+            data.logger.trace_info(
+                "materials",
+                "ai.repair.local_trim",
+                "Narration was slightly over target and was trimmed locally.",
+                format!(
+                    "before_han_chars={} after_han_chars={} target={}..{}",
+                    narration_chars,
+                    count_han_chars(&payload.narration),
+                    min_chars,
+                    max_chars
+                ),
+                &trace_id,
+            );
+            continue;
+        }
         data.logger.warn(
             "materials",
             "ai.repair.required",
@@ -1350,7 +1403,9 @@ pub async fn generate_book_materials(
         "Splitting narration into subtitles.",
     );
     let mut subtitles = split_subtitles(&payload.narration);
-    if subtitles_need_ai_rewrite(&subtitles, &payload.narration) {
+    if subtitles_need_ai_rewrite(&subtitles, &payload.narration)
+        && ai_subtitle_rewrite_enabled()
+    {
         if let Some(rewritten) = rewrite_subtitles_with_ai(&settings, &payload.narration, &subtitles).await {
             subtitles = rewritten;
         }
@@ -6960,6 +7015,33 @@ fn sanitize_source_excerpt_text(value: &str) -> String {
         .join(" ")
 }
 
+fn usable_source_han_chars(book: &EpubBook) -> usize {
+    book.chapters
+        .iter()
+        .map(|chapter| count_han_chars(&sanitize_source_excerpt_text(&chapter.text)))
+        .sum()
+}
+
+fn trim_narration_to_han_chars(value: &str, max_han_chars: usize) -> String {
+    let mut han_chars = 0usize;
+    let mut end = 0usize;
+    let mut last_sentence_end = None;
+    for (index, ch) in value.char_indices() {
+        if is_han_char(ch) {
+            if han_chars >= max_han_chars {
+                break;
+            }
+            han_chars += 1;
+        }
+        end = index + ch.len_utf8();
+        if matches!(ch, '。' | '？' | '?' | '！' | '!' | '；' | ';') {
+            last_sentence_end = Some(end);
+        }
+    }
+    let end = last_sentence_end.unwrap_or(end).min(value.len());
+    value[..end].trim().to_string()
+}
+
 fn sanitize_generated_narration(value: &str) -> String {
     let mut seen = std::collections::HashSet::new();
     split_narration_units(value)
@@ -7376,6 +7458,12 @@ fn subtitles_need_ai_rewrite(lines: &[String], narration: &str) -> bool {
         return true;
     }
     lines.iter().any(|line| !subtitle_line_format_ok(line))
+}
+
+fn ai_subtitle_rewrite_enabled() -> bool {
+    std::env::var("ABOOK_ENABLE_AI_SUBTITLE_REWRITE")
+        .map(|value| value.trim() == "1" || value.trim().eq_ignore_ascii_case("true"))
+        .unwrap_or(false)
 }
 
 async fn rewrite_subtitles_with_ai(
