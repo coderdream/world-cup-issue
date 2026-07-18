@@ -127,6 +127,14 @@ export function SettingsPage() {
             />
           </label>
         </div>
+        <label className="field">
+          <span>Speech proxy URL</span>
+          <input value={settings.speechProfile.proxyUrl} onChange={(event) => void updateSpeechProfile({ proxyUrl: event.target.value })} placeholder="http://127.0.0.1:1080" />
+        </label>
+        <label className="checkbox-row">
+          <input type="checkbox" checked={settings.speechProfile.proxyEnabled} onChange={(event) => void updateSpeechProfile({ proxyEnabled: event.target.checked })} />
+          <span>Use proxy for Azure Speech requests</span>
+        </label>
         <p className="settings-help">菜单字体作用于左侧导航；内容字体作用于页面正文、表格和配置项。默认菜单 13px、内容 12px。</p>
         <div className="field-grid">
           <label className="field">
@@ -457,7 +465,7 @@ export function SettingsPage() {
           </label>
           <label className="field">
             <span>音调</span>
-            <input value={settings.speechProfile.pitch} onChange={(event) => void updateSpeechProfile({ pitch: event.target.value })} />
+          <input value={settings.speechProfile.pitch} onChange={(event) => void updateSpeechProfile({ pitch: event.target.value })} />
           </label>
         </div>
         <label className="field">

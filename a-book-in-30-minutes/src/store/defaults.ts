@@ -48,7 +48,9 @@ export const defaultSettings: AppSettings = {
     voiceName: "zh-CN-YunxiNeural",
     outputFormat: "audio-24khz-160kbitrate-mono-mp3",
     rate: "0%",
-    pitch: "+0Hz"
+    pitch: "+0Hz",
+    proxyEnabled: true,
+    proxyUrl: "http://127.0.0.1:1080"
   },
   toolProfile: {
     ffmpegPath: "D:\\03_Dev\\ffmpeg\\bin\\ffmpeg.exe",

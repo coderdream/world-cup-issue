@@ -612,6 +612,8 @@ pub struct SpeechProfile {
     pub output_format: String,
     pub rate: String,
     pub pitch: String,
+    pub proxy_enabled: bool,
+    pub proxy_url: String,
 }
 
 impl Default for SpeechProfile {
@@ -626,6 +628,8 @@ impl Default for SpeechProfile {
             output_format: "audio-24khz-160kbitrate-mono-mp3".to_string(),
             rate: "0%".to_string(),
             pitch: "+0Hz".to_string(),
+            proxy_enabled: true,
+            proxy_url: "http://127.0.0.1:1080".to_string(),
         }
     }
 }

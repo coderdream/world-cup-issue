@@ -4674,8 +4674,14 @@ async fn synthesize_speech_to_file(
     let url = format!("https://{region}.tts.speech.microsoft.com/cognitiveservices/v1");
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(SPEECH_REQUEST_TIMEOUT_SECONDS))
-        .connect_timeout(Duration::from_secs(20))
-        .build()
+        .connect_timeout(Duration::from_secs(20));
+    let client = if profile.proxy_enabled && !profile.proxy_url.trim().is_empty() {
+        let proxy = reqwest::Proxy::all(profile.proxy_url.trim())
+            .map_err(|error| command_error(format!("Speech proxy configuration is invalid: {error}")))?;
+        client.proxy(proxy).build()
+    } else {
+        client.build()
+    }
         .map_err(|error| command_error(format!("Build speech HTTP client failed: {error}")))?;
     let response = client
         .post(url)

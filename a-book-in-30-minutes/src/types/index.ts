@@ -126,6 +126,8 @@ export interface SpeechProfile {
   outputFormat: string;
   rate: string;
   pitch: string;
+  proxyEnabled: boolean;
+  proxyUrl: string;
 }
 
 export interface ToolProfile {

@@ -1772,4 +1772,8 @@ Subtitle segmentation remains local by default. The expensive whole-narration AI
 
 The Tool Paths section now uses the Y9000P machine's verified ffmpeg executable at `D:/03_Dev/ffmpeg/bin/ffmpeg.exe` by default. The Rust persisted-settings sanitizer migrates an existing empty `ffmpegPath` to this path, while the frontend default keeps fresh local settings consistent. The Settings page explains the default and retains the file picker and explicit ffmpeg test button.
 
+## 2026-07-18 0.1.167 Azure Speech Proxy
+
+Azure Speech synthesis now uses Speech Profile proxy settings for preview, test, and audio chunk requests. Existing settings files receive compatible defaults `proxyEnabled=true` and `proxyUrl=http://127.0.0.1:1080`; the Settings page exposes the URL and toggle so deployments without the local proxy can disable it.
+
 
