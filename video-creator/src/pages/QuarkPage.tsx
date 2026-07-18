@@ -121,13 +121,22 @@ export function QuarkPage() {
         </div>
         <div className="studio-panel">
           <h2>同步操作</h2>
-          <label className="form-row"><span>同步年份</span><input value={years} onChange={(event) => setYears(event.target.value)} /></label>
-          <div className="button-row">
+          <label className="quark-year-row"><span>同步年份</span><input value={years} onChange={(event) => setYears(event.target.value)} /></label>
+          <div className="quark-actions">
+            <button type="button" disabled={busyCommand !== null} onClick={() => void run("quark-check", "校验 Token")}>校验 Token</button>
+            <button className="primary-action" type="button" disabled={busyCommand !== null} onClick={() => void run("quark-refresh", "获取新 Token")}>获取新 Token</button>
+            <button type="button" disabled={busyCommand !== null} onClick={() => void run("quark-browser", "打开 Quark 浏览器")}>打开 Quark 浏览器</button>
             <button type="button" disabled={busyCommand !== null} onClick={() => void run("daily-sync", "同步默认年份")}>同步默认年份</button>
-            <button type="button" disabled={busyCommand !== null} onClick={() => void run("daily-sync", "同步输入年份", true)}>同步输入年份</button>
+            <button className="primary-action" type="button" disabled={busyCommand !== null} onClick={() => void run("daily-sync", "同步输入年份", true)}>同步输入年份</button>
             <button type="button" onClick={() => void frameworkApi.openVideoCreatorPath("quark_cookie")}>打开 Cookie 目录</button>
             <button type="button" onClick={() => void frameworkApi.openVideoCreatorPath("quark_sync")}>打开同步目录</button>
           </div>
+          <ol className="quark-help">
+            <li>校验 Token 会读取 Cookie 并请求 Quark 根目录。</li>
+            <li>获取新 Token 会从 Quark 专用浏览器导出 Cookie。</li>
+            <li>打开 Quark 浏览器后，请完成登录，再点击获取新 Token。</li>
+            <li>同步默认年份使用配置中的年份；同步输入年份使用当前输入框。</li>
+          </ol>
           {message && <p className="run-message">{message}</p>}
         </div>
       </div>

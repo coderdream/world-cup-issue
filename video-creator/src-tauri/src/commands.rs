@@ -10,6 +10,7 @@ use encoding_rs::GBK;
 use rusqlite::Connection;
 use serde_json::Value;
 use std::fs;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::{Arc, Mutex};
@@ -27,6 +28,7 @@ pub struct AppData {
     workflow: Arc<Mutex<Option<ActiveWorkflow>>>,
     workflow_state_path: PathBuf,
     quark_log_start_offset: u64,
+    quark_session_log_path: PathBuf,
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
@@ -51,6 +53,9 @@ impl AppData {
         let db_path = app_data_dir.join("app.db");
         let log_dir = app_local_data_dir.join("logs");
         let workflow_state_path = app_local_data_dir.join("active-workflow.json");
+        let quark_session_log_path = log_dir.join("quark-session.log");
+        let _ = fs::create_dir_all(&log_dir);
+        let _ = fs::write(&quark_session_log_path, "");
         let logger = OperationLogger::new(db_path.clone(), log_dir);
 
         let mut settings = fs::read_to_string(&settings_path)
@@ -72,6 +77,7 @@ impl AppData {
             workflow: Arc::new(Mutex::new(read_active_workflow(&workflow_state_path))),
             workflow_state_path,
             quark_log_start_offset,
+            quark_session_log_path,
         }
     }
 
@@ -175,7 +181,7 @@ pub fn check_update_mock(data: State<'_, AppData>) -> UpdateInfo {
 pub fn get_video_creator_dashboard(data: State<'_, AppData>) -> Result<VideoCreatorDashboard, CommandError> {
     let settings = data.settings.lock().map_err(lock_error)?.clone();
     data.logger.info("video", "dashboard", "Read dashboard");
-    Ok(build_dashboard(&settings, data.quark_log_start_offset))
+    Ok(build_dashboard(&settings, data.quark_log_start_offset, &data.quark_session_log_path))
 }
 
 #[tauri::command]
@@ -201,6 +207,7 @@ pub fn run_video_workflow(data: State<'_, AppData>, request: RunWorkflowRequest)
         &data.logger,
         &data.workflow,
         &data.workflow_state_path,
+        &data.quark_session_log_path,
         request,
     )
 }
@@ -210,6 +217,7 @@ fn run_video_workflow_in_background(
     logger: &OperationLogger,
     workflow: &Arc<Mutex<Option<ActiveWorkflow>>>,
     workflow_state_path: &Path,
+    quark_session_log_path: &Path,
     request: RunWorkflowRequest,
 ) -> Result<RunWorkflowResult, CommandError> {
     let command = request.command.trim();
@@ -233,6 +241,8 @@ fn run_video_workflow_in_background(
     let args_text = args.join(" ");
     let sync_episode = request.episode.clone();
     let workflow_state_path = workflow_state_path.to_path_buf();
+    let quark_session_log_path = quark_session_log_path.to_path_buf();
+    let is_quark_action = is_quark_action(command);
     let mut active_workflow = workflow.lock().map_err(lock_error)?;
 
     if let Some(previous) = active_workflow.take() {
@@ -247,19 +257,46 @@ fn run_video_workflow_in_background(
         terminate_process_tree(previous.pid);
     }
 
-    let mut child = Command::new("java")
-        .current_dir(&runtime_dir)
-        .arg("-Dfile.encoding=UTF-8")
-        .arg("-Dsun.stdout.encoding=UTF-8")
-        .arg("-Dsun.stderr.encoding=UTF-8")
-        .arg("-cp")
-        .arg(classpath)
-        .arg("com.coderdream.app.VideoEasyCreatorLauncher")
-        .args(&args)
+    let jshell_script = quark_jshell_script(command);
+    let powershell_script = quark_powershell_script(command, &runtime_dir);
+    let mut process = if let Some(script) = powershell_script.as_ref() {
+        let mut command = Command::new("powershell");
+        command
+            .current_dir(&runtime_dir)
+            .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-File"])
+            .arg(script);
+        command
+    } else if jshell_script.is_some() {
+        let mut command = Command::new("jshell");
+        command
+            .current_dir(&runtime_dir)
+            .args(["--class-path", &classpath, "-q"])
+            .stdin(std::process::Stdio::piped());
+        command
+    } else {
+        let mut command = Command::new("java");
+        command
+            .current_dir(&runtime_dir)
+            .arg("-Dfile.encoding=UTF-8")
+            .arg("-Dsun.stdout.encoding=UTF-8")
+            .arg("-Dsun.stderr.encoding=UTF-8")
+            .arg("-cp")
+            .arg(classpath)
+            .arg("com.coderdream.app.VideoEasyCreatorLauncher")
+            .args(&args);
+        command
+    };
+    let mut child = process
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
         .spawn()
         .map_err(|error| command_error(format!("Failed to start background task {command_name}: {error}")))?;
+    if let Some(script) = jshell_script {
+        if let Some(stdin) = child.stdin.as_mut() {
+            stdin.write_all(script.as_bytes())
+                .map_err(|error| command_error(format!("Failed to send Quark command to JShell: {error}")))?;
+        }
+    }
     let pid = child.id();
     let active = ActiveWorkflow {
         pid,
@@ -272,6 +309,9 @@ fn run_video_workflow_in_background(
     }
     *active_workflow = Some(active);
     drop(active_workflow);
+    if is_quark_action {
+        append_quark_session_log(&quark_session_log_path, &format!("==== {} 已启动 (PID {}) ====", quark_action_title(&command_name), pid));
+    }
     logger.info("video", "run_workflow", &format!("Background task submitted: {args_text}; pid={pid}"));
 
     let workflow = Arc::clone(workflow);
@@ -296,6 +336,9 @@ fn run_video_workflow_in_background(
                             format!("pid={pid}; command={command_name}"),
                             &command_name,
                         );
+                        if is_quark_action {
+                            append_quark_session_log(&quark_session_log_path, &format!("{} 已被新任务替换。", quark_action_title(&command_name)));
+                        }
                     } else if output.status.success() {
                         logger.info("video", "run_workflow", &format!("Background task {command_name} completed."));
                         if command_name == "prepare-sixminutes" {
@@ -309,12 +352,19 @@ fn run_video_workflow_in_background(
                         if !stdout.trim().is_empty() {
                             logger.trace_info("video", "run_workflow_stdout", "Background task stdout", stdout.trim(), &command_name);
                         }
+                        if is_quark_action {
+                            append_quark_session_log(&quark_session_log_path, &format!("{} 执行完成。", quark_action_title(&command_name)));
+                            append_quark_session_log(&quark_session_log_path, stdout.trim());
+                        }
                     } else {
                         let message = format!(
                             "Background task {command_name} failed with exit code {}.",
                             exit_code.map_or_else(|| "unknown".to_string(), |value| value.to_string())
                         );
                         logger.error("video", "run_workflow", &message, stderr.trim());
+                        if is_quark_action {
+                            append_quark_session_log(&quark_session_log_path, &format!("{} 执行失败: {}", quark_action_title(&command_name), stderr.trim()));
+                        }
                     }
                 }
                 Err(error) => {
@@ -465,7 +515,7 @@ pub fn get_operation_logs(data: State<'_, AppData>, request: GetOperationLogsReq
     Ok(GetOperationLogsResult { entries })
 }
 
-fn build_dashboard(settings: &AppSettings, quark_log_start_offset: u64) -> VideoCreatorDashboard {
+fn build_dashboard(settings: &AppSettings, quark_log_start_offset: u64, quark_session_log_path: &Path) -> VideoCreatorDashboard {
     let history = read_history_entries();
     let latest = history.first().cloned();
     let steps = read_step_entries(latest.as_ref().map(|item| item.id));
@@ -473,7 +523,7 @@ fn build_dashboard(settings: &AppSettings, quark_log_start_offset: u64) -> Video
     let runtime_log_path = legacy_runtime_log_path(settings);
     let runtime_logs = tail_lines(&runtime_log_path, 260);
     let skills = read_skill_configs(settings);
-    let quark = build_quark_status(settings, quark_log_start_offset);
+    let quark = build_quark_status(settings, quark_log_start_offset, quark_session_log_path);
     let successful_steps = steps.iter().filter(|item| item.status.eq_ignore_ascii_case("SUCCESS")).count();
     let failed_steps = steps.iter().filter(|item| item.status.eq_ignore_ascii_case("FAILED")).count();
     let running_steps = steps.iter().filter(|item| item.status.eq_ignore_ascii_case("RUNNING")).count();
@@ -614,7 +664,7 @@ fn read_skill_configs(settings: &AppSettings) -> Vec<SkillConfigEntry> {
     default_skills()
 }
 
-fn build_quark_status(settings: &AppSettings, start_offset: u64) -> QuarkStatus {
+fn build_quark_status(settings: &AppSettings, start_offset: u64, session_log_path: &Path) -> QuarkStatus {
     let runtime_dir = resolve_legacy_runtime_dir(settings);
     let cookie_file = runtime_dir.join("auth").join("cookie").join("quark").join("cookies.txt");
     let updated = fs::metadata(&cookie_file)
@@ -623,7 +673,8 @@ fn build_quark_status(settings: &AppSettings, start_offset: u64) -> QuarkStatus 
         .map(format_system_time)
         .unwrap_or_else(|| "-".to_string());
     let runtime_log = legacy_runtime_log_path(settings);
-    let logs = lines_after_offset(&runtime_log, start_offset, 600);
+    let mut logs = tail_lines(session_log_path, 160);
+    logs.extend(lines_after_offset(&runtime_log, start_offset, 440));
     let latest_result = if logs.is_empty() {
         "本次启动后尚未发现 Quark 同步日志。".to_string()
     } else {
@@ -852,6 +903,50 @@ fn lines_after_offset(path: &Path, start_offset: u64, limit: usize) -> Vec<Strin
         lines.drain(..lines.len() - limit);
     }
     lines
+}
+
+fn is_quark_action(command: &str) -> bool {
+    matches!(command, "daily-sync" | "quark-check" | "quark-refresh" | "quark-browser")
+}
+
+fn quark_action_title(command: &str) -> &'static str {
+    match command {
+        "quark-check" => "校验 Token",
+        "quark-refresh" => "获取新 Token",
+        "quark-browser" => "打开 Quark 浏览器",
+        "daily-sync" => "Quark 同步",
+        _ => "Quark 操作",
+    }
+}
+
+fn quark_jshell_script(command: &str) -> Option<String> {
+    let expression = match command {
+        "quark-check" => "service.checkTokenStatus(System.out::println)",
+        _ => return None,
+    };
+    Some(format!(
+        "import com.coderdream.util.network.QuarkSyncService;\nvar service = new QuarkSyncService();\nvar result = {expression};\nSystem.out.println(result);\n/exit\n"
+    ))
+}
+
+fn quark_powershell_script(command: &str, runtime_dir: &Path) -> Option<PathBuf> {
+    let name = match command {
+        "quark-refresh" => "export-quark-cookies-dedicated.ps1",
+        "quark-browser" => "start-quark-cookie-browser.ps1",
+        _ => return None,
+    };
+    Some(runtime_dir.join("tools").join(name))
+}
+
+fn append_quark_session_log(path: &Path, text: &str) {
+    if text.trim().is_empty() {
+        return;
+    }
+    let timestamp = Local::now().format("%Y-%m-%d %H:%M:%S");
+    let lines = text.lines().map(|line| format!("{timestamp} {line}\n")).collect::<String>();
+    if let Ok(mut file) = fs::OpenOptions::new().create(true).append(true).open(path) {
+        let _ = file.write_all(lines.as_bytes());
+    }
 }
 
 fn normalize_status(status: &str) -> String {
