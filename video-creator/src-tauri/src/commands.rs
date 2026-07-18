@@ -26,6 +26,7 @@ pub struct AppData {
     logger: OperationLogger,
     workflow: Arc<Mutex<Option<ActiveWorkflow>>>,
     workflow_state_path: PathBuf,
+    quark_log_start_offset: u64,
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
@@ -57,6 +58,9 @@ impl AppData {
             .and_then(|content| serde_json::from_str::<AppSettings>(&content).ok())
             .unwrap_or_default();
         normalize_loaded_settings(&mut settings);
+        let quark_log_start_offset = fs::metadata(legacy_runtime_log_path(&settings))
+            .map(|meta| meta.len())
+            .unwrap_or_default();
 
         logger.info("app", "startup", "Video Creator started");
 
@@ -67,6 +71,7 @@ impl AppData {
             logger,
             workflow: Arc::new(Mutex::new(read_active_workflow(&workflow_state_path))),
             workflow_state_path,
+            quark_log_start_offset,
         }
     }
 
@@ -170,7 +175,7 @@ pub fn check_update_mock(data: State<'_, AppData>) -> UpdateInfo {
 pub fn get_video_creator_dashboard(data: State<'_, AppData>) -> Result<VideoCreatorDashboard, CommandError> {
     let settings = data.settings.lock().map_err(lock_error)?.clone();
     data.logger.info("video", "dashboard", "Read dashboard");
-    Ok(build_dashboard(&settings))
+    Ok(build_dashboard(&settings, data.quark_log_start_offset))
 }
 
 #[tauri::command]
@@ -460,15 +465,15 @@ pub fn get_operation_logs(data: State<'_, AppData>, request: GetOperationLogsReq
     Ok(GetOperationLogsResult { entries })
 }
 
-fn build_dashboard(settings: &AppSettings) -> VideoCreatorDashboard {
+fn build_dashboard(settings: &AppSettings, quark_log_start_offset: u64) -> VideoCreatorDashboard {
     let history = read_history_entries();
     let latest = history.first().cloned();
     let steps = read_step_entries(latest.as_ref().map(|item| item.id));
     let event_logs = read_event_entries(latest.as_ref().map(|item| item.id));
-    let runtime_log_path = resolve_legacy_runtime_dir(settings).join("logs").join("app").join("runtime.log");
+    let runtime_log_path = legacy_runtime_log_path(settings);
     let runtime_logs = tail_lines(&runtime_log_path, 260);
     let skills = read_skill_configs(settings);
-    let quark = build_quark_status(settings);
+    let quark = build_quark_status(settings, quark_log_start_offset);
     let successful_steps = steps.iter().filter(|item| item.status.eq_ignore_ascii_case("SUCCESS")).count();
     let failed_steps = steps.iter().filter(|item| item.status.eq_ignore_ascii_case("FAILED")).count();
     let running_steps = steps.iter().filter(|item| item.status.eq_ignore_ascii_case("RUNNING")).count();
@@ -609,7 +614,7 @@ fn read_skill_configs(settings: &AppSettings) -> Vec<SkillConfigEntry> {
     default_skills()
 }
 
-fn build_quark_status(settings: &AppSettings) -> QuarkStatus {
+fn build_quark_status(settings: &AppSettings, start_offset: u64) -> QuarkStatus {
     let runtime_dir = resolve_legacy_runtime_dir(settings);
     let cookie_file = runtime_dir.join("auth").join("cookie").join("quark").join("cookies.txt");
     let updated = fs::metadata(&cookie_file)
@@ -617,12 +622,12 @@ fn build_quark_status(settings: &AppSettings) -> QuarkStatus {
         .ok()
         .map(format_system_time)
         .unwrap_or_else(|| "-".to_string());
-    let runtime_log = runtime_dir.join("logs").join("app").join("runtime.log");
-    let logs = tail_lines(&runtime_log, 160);
+    let runtime_log = legacy_runtime_log_path(settings);
+    let logs = lines_after_offset(&runtime_log, start_offset, 600);
     let latest_result = if logs.is_empty() {
-        "尚未发现运行日志，请手动点击同步操作。".to_string()
+        "本次启动后尚未发现 Quark 同步日志。".to_string()
     } else {
-        format!("已加载旧 Java 运行日志，最新 {} 条。", logs.len())
+        format!("本次启动后已收到 {} 条 Quark 日志。", logs.len())
     };
     QuarkStatus {
         token_valid: if cookie_file.exists() { "待校验".to_string() } else { "否".to_string() },
@@ -821,6 +826,31 @@ fn tail_lines(path: &Path, limit: usize) -> Vec<String> {
     };
     let mut lines: Vec<String> = content.lines().rev().take(limit).map(ToString::to_string).collect();
     lines.reverse();
+    lines
+}
+
+fn legacy_runtime_log_path(settings: &AppSettings) -> PathBuf {
+    resolve_legacy_runtime_dir(settings).join("logs").join("app").join("runtime.log")
+}
+
+fn lines_after_offset(path: &Path, start_offset: u64, limit: usize) -> Vec<String> {
+    let Ok(bytes) = fs::read(path) else {
+        return Vec::new();
+    };
+    let start = usize::try_from(start_offset).unwrap_or(usize::MAX);
+    let content = if start <= bytes.len() {
+        &bytes[start..]
+    } else {
+        // The old runtime log was rotated or truncated after this app started.
+        &bytes[..]
+    };
+    let mut lines: Vec<String> = String::from_utf8_lossy(content)
+        .lines()
+        .map(ToString::to_string)
+        .collect();
+    if lines.len() > limit {
+        lines.drain(..lines.len() - limit);
+    }
     lines
 }
 

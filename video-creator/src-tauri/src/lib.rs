@@ -3,6 +3,8 @@ mod models;
 mod operation_log;
 
 use commands::*;
+#[cfg(target_os = "windows")]
+use std::iter::once;
 use tauri::{
     image::Image,
     menu::{Menu, MenuItem},
@@ -10,7 +12,32 @@ use tauri::{
     Manager,
 };
 
+#[cfg(target_os = "windows")]
+use windows_sys::Win32::{
+    Foundation::{CloseHandle, GetLastError, HANDLE, ERROR_ALREADY_EXISTS},
+    System::Threading::CreateMutexW,
+    UI::WindowsAndMessaging::{FindWindowW, SetForegroundWindow, ShowWindow},
+};
+
+#[cfg(target_os = "windows")]
+struct SingleInstanceGuard(HANDLE);
+
+#[cfg(target_os = "windows")]
+impl Drop for SingleInstanceGuard {
+    fn drop(&mut self) {
+        unsafe {
+            CloseHandle(self.0);
+        }
+    }
+}
+
 pub fn run() {
+    #[cfg(target_os = "windows")]
+    let _single_instance = match acquire_single_instance() {
+        Some(guard) => guard,
+        None => return,
+    };
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::default().build())
@@ -52,6 +79,38 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running Video Creator");
+}
+
+#[cfg(target_os = "windows")]
+fn acquire_single_instance() -> Option<SingleInstanceGuard> {
+    let mutex_name: Vec<u16> = "Local\\com.coderdream.videoCreator.SingleInstance"
+        .encode_utf16()
+        .chain(once(0))
+        .collect();
+    let handle = unsafe { CreateMutexW(std::ptr::null(), 0, mutex_name.as_ptr()) };
+    if handle.is_null() {
+        return None;
+    }
+    if unsafe { GetLastError() } == ERROR_ALREADY_EXISTS {
+        unsafe {
+            CloseHandle(handle);
+        }
+        focus_existing_main_window();
+        return None;
+    }
+    Some(SingleInstanceGuard(handle))
+}
+
+#[cfg(target_os = "windows")]
+fn focus_existing_main_window() {
+    let title: Vec<u16> = "视频工坊".encode_utf16().chain(once(0)).collect();
+    let window = unsafe { FindWindowW(std::ptr::null(), title.as_ptr()) };
+    if !window.is_null() {
+        unsafe {
+            ShowWindow(window, 9);
+            SetForegroundWindow(window);
+        }
+    }
 }
 
 fn install_tray(app: &tauri::App) -> tauri::Result<()> {
