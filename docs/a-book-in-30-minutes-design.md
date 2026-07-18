@@ -1776,4 +1776,8 @@ The Tool Paths section now uses the Y9000P machine's verified ffmpeg executable 
 
 Azure Speech synthesis now uses Speech Profile proxy settings for preview, test, and audio chunk requests. Existing settings files receive compatible defaults `proxyEnabled=true` and `proxyUrl=http://127.0.0.1:1080`; the Settings page exposes the URL and toggle so deployments without the local proxy can disable it.
 
+## 2026-07-18 0.1.168 Subtitle Python Compatibility
+
+The bundled `book_video_pipeline.py` now enables postponed annotation evaluation so the pipeline can start under the machine's Python 3.9 runtime while retaining its modern type annotations. Pillow must be installed in the Python interpreter selected by the application (`python -m pip install Pillow`).
+
 
