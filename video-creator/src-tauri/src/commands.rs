@@ -12,19 +12,27 @@ use serde_json::Value;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::{Manager, State};
 
 const LEGACY_DB: &str = r"D:\04_GitHub\world-cup-issue\video-creator\data\video-easy-creator.db";
-const LEGACY_RUNTIME_LOG: &str = r"D:\04_GitHub\world-cup-issue\video-creator\logs\app\runtime.log";
 
 pub struct AppData {
     settings: Mutex<AppSettings>,
     settings_path: PathBuf,
     db_path: PathBuf,
     logger: OperationLogger,
+    workflow: Arc<Mutex<Option<ActiveWorkflow>>>,
+    workflow_state_path: PathBuf,
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+struct ActiveWorkflow {
+    pid: u32,
+    command: String,
+    started_at: String,
 }
 
 impl AppData {
@@ -41,6 +49,7 @@ impl AppData {
         let settings_path = app_data_dir.join("settings.json");
         let db_path = app_data_dir.join("app.db");
         let log_dir = app_local_data_dir.join("logs");
+        let workflow_state_path = app_local_data_dir.join("active-workflow.json");
         let logger = OperationLogger::new(db_path.clone(), log_dir);
 
         let mut settings = fs::read_to_string(&settings_path)
@@ -56,6 +65,8 @@ impl AppData {
             settings_path,
             db_path,
             logger,
+            workflow: Arc::new(Mutex::new(read_active_workflow(&workflow_state_path))),
+            workflow_state_path,
         }
     }
 
@@ -86,6 +97,33 @@ fn normalize_loaded_settings(settings: &mut AppSettings) {
             settings.java_runtime_dir = fallback.display().to_string();
         }
     }
+}
+
+fn read_active_workflow(path: &Path) -> Option<ActiveWorkflow> {
+    fs::read_to_string(path)
+        .ok()
+        .and_then(|content| serde_json::from_str::<ActiveWorkflow>(&content).ok())
+}
+
+fn save_active_workflow(path: &Path, workflow: &ActiveWorkflow) -> Result<(), CommandError> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|error| command_error(format!("Failed to create workflow state directory: {error}")))?;
+    }
+    let content = serde_json::to_string_pretty(workflow)
+        .map_err(|error| command_error(format!("Failed to serialize workflow state: {error}")))?;
+    fs::write(path, content).map_err(|error| command_error(format!("Failed to save workflow state: {error}")))
+}
+
+fn clear_active_workflow(path: &Path) {
+    if path.exists() {
+        let _ = fs::remove_file(path);
+    }
+}
+
+fn terminate_process_tree(pid: u32) {
+    let _ = Command::new("taskkill")
+        .args(["/PID", &pid.to_string(), "/T", "/F"])
+        .output();
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -153,12 +191,20 @@ pub fn save_skill_configs(data: State<'_, AppData>, skills: Vec<SkillConfigEntry
 #[tauri::command]
 pub fn run_video_workflow(data: State<'_, AppData>, request: RunWorkflowRequest) -> Result<RunWorkflowResult, CommandError> {
     let settings = data.settings.lock().map_err(lock_error)?.clone();
-    run_video_workflow_in_background(&settings, &data.logger, request)
+    run_video_workflow_in_background(
+        &settings,
+        &data.logger,
+        &data.workflow,
+        &data.workflow_state_path,
+        request,
+    )
 }
 
-pub fn run_video_workflow_in_background(
+fn run_video_workflow_in_background(
     settings: &AppSettings,
     logger: &OperationLogger,
+    workflow: &Arc<Mutex<Option<ActiveWorkflow>>>,
+    workflow_state_path: &Path,
     request: RunWorkflowRequest,
 ) -> Result<RunWorkflowResult, CommandError> {
     let command = request.command.trim();
@@ -181,29 +227,71 @@ pub fn run_video_workflow_in_background(
     let command_name = command.to_string();
     let args_text = args.join(" ");
     let sync_episode = request.episode.clone();
-    logger.info("video", "run_workflow", &format!("Background task submitted: {args_text}"));
+    let workflow_state_path = workflow_state_path.to_path_buf();
+    let mut active_workflow = workflow.lock().map_err(lock_error)?;
 
-    thread::Builder::new()
-        .name(format!("video-workflow-{command_name}"))
-        .spawn(move || {
+    if let Some(previous) = active_workflow.take() {
+        logger.warn(
+            "video",
+            "replace_workflow",
+            "Saved and terminated previous background workflow before starting a new one.",
+            serde_json::to_string(&previous).unwrap_or_else(|_| format!("pid={}", previous.pid)),
+            &previous.command,
+        );
+        clear_active_workflow(&workflow_state_path);
+        terminate_process_tree(previous.pid);
+    }
+
+    let mut child = Command::new("java")
+        .current_dir(&runtime_dir)
+        .arg("-Dfile.encoding=UTF-8")
+        .arg("-Dsun.stdout.encoding=UTF-8")
+        .arg("-Dsun.stderr.encoding=UTF-8")
+        .arg("-cp")
+        .arg(classpath)
+        .arg("com.coderdream.app.VideoEasyCreatorLauncher")
+        .args(&args)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .map_err(|error| command_error(format!("Failed to start background task {command_name}: {error}")))?;
+    let pid = child.id();
+    let active = ActiveWorkflow {
+        pid,
+        command: command_name.clone(),
+        started_at: Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
+    };
+    if let Err(error) = save_active_workflow(&workflow_state_path, &active) {
+        let _ = child.kill();
+        return Err(error);
+    }
+    *active_workflow = Some(active);
+    drop(active_workflow);
+    logger.info("video", "run_workflow", &format!("Background task submitted: {args_text}; pid={pid}"));
+
+    let workflow = Arc::clone(workflow);
+    thread::spawn(move || {
             logger.info("video", "run_workflow", &format!("Background task started: {args_text}"));
-            let output = Command::new("java")
-                .current_dir(&runtime_dir)
-                .arg("-Dfile.encoding=UTF-8")
-                .arg("-Dsun.stdout.encoding=UTF-8")
-                .arg("-Dsun.stderr.encoding=UTF-8")
-                .arg("-cp")
-                .arg(classpath)
-                .arg("com.coderdream.app.VideoEasyCreatorLauncher")
-                .args(&args)
-                .output();
+            let output = child.wait_with_output();
+            let replaced = workflow
+                .lock()
+                .map(|current| current.as_ref().map(|item| item.pid != pid).unwrap_or(true))
+                .unwrap_or(false);
 
             match output {
                 Ok(output) => {
                     let stdout = String::from_utf8_lossy(&output.stdout).to_string();
                     let stderr = String::from_utf8_lossy(&output.stderr).to_string();
                     let exit_code = output.status.code();
-                    if output.status.success() {
+                    if replaced {
+                        logger.warn(
+                            "video",
+                            "run_workflow",
+                            "Background task ended after being replaced by a newer task.",
+                            format!("pid={pid}; command={command_name}"),
+                            &command_name,
+                        );
+                    } else if output.status.success() {
                         logger.info("video", "run_workflow", &format!("Background task {command_name} completed."));
                         if command_name == "prepare-sixminutes" {
                             if let Some(episode) = sync_episode.as_deref().filter(|value| !value.trim().is_empty()) {
@@ -228,8 +316,14 @@ pub fn run_video_workflow_in_background(
                     logger.error("video", "run_workflow", &format!("Failed to start background task {command_name}."), error.to_string());
                 }
             }
-        })
-        .map_err(|error| command_error(format!("Failed to create background task: {error}")))?;
+
+            if let Ok(mut current) = workflow.lock() {
+                if current.as_ref().map(|item| item.pid) == Some(pid) {
+                    *current = None;
+                    clear_active_workflow(&workflow_state_path);
+                }
+            }
+    });
 
     let message = format!("Command {command} has started in the background.");
 
@@ -371,7 +465,8 @@ fn build_dashboard(settings: &AppSettings) -> VideoCreatorDashboard {
     let latest = history.first().cloned();
     let steps = read_step_entries(latest.as_ref().map(|item| item.id));
     let event_logs = read_event_entries(latest.as_ref().map(|item| item.id));
-    let runtime_logs = tail_lines(Path::new(LEGACY_RUNTIME_LOG), 260);
+    let runtime_log_path = resolve_legacy_runtime_dir(settings).join("logs").join("app").join("runtime.log");
+    let runtime_logs = tail_lines(&runtime_log_path, 260);
     let skills = read_skill_configs(settings);
     let quark = build_quark_status(settings);
     let successful_steps = steps.iter().filter(|item| item.status.eq_ignore_ascii_case("SUCCESS")).count();
@@ -399,7 +494,7 @@ fn build_dashboard(settings: &AppSettings) -> VideoCreatorDashboard {
             .filter(|value| !value.is_empty())
             .unwrap_or_else(|| "Waiting for manual task execution".to_string()),
         vpn_status: detect_vpn_status(),
-        runtime_log_path: LEGACY_RUNTIME_LOG.to_string(),
+        runtime_log_path: runtime_log_path.display().to_string(),
         recent_history: history.into_iter().take(60).collect(),
         steps,
         skills,
@@ -523,16 +618,18 @@ fn build_quark_status(settings: &AppSettings) -> QuarkStatus {
         .map(format_system_time)
         .unwrap_or_else(|| "-".to_string());
     let runtime_log = runtime_dir.join("logs").join("app").join("runtime.log");
-    let logs = tail_lines(&runtime_log, 80)
-        .into_iter()
-        .filter(|line| line.to_lowercase().contains("quark"))
-        .collect::<Vec<_>>();
+    let logs = tail_lines(&runtime_log, 160);
+    let latest_result = if logs.is_empty() {
+        "尚未发现运行日志，请手动点击同步操作。".to_string()
+    } else {
+        format!("已加载旧 Java 运行日志，最新 {} 条。", logs.len())
+    };
     QuarkStatus {
         token_valid: if cookie_file.exists() { "待校验".to_string() } else { "否".to_string() },
         cookie_file: cookie_file.display().to_string(),
         cookie_updated_at: updated,
         root_item_count: 0,
-        latest_result: "启动不自动续跑任务，请手动点击 Quark 操作。".to_string(),
+        latest_result,
         logs,
     }
 }

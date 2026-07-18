@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { frameworkApi } from "@/services/frameworkApi";
 import { useAppStore } from "@/store/useAppStore";
 import { useDashboard } from "@/pages/useDashboard";
@@ -9,6 +9,11 @@ export function QuarkPage() {
   const [message, setMessage] = useState("");
   const [busyCommand, setBusyCommand] = useState<string | null>(null);
   const { dashboard, refresh } = useDashboard();
+
+  useEffect(() => {
+    const timer = window.setInterval(() => void refresh(), 2000);
+    return () => window.clearInterval(timer);
+  }, [refresh]);
 
   async function run(command: string, label: string, useInputYears = false) {
     setBusyCommand(command);
