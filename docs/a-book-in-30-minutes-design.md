@@ -1768,4 +1768,8 @@ Narration repair now uses a deterministic local trim when the result is only sli
 
 Subtitle segmentation remains local by default. The expensive whole-narration AI subtitle rewrite is disabled unless the process environment explicitly sets `ABOOK_ENABLE_AI_SUBTITLE_REWRITE=1` or `true`; this keeps normal Text generation predictable and fast while retaining an opt-in fallback for unusual source rhythm.
 
+## 2026-07-18 0.1.166 ffmpeg Tool Path Defaults
+
+The Tool Paths section now uses the Y9000P machine's verified ffmpeg executable at `D:/03_Dev/ffmpeg/bin/ffmpeg.exe` by default. The Rust persisted-settings sanitizer migrates an existing empty `ffmpegPath` to this path, while the frontend default keeps fresh local settings consistent. The Settings page explains the default and retains the file picker and explicit ffmpeg test button.
+
 

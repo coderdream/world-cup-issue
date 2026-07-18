@@ -646,7 +646,7 @@ pub struct ToolProfile {
 impl Default for ToolProfile {
     fn default() -> Self {
         Self {
-            ffmpeg_path: String::new(),
+            ffmpeg_path: r"D:\03_Dev\ffmpeg\bin\ffmpeg.exe".to_string(),
             background_music_mode: "single".to_string(),
             background_music_path: default_background_music_path(),
         }

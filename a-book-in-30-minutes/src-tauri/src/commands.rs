@@ -490,6 +490,10 @@ pub async fn run_e2e_audio_cli(epub_path: &str) -> Result<(), CommandError> {
 
 fn sanitize_persisted_settings(settings: &mut AppSettings) -> bool {
     let mut changed = false;
+    if settings.tool_profile.ffmpeg_path.trim().is_empty() {
+        settings.tool_profile.ffmpeg_path = r"D:\03_Dev\ffmpeg\bin\ffmpeg.exe".to_string();
+        changed = true;
+    }
     if looks_like_garbled_text(&settings.feishu_profile.test_message) {
         settings.feishu_profile.test_message = "听书素材生成工具飞书连通性测试成功。".to_string();
         changed = true;

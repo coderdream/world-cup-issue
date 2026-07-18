@@ -517,6 +517,7 @@ export function SettingsPage() {
             </button>
           </div>
         </label>
+        <p className="settings-help">默认使用 D:\03_Dev\ffmpeg\bin\ffmpeg.exe；修改后请先点击“测试 ffmpeg”。</p>
         <div className="button-row">
           <button className="outline-btn" disabled={busyAction === "ffmpeg"} type="button" onClick={() => void testFfmpeg()}>
             <Wrench className={busyAction === "ffmpeg" ? "spin" : undefined} size={15} /> 测试 ffmpeg

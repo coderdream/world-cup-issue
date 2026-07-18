@@ -51,7 +51,7 @@ export const defaultSettings: AppSettings = {
     pitch: "+0Hz"
   },
   toolProfile: {
-    ffmpegPath: "",
+    ffmpegPath: "D:\\03_Dev\\ffmpeg\\bin\\ffmpeg.exe",
     backgroundMusicMode: "single",
     backgroundMusicPath: "D:\\04_GitHub\\world-cup-issue\\a-book-in-30-minutes\\music\\bf.mp3"
   },
