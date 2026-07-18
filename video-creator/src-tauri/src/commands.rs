@@ -681,19 +681,78 @@ fn build_quark_status(settings: &AppSettings, start_offset: u64, session_log_pat
     let runtime_log = legacy_runtime_log_path(settings);
     let mut logs = tail_lines(session_log_path, 160);
     logs.extend(lines_after_offset(&runtime_log, start_offset, 440));
+    let quark_snapshot = parse_quark_snapshot(&logs);
     let latest_result = if logs.is_empty() {
         "本次启动后尚未发现 Quark 同步日志。".to_string()
     } else {
-        format!("本次启动后已收到 {} 条 Quark 日志。", logs.len())
+        quark_snapshot
+            .result_message
+            .unwrap_or_else(|| format!("本次启动后已收到 {} 条 Quark 日志。", logs.len()))
     };
     QuarkStatus {
-        token_valid: if cookie_file.exists() { "待校验".to_string() } else { "否".to_string() },
+        token_valid: quark_snapshot
+            .token_valid
+            .unwrap_or_else(|| if cookie_file.exists() { "待校验".to_string() } else { "否".to_string() }),
         cookie_file: cookie_file.display().to_string(),
         cookie_updated_at: updated,
-        root_item_count: 0,
+        root_item_count: quark_snapshot.root_item_count.unwrap_or(0),
         latest_result,
         logs,
     }
+}
+
+#[derive(Default)]
+struct QuarkSnapshot {
+    token_valid: Option<String>,
+    root_item_count: Option<i64>,
+    result_message: Option<String>,
+}
+
+fn parse_quark_snapshot(lines: &[String]) -> QuarkSnapshot {
+    let mut snapshot = QuarkSnapshot::default();
+    for line in lines.iter().rev() {
+        if snapshot.token_valid.is_none() {
+            if let Some(value) = extract_root_item_count(line) {
+                snapshot.root_item_count = Some(value);
+            }
+            if line.contains("Token 有效") || line.contains("Token有效") || line.contains("valid=true") {
+                snapshot.token_valid = Some("是".to_string());
+                snapshot.result_message = Some(line.trim().to_string());
+                if snapshot.root_item_count.is_some() {
+                    break;
+                }
+            } else if line.contains("Token 失效") || line.contains("Token无效") || line.contains("valid=false") || line.contains("Token 过期") {
+                snapshot.token_valid = Some("否".to_string());
+                snapshot.result_message = Some(line.trim().to_string());
+                if snapshot.root_item_count.is_some() {
+                    break;
+                }
+            }
+        }
+        if snapshot.result_message.is_none() && !line.trim().is_empty() {
+            if line.contains("校验 Token") || line.contains("Quark Token") {
+                snapshot.result_message = Some(line.trim().to_string());
+            }
+        }
+    }
+    snapshot
+}
+
+fn extract_root_item_count(line: &str) -> Option<i64> {
+    let markers = [
+        "根目录返回",
+        "root 返回",
+        "rootItemCount=",
+        "rootItemCount:",
+        "root count",
+        "根目录数量",
+    ];
+    let matched = markers.iter().any(|marker| line.contains(marker));
+    if !matched {
+        return None;
+    }
+    let digits: String = line.chars().filter(|ch| ch.is_ascii_digit()).collect();
+    digits.parse::<i64>().ok()
 }
 
 fn format_system_time(time: SystemTime) -> String {
