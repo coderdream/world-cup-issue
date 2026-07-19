@@ -2302,6 +2302,7 @@ pub async fn image_model_generate(
     let guide_dir = PathBuf::from(r"D:\AI\apps\ComfyUI\input\ui_tests");
     fs::create_dir_all(&guide_dir).map_err(|error| command_error(format!("创建测试 Guide 目录失败：{error}")))?;
     let guide_name = "ui_test_control_guide.png";
+    let guide_path = guide_dir.join(guide_name);
     if !guide_source.is_file() {
         return Err(command_error(format!("找不到官方风格测试 Guide：{}", guide_source.display())));
     }
