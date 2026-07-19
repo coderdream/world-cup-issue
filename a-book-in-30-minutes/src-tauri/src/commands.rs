@@ -2267,6 +2267,25 @@ pub async fn image_model_generate(
     let started = Instant::now();
     let settings = data.settings.lock().map_err(lock_error)?.clone();
     let profile = settings.image_model_profile;
+    let performance_script = PathBuf::from(r"D:\04_GitHub\world-cup-issue\scripts\set-y9000p-performance-mode.ps1");
+    if performance_script.is_file() {
+        let result = Command::new("powershell.exe")
+            .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-File"])
+            .arg(&performance_script)
+            .output()
+            .map_err(|error| command_error(format!("切换性能模式失败：{error}")))?;
+        if !result.status.success() {
+            let detail = String::from_utf8_lossy(&result.stderr).trim().to_string();
+            return Err(command_error(if detail.is_empty() {
+                "切换性能模式失败，请确认电源权限和 AC 供电。".to_string()
+            } else {
+                format!("切换性能模式失败：{detail}")
+            }));
+        }
+        data.logger.info("image_model", "performance_mode", "生成图片前已确认 Y9000P 性能模式".to_string());
+    } else {
+        return Err(command_error(format!("找不到性能模式脚本：{}", performance_script.display())));
+    }
     let base_url = profile.base_url.trim().trim_end_matches('/').to_string();
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(600))

@@ -1799,3 +1799,7 @@ Azure Speech synthesis now uses Speech Profile proxy settings for preview, test,
 The bundled `book_video_pipeline.py` now enables postponed annotation evaluation so the pipeline can start under the machine's Python 3.9 runtime while retaining its modern type annotations. Pillow must be installed in the Python interpreter selected by the application (`python -m pip install Pillow`).
 
 
+
+## 2026-07-19 0.1.173 Performance Mode Before Image Generation
+
+Before a local image test is submitted to ComfyUI, the Rust command now runs the repository's D-drive Y9000P performance-mode script. A failed or missing script stops generation with an explicit error; a successful run records an `image_model.performance_mode` operation log entry. This ensures local GPU generation does not silently run under a balanced Windows power plan.
