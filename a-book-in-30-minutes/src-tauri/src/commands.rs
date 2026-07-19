@@ -2172,8 +2172,23 @@ pub async fn image_model_start(data: State<'_, AppData>) -> Result<ImageModelSta
     if !script.is_file() {
         return Err(command_error(format!("找不到 ComfyUI 启动脚本：{}", script.display())));
     }
-    let mut process = data.image_model_process.lock().map_err(lock_error)?;
-    if process.as_mut().and_then(|child| child.try_wait().ok()).flatten().is_none() && process.is_some() {
+    let already_running = {
+        let mut process = data.image_model_process.lock().map_err(lock_error)?;
+        if process.as_mut().and_then(|child| child.try_wait().ok()).flatten().is_none() && process.is_some() {
+            true
+        } else {
+            let child = Command::new("powershell.exe")
+                .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-File"])
+                .arg(script)
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn()
+                .map_err(|error| command_error(format!("启动 ComfyUI 失败：{error}")))?;
+            *process = Some(child);
+            false
+        }
+    };
+    if already_running {
         return Ok(ImageModelStatus {
             running: true,
             reachable: false,
@@ -2182,16 +2197,7 @@ pub async fn image_model_start(data: State<'_, AppData>) -> Result<ImageModelSta
             model: None,
         });
     }
-    let child = Command::new("powershell.exe")
-        .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-File"])
-        .arg(script)
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()
-        .map_err(|error| command_error(format!("启动 ComfyUI 失败：{error}")))?;
-    *process = Some(child);
     data.logger.info("image_model", "start", "已启动本机 ComfyUI 图像模型服务。".to_string());
-    drop(process);
     for _ in 0..30 {
         thread::sleep(Duration::from_secs(2));
         let status = image_model_status(data.clone()).await?;
