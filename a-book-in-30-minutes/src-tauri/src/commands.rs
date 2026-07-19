@@ -22,11 +22,11 @@ use base64::Engine;
 use regex::Regex;
 use rusqlite::params;
 use rusqlite::Connection;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::{Child, Command, Stdio};
 use std::sync::Mutex;
 use std::thread;
 use std::time::{Duration, Instant};
@@ -106,6 +106,7 @@ pub struct AppData {
     db_path: PathBuf,
     logger: OperationLogger,
     app_started_at: String,
+    image_model_process: Mutex<Option<Child>>,
 }
 
 #[derive(Clone)]
@@ -196,6 +197,7 @@ impl AppData {
             db_path,
             logger,
             app_started_at,
+            image_model_process: Mutex::new(None),
         }
     }
 
@@ -380,6 +382,7 @@ pub async fn run_e2e_materials_cli(epub_path: &str) -> Result<(), CommandError> 
         db_path: db_path.clone(),
         logger: logger.clone(),
         app_started_at: chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
+        image_model_process: Mutex::new(None),
     };
     let result = write_book_materials_package(&data, &output_dir, &materials, &trace_id)?;
     if let Ok(connection) = Connection::open(&db_path) {
@@ -450,6 +453,7 @@ pub async fn run_e2e_audio_cli(epub_path: &str) -> Result<(), CommandError> {
         db_path: db_path.clone(),
         logger: logger.clone(),
         app_started_at: chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
+        image_model_process: Mutex::new(None),
     };
     let trace_id = format!("e2e-audio-{}", chrono::Local::now().format("%Y%m%d-%H%M%S"));
     let file_name = epub
@@ -2090,6 +2094,219 @@ pub fn open_material_output_dir(
         ),
     );
     Ok(true)
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImageModelStatus {
+    pub running: bool,
+    pub reachable: bool,
+    pub message: String,
+    pub device: Option<String>,
+    pub model: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImageModelTestResult {
+    pub running: bool,
+    pub reachable: bool,
+    pub message: String,
+    pub device: Option<String>,
+    pub model: Option<String>,
+    pub checkpoint_exists: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImageModelGenerateResult {
+    pub output_path: String,
+    pub prompt_id: String,
+    pub elapsed_ms: u128,
+}
+
+#[tauri::command]
+pub async fn image_model_status(data: State<'_, AppData>) -> Result<ImageModelStatus, CommandError> {
+    let settings = data.settings.lock().map_err(lock_error)?.clone();
+    let base_url = settings.image_model_profile.base_url.trim().trim_end_matches('/');
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(5))
+        .build()
+        .map_err(|error| command_error(format!("图像模型客户端初始化失败：{error}")))?;
+    match client.get(format!("{base_url}/system_stats")).send().await {
+        Ok(response) if response.status().is_success() => {
+            let body = response.text().await.unwrap_or_default();
+            let value: serde_json::Value = serde_json::from_str(&body).unwrap_or_default();
+            let device = value
+                .pointer("/devices/0/name")
+                .and_then(serde_json::Value::as_str)
+                .map(ToOwned::to_owned);
+            Ok(ImageModelStatus {
+                running: true,
+                reachable: true,
+                message: "ComfyUI 已连接，图像模型服务可用。".to_string(),
+                device,
+                model: Some(settings.image_model_profile.checkpoint),
+            })
+        }
+        Ok(response) => Ok(ImageModelStatus {
+            running: true,
+            reachable: false,
+            message: format!("ComfyUI 返回 HTTP {}。", response.status()),
+            device: None,
+            model: Some(settings.image_model_profile.checkpoint),
+        }),
+        Err(error) => Ok(ImageModelStatus {
+            running: false,
+            reachable: false,
+            message: format!("无法连接 ComfyUI：{error}"),
+            device: None,
+            model: Some(settings.image_model_profile.checkpoint),
+        }),
+    }
+}
+
+#[tauri::command]
+pub fn image_model_start(data: State<'_, AppData>) -> Result<ImageModelStatus, CommandError> {
+    let script = PathBuf::from(r"D:\04_GitHub\world-cup-issue\scripts\start-y9000p-comfyui.ps1");
+    if !script.is_file() {
+        return Err(command_error(format!("找不到 ComfyUI 启动脚本：{}", script.display())));
+    }
+    let mut process = data.image_model_process.lock().map_err(lock_error)?;
+    if process.as_mut().and_then(|child| child.try_wait().ok()).flatten().is_none() && process.is_some() {
+        return Ok(ImageModelStatus {
+            running: true,
+            reachable: false,
+            message: "ComfyUI 启动进程已经存在，正在等待服务响应。".to_string(),
+            device: None,
+            model: None,
+        });
+    }
+    let child = Command::new("powershell.exe")
+        .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-File"])
+        .arg(script)
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .map_err(|error| command_error(format!("启动 ComfyUI 失败：{error}")))?;
+    *process = Some(child);
+    data.logger.info("image_model", "start", "已启动本机 ComfyUI 图像模型服务。".to_string());
+    Ok(ImageModelStatus {
+        running: true,
+        reachable: false,
+        message: "ComfyUI 已启动，正在等待模型服务响应。".to_string(),
+        device: None,
+        model: None,
+    })
+}
+
+#[tauri::command]
+pub fn image_model_stop(data: State<'_, AppData>) -> Result<ImageModelStatus, CommandError> {
+    let mut process = data.image_model_process.lock().map_err(lock_error)?;
+    if let Some(mut child) = process.take() {
+        let _ = Command::new("taskkill")
+            .args(["/F", "/T", "/PID", &child.id().to_string()])
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status();
+        let _ = child.kill();
+    }
+    data.logger.info("image_model", "stop", "已停止本机 ComfyUI 图像模型服务。".to_string());
+    Ok(ImageModelStatus {
+        running: false,
+        reachable: false,
+        message: "ComfyUI 已停止。".to_string(),
+        device: None,
+        model: None,
+    })
+}
+
+#[tauri::command]
+pub async fn image_model_test(data: State<'_, AppData>) -> Result<ImageModelTestResult, CommandError> {
+    let settings = data.settings.lock().map_err(lock_error)?.clone();
+    let status = image_model_status(data.clone()).await?;
+    let checkpoint = PathBuf::from(r"D:\AI\apps\ComfyUI\models\checkpoints")
+        .join(&settings.image_model_profile.checkpoint);
+    let checkpoint_exists = checkpoint.is_file();
+    let message = if status.reachable && checkpoint_exists {
+        "本地图像模型配置验证通过，可以生成图片。".to_string()
+    } else if !checkpoint_exists {
+        format!("找不到模型文件：{}", checkpoint.display())
+    } else {
+        status.message.clone()
+    };
+    Ok(ImageModelTestResult {
+        running: status.running,
+        reachable: status.reachable,
+        message,
+        device: status.device,
+        model: status.model,
+        checkpoint_exists,
+    })
+}
+
+#[tauri::command]
+pub async fn image_model_generate(
+    data: State<'_, AppData>,
+    prompt: String,
+) -> Result<ImageModelGenerateResult, CommandError> {
+    let started = Instant::now();
+    let settings = data.settings.lock().map_err(lock_error)?.clone();
+    let profile = settings.image_model_profile;
+    let base_url = profile.base_url.trim().trim_end_matches('/').to_string();
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(600))
+        .build()
+        .map_err(|error| command_error(format!("图像模型客户端初始化失败：{error}")))?;
+    let seed = chrono::Local::now().timestamp_millis().unsigned_abs();
+    let positive = format!("flat 2D editorial doodle, black ink line art, white background, simple little black character, flowing hand-drawn curves, clean conceptual composition, no text, no logo. {prompt}");
+    let negative = "photorealistic, 3d render, glossy, gradients, dense background, unreadable text, watermark, logo, cluttered layout";
+    let workflow = serde_json::json!({
+        "1": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": profile.checkpoint}},
+        "2": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["1", 1], "text": positive}},
+        "3": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["1", 1], "text": negative}},
+        "4": {"class_type": "EmptyLatentImage", "inputs": {"width": profile.width, "height": profile.height, "batch_size": 1}},
+        "5": {"class_type": "KSampler", "inputs": {"model": ["1", 0], "positive": ["2", 0], "negative": ["3", 0], "latent_image": ["4", 0], "seed": seed, "steps": profile.steps, "cfg": profile.cfg, "sampler_name": "lcm", "scheduler": "sgm_uniform", "denoise": 1.0}},
+        "6": {"class_type": "VAEDecode", "inputs": {"samples": ["5", 0], "vae": ["1", 2]}},
+        "7": {"class_type": "SaveImage", "inputs": {"images": ["6", 0], "filename_prefix": "ui_test"}}
+    });
+    let queued: serde_json::Value = client
+        .post(format!("{base_url}/prompt"))
+        .json(&serde_json::json!({"prompt": workflow, "client_id": "a-book-in-30-minutes"}))
+        .send().await.map_err(|error| command_error(format!("提交图像生成失败：{error}")))?
+        .json().await.map_err(|error| command_error(format!("读取图像任务响应失败：{error}")))?;
+    let prompt_id = queued.get("prompt_id").and_then(serde_json::Value::as_str).ok_or_else(|| command_error(format!("ComfyUI 未返回 prompt_id：{queued}")))?.to_string();
+    let mut image_info = None;
+    for _ in 0..120 {
+        thread::sleep(Duration::from_secs(2));
+        let history: serde_json::Value = client.get(format!("{base_url}/history/{prompt_id}")).send().await
+            .map_err(|error| command_error(format!("读取图像任务状态失败：{error}")))?.json().await
+            .map_err(|error| command_error(format!("解析图像任务状态失败：{error}")))?;
+        if let Some(outputs) = history.get(&prompt_id).and_then(|v| v.get("outputs")) {
+            if let Some(images) = outputs.get("7").and_then(|v| v.get("images")).and_then(serde_json::Value::as_array) {
+                image_info = images.first().cloned();
+                break;
+            }
+        }
+        if history.get(&prompt_id).and_then(|v| v.get("status")).and_then(|v| v.get("status_str")).and_then(serde_json::Value::as_str) == Some("error") {
+            return Err(command_error(format!("ComfyUI 图像任务失败：{history}")));
+        }
+    }
+    let image_info = image_info.ok_or_else(|| command_error("图像生成超时，请查看 ComfyUI 日志。"))?;
+    let filename = image_info.get("filename").and_then(serde_json::Value::as_str).ok_or_else(|| command_error("ComfyUI 返回的图片文件名为空。"))?;
+    let subfolder = image_info.get("subfolder").and_then(serde_json::Value::as_str).unwrap_or("");
+    let image_type = image_info.get("type").and_then(serde_json::Value::as_str).unwrap_or("output");
+    let mut view_url = reqwest::Url::parse(&format!("{base_url}/view")).map_err(|error| command_error(format!("生成图片地址无效：{error}")))?;
+    view_url.query_pairs_mut().append_pair("filename", filename).append_pair("subfolder", subfolder).append_pair("type", image_type);
+    let bytes = client.get(view_url)
+        .send().await.map_err(|error| command_error(format!("下载生成图片失败：{error}")))?.bytes().await
+        .map_err(|error| command_error(format!("读取生成图片失败：{error}")))?;
+    let output_dir = PathBuf::from(profile.output_dir);
+    fs::create_dir_all(&output_dir).map_err(|error| command_error(format!("创建图片输出目录失败：{error}")))?;
+    let output_path = output_dir.join(format!("ui_test_{}.png", chrono::Local::now().format("%Y%m%d_%H%M%S")));
+    fs::write(&output_path, bytes).map_err(|error| command_error(format!("保存生成图片失败：{error}")))?;
+    data.logger.info("image_model", "generate", format!("本地图像模型生成测试图片：{}", output_path.display()));
+    Ok(ImageModelGenerateResult { output_path: output_path.to_string_lossy().into_owned(), prompt_id, elapsed_ms: started.elapsed().as_millis() })
 }
 
 #[tauri::command]

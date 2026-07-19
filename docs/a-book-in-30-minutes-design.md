@@ -1772,6 +1772,12 @@ Subtitle segmentation remains local by default. The expensive whole-narration AI
 
 The Tool Paths section now uses the Y9000P machine's verified ffmpeg executable at `D:/03_Dev/ffmpeg/bin/ffmpeg.exe` by default. The Rust persisted-settings sanitizer migrates an existing empty `ffmpegPath` to this path, while the frontend default keeps fresh local settings consistent. The Settings page explains the default and retains the file picker and explicit ffmpeg test button.
 
+## 2026-07-19 0.1.169 Image Model Settings Tab
+
+The Configuration page now has a separate `图像模型` tab beside `基础配置`. It persists a local ComfyUI profile for the Y9000P/187 node: base URL, checkpoint, workflow mode, output directory, dimensions, steps, and CFG. The tab can start and stop the D-drive ComfyUI service, refresh status, validate the checkpoint and service, and submit a text prompt for a local test image. Generated test images are saved under `D:/AI/outputs/ComfyUI/ui-tests` and previewed in the page.
+
+The existing pipeline image backend selector remains the source of truth for production image generation. Choosing `小黑 AI（本机 187）` continues to route the Image stage to the existing controlled Xiaohei ComfyUI pipeline, while the new tab provides the same local node with an explicit, inspectable configuration and smoke-test workflow.
+
 ## 2026-07-18 0.1.167 Azure Speech Proxy
 
 Azure Speech synthesis now uses Speech Profile proxy settings for preview, test, and audio chunk requests. Existing settings files receive compatible defaults `proxyEnabled=true` and `proxyUrl=http://127.0.0.1:1080`; the Settings page exposes the URL and toggle so deployments without the local proxy can disable it.

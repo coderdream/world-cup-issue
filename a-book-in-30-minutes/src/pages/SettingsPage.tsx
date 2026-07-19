@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Panel, SectionTitle, Switch } from "@/pages/primitives";
 import { frameworkApi } from "@/services/frameworkApi";
 import { useAppStore } from "@/store/useAppStore";
-import type { AiGenerateResult, AiProfileShare, AiProvider, AiTestResult, FeishuSendResult, SpeechTestResult, SpeechVoice, ToolTestResult, UpdateInfo } from "@/types";
+import type { AiGenerateResult, AiProfileShare, AiProvider, AiTestResult, AppSettings, FeishuSendResult, ImageModelStatus, ImageModelTestResult, SpeechTestResult, SpeechVoice, ToolTestResult, UpdateInfo } from "@/types";
 
 const defaultPrompt = "请用三句话说明“半小时听完一本书”频道适合做什么内容。";
 const defaultSpeechPreviewText = "夜深了，我们用半小时，慢慢听完一本书。愿故事里的光，也照进你今晚的梦里。";
@@ -40,6 +40,7 @@ export function SettingsPage() {
   const [speechVoiceSource, setSpeechVoiceSource] = useState("");
   const [prompt, setPrompt] = useState(defaultPrompt);
   const [speechPreviewText, setSpeechPreviewText] = useState(defaultSpeechPreviewText);
+  const [settingsTab, setSettingsTab] = useState<"basic" | "imageModel">("basic");
   const [newMaterialCategory, setNewMaterialCategory] = useState("");
   const [busyAction, setBusyAction] = useState<"test" | "generate" | "copy" | "feishu" | "speech" | "speechPreview" | "speechSave" | "ffmpeg" | null>(null);
   const activeAiProvider = settings.activeAiProvider === "gemini" ? "gemini" : "gpt";
@@ -81,6 +82,11 @@ export function SettingsPage() {
 
   return (
     <div className="page">
+      <div className="segmented-control" role="tablist" aria-label="配置页签">
+        <button className={settingsTab === "basic" ? "active" : undefined} type="button" onClick={() => setSettingsTab("basic")}>基础配置</button>
+        <button className={settingsTab === "imageModel" ? "active" : undefined} type="button" onClick={() => setSettingsTab("imageModel")}>图像模型</button>
+      </div>
+      {settingsTab === "imageModel" ? <ImageModelPanel settings={settings} updateSettings={updateSettings} /> : <>
       <Panel>
         <SectionTitle icon={<Settings size={16} />} title="基础配置" inline />
         <div className="setting-row">
@@ -562,6 +568,7 @@ export function SettingsPage() {
         </button>
         {update && <p className="muted">{update.notes}</p>}
       </Panel>
+      </>}
     </div>
   );
 
@@ -875,6 +882,131 @@ export function SettingsPage() {
       setBusyAction(null);
     }
   }
+}
+
+function ImageModelPanel({ settings, updateSettings }: { settings: AppSettings; updateSettings: (settings: Partial<AppSettings>) => Promise<void> }) {
+  const [status, setStatus] = useState<ImageModelStatus | null>(null);
+  const [test, setTest] = useState<ImageModelTestResult | null>(null);
+  const [prompt, setPrompt] = useState("一只小黑站在书桌旁，把一本书里的复杂概念整理成清晰的线条和箭头，白底，黑色手绘线条，红蓝橙色小标注");
+  const [imagePath, setImagePath] = useState("");
+  const [busy, setBusy] = useState<"status" | "start" | "stop" | "test" | "generate" | null>(null);
+  const profile = settings.imageModelProfile;
+
+  useEffect(() => {
+    void refresh();
+  }, [profile.baseUrl]);
+
+  async function refresh() {
+    setBusy("status");
+    try {
+      setStatus(await frameworkApi.imageModelStatus());
+    } catch (error) {
+      setStatus({ running: false, reachable: false, message: error instanceof Error ? error.message : String(error) });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function start() {
+    setBusy("start");
+    try {
+      setStatus(await frameworkApi.imageModelStart());
+      window.setTimeout(() => void refresh(), 2500);
+    } catch (error) {
+      setStatus({ running: false, reachable: false, message: error instanceof Error ? error.message : String(error) });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function stop() {
+    setBusy("stop");
+    try {
+      setStatus(await frameworkApi.imageModelStop());
+    } catch (error) {
+      setStatus({ running: false, reachable: false, message: error instanceof Error ? error.message : String(error) });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function testModel() {
+    setBusy("test");
+    try {
+      setTest(await frameworkApi.imageModelTest());
+    } catch (error) {
+      setTest({ running: false, reachable: false, checkpointExists: false, message: error instanceof Error ? error.message : String(error) });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function generate() {
+    setBusy("generate");
+    try {
+      await updateSettings({ imageModelProfile: profile });
+      const result = await frameworkApi.imageModelGenerate(prompt);
+      setImagePath(result.outputPath);
+    } catch (error) {
+      setTest({ running: false, reachable: false, checkpointExists: false, message: error instanceof Error ? error.message : String(error) });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function previewSrc(path: string) {
+    if (!path) return "";
+    try {
+      const { convertFileSrc } = await import("@tauri-apps/api/core");
+      return convertFileSrc(path);
+    } catch {
+      return "";
+    }
+  }
+
+  const [previewUrl, setPreviewUrl] = useState("");
+  useEffect(() => {
+    let active = true;
+    void previewSrc(imagePath).then((url) => {
+      if (active) setPreviewUrl(url);
+    });
+    return () => {
+      active = false;
+    };
+  }, [imagePath]);
+
+  function updateProfile(patch: Partial<typeof profile>) {
+    void updateSettings({ imageModelProfile: { ...profile, ...patch } });
+  }
+
+  return (
+    <Panel>
+      <SectionTitle icon={<Sparkles size={16} />} title="本机 187 / Y9000P 图像模型" inline />
+      <p className="settings-help">使用 D 盘 ComfyUI 和 RTX 3070 本地生成图片。先启动服务，再测试模型，最后用 Prompt 生成样图。</p>
+      <div className="field-grid">
+        <label className="field"><span>ComfyUI 地址</span><input value={profile.baseUrl} onChange={(event) => updateProfile({ baseUrl: event.target.value })} /></label>
+        <label className="field"><span>Checkpoint</span><input value={profile.checkpoint} onChange={(event) => updateProfile({ checkpoint: event.target.value })} /></label>
+        <label className="field"><span>工作流</span><select value={profile.workflow} onChange={(event) => updateProfile({ workflow: event.target.value as typeof profile.workflow })}><option value="img2img">官方风格受控精修</option><option value="txt2img">自由文字生图测试</option></select></label>
+        <label className="field"><span>输出目录</span><input value={profile.outputDir} onChange={(event) => updateProfile({ outputDir: event.target.value })} /></label>
+        <label className="field"><span>宽度</span><input type="number" min={256} max={1536} value={profile.width} onChange={(event) => updateProfile({ width: Number(event.target.value) })} /></label>
+        <label className="field"><span>高度</span><input type="number" min={256} max={1536} value={profile.height} onChange={(event) => updateProfile({ height: Number(event.target.value) })} /></label>
+        <label className="field"><span>Steps</span><input type="number" min={1} max={64} value={profile.steps} onChange={(event) => updateProfile({ steps: Number(event.target.value) })} /></label>
+        <label className="field"><span>CFG</span><input type="number" min={0.1} max={20} step={0.1} value={profile.cfg} onChange={(event) => updateProfile({ cfg: Number(event.target.value) })} /></label>
+      </div>
+      <div className="button-row">
+        <button className="primary-btn" disabled={busy !== null} type="button" onClick={() => void start()}>启动</button>
+        <button className="outline-btn" disabled={busy !== null} type="button" onClick={() => void stop()}>停止</button>
+        <button className="outline-btn" disabled={busy !== null} type="button" onClick={() => void refresh()}>刷新状态</button>
+        <button className="outline-btn" disabled={busy !== null} type="button" onClick={() => void testModel()}>测试模型</button>
+      </div>
+      {status && <p className={status.reachable ? "status success" : "status error"}>{status.message}{status.device ? `：${status.device}` : ""}</p>}
+      {test && <p className={test.reachable && test.checkpointExists ? "status success" : "status error"}>{test.message}（模型文件{test.checkpointExists ? "存在" : "不存在"}）</p>}
+      <label className="field"><span>测试 Prompt</span><textarea rows={4} value={prompt} onChange={(event) => setPrompt(event.target.value)} /></label>
+      <button className="primary-btn" disabled={busy !== null} type="button" onClick={() => void generate()}><Sparkles size={15} /> {busy === "generate" ? "生成中..." : "生成测试图片"}</button>
+      {imagePath && <p className="settings-help">已生成：{imagePath}</p>}
+      {previewUrl && <img className="image-model-preview" src={previewUrl} alt="本地图像模型生成的测试图片" />}
+    </Panel>
+  );
 }
 
 function formatSpeechVoice(voice: SpeechVoice) {

@@ -105,6 +105,10 @@ function mergeSettings(current: AppSettings, patch: Partial<AppSettings>): AppSe
       ...current.toolProfile,
       ...(patch.toolProfile ?? {})
     },
+    imageModelProfile: {
+      ...current.imageModelProfile,
+      ...(patch.imageModelProfile ?? {})
+    },
     uiProfile: {
       ...current.uiProfile,
       ...(patch.uiProfile ?? {})

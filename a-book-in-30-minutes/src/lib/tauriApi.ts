@@ -158,6 +158,10 @@ function readSettings(): AppSettings {
         ...defaultSettings.toolProfile,
         ...(parsed.toolProfile ?? {})
       },
+      imageModelProfile: {
+        ...defaultSettings.imageModelProfile,
+        ...(parsed.imageModelProfile ?? {})
+      },
       pipelineProfile: {
         ...defaultSettings.pipelineProfile,
         ...(parsed.pipelineProfile ?? {})
@@ -217,6 +221,10 @@ async function localCommand<T>(command: string, args?: Record<string, unknown>):
         toolProfile: {
           ...settings.toolProfile,
           ...((args?.settings as Partial<AppSettings> | undefined)?.toolProfile ?? {})
+        },
+        imageModelProfile: {
+          ...settings.imageModelProfile,
+          ...((args?.settings as Partial<AppSettings> | undefined)?.imageModelProfile ?? {})
         }
       };
       writeSettings(next);
@@ -259,6 +267,28 @@ async function localCommand<T>(command: string, args?: Record<string, unknown>):
         message: settings.toolProfile.ffmpegPath ? "ffmpeg.exe 路径可用，本地预览模式已通过。" : "请先填写 ffmpeg.exe 路径。",
         version: settings.toolProfile.ffmpegPath ? "ffmpeg preview" : undefined
       } as T;
+    case "image_model_status":
+      return {
+        running: false,
+        reachable: false,
+        message: "浏览器预览模式不会启动本机 ComfyUI，请使用桌面版验证。"
+      } as T;
+    case "image_model_start":
+    case "image_model_stop":
+      return {
+        running: command === "image_model_start",
+        reachable: false,
+        message: "浏览器预览模式不会控制本机 ComfyUI。"
+      } as T;
+    case "image_model_test":
+      return {
+        running: false,
+        reachable: false,
+        checkpointExists: false,
+        message: "浏览器预览模式不会读取本机模型文件。"
+      } as T;
+    case "image_model_generate":
+      throw new Error("浏览器预览模式不会写入本地图片，请使用桌面版生成测试图片。");
     case "test_speech_profile":
       return {
         ok: Boolean(settings.speechProfile.speechKey),

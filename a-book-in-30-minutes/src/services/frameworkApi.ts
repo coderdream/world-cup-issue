@@ -34,6 +34,9 @@ import type {
   SpeechRegionKeyResult,
   SpeechTestResult,
   ToolTestResult,
+  ImageModelGenerateResult,
+  ImageModelStatus,
+  ImageModelTestResult,
   UpdateInfo,
   UpdateMaterialTaskStageStatusRequest,
   UpdateMaterialTaskStatusRequest
@@ -81,6 +84,21 @@ export const frameworkApi = {
   },
   testFfmpegPath() {
     return callCommand<ToolTestResult>("test_ffmpeg_path");
+  },
+  imageModelStatus() {
+    return callCommand<ImageModelStatus>("image_model_status");
+  },
+  imageModelStart() {
+    return callCommand<ImageModelStatus>("image_model_start");
+  },
+  imageModelStop() {
+    return callCommand<ImageModelStatus>("image_model_stop");
+  },
+  imageModelTest() {
+    return callCommand<ImageModelTestResult>("image_model_test");
+  },
+  imageModelGenerate(prompt: string) {
+    return callCommand<ImageModelGenerateResult>("image_model_generate", { prompt });
   },
   generateAudio(request: GenerateAudioRequest) {
     return callCommand<GenerateAudioResult>("generate_audio", { request });

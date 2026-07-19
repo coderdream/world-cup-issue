@@ -17,6 +17,7 @@ pub struct AppSettings {
     pub material_profile: MaterialProfile,
     pub speech_profile: SpeechProfile,
     pub tool_profile: ToolProfile,
+    pub image_model_profile: ImageModelProfile,
     pub ui_profile: UiProfile,
     pub pipeline_profile: PipelineProfile,
 }
@@ -36,6 +37,7 @@ impl Default for AppSettings {
             material_profile: MaterialProfile::default(),
             speech_profile: SpeechProfile::default(),
             tool_profile: ToolProfile::default(),
+            image_model_profile: ImageModelProfile::default(),
             ui_profile: UiProfile::default(),
             pipeline_profile: PipelineProfile::default(),
         }
@@ -645,6 +647,37 @@ pub struct ToolProfile {
     pub ffmpeg_path: String,
     pub background_music_mode: String,
     pub background_music_path: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+#[serde(rename_all = "camelCase")]
+pub struct ImageModelProfile {
+    pub base_url: String,
+    pub checkpoint: String,
+    pub workflow: String,
+    pub width: u32,
+    pub height: u32,
+    pub steps: u32,
+    pub cfg: f32,
+    pub denoise: f32,
+    pub output_dir: String,
+}
+
+impl Default for ImageModelProfile {
+    fn default() -> Self {
+        Self {
+            base_url: "http://127.0.0.1:8188".to_string(),
+            checkpoint: "DreamShaper8_LCM.safetensors".to_string(),
+            workflow: "img2img".to_string(),
+            width: 768,
+            height: 432,
+            steps: 16,
+            cfg: 1.9,
+            denoise: 0.38,
+            output_dir: r"D:\AI\outputs\ComfyUI\ui-tests".to_string(),
+        }
+    }
 }
 
 impl Default for ToolProfile {

@@ -13,6 +13,7 @@ export interface AppSettings {
   materialProfile: MaterialProfile;
   speechProfile: SpeechProfile;
   toolProfile: ToolProfile;
+  imageModelProfile: ImageModelProfile;
   uiProfile: UiProfile;
   pipelineProfile: PipelineProfile;
 }
@@ -134,6 +135,36 @@ export interface ToolProfile {
   ffmpegPath: string;
   backgroundMusicMode: "single" | "playlist";
   backgroundMusicPath: string;
+}
+
+export interface ImageModelProfile {
+  baseUrl: string;
+  checkpoint: string;
+  workflow: "img2img" | "txt2img";
+  width: number;
+  height: number;
+  steps: number;
+  cfg: number;
+  denoise: number;
+  outputDir: string;
+}
+
+export interface ImageModelStatus {
+  running: boolean;
+  reachable: boolean;
+  message: string;
+  device?: string;
+  model?: string;
+}
+
+export interface ImageModelTestResult extends ImageModelStatus {
+  checkpointExists: boolean;
+}
+
+export interface ImageModelGenerateResult {
+  outputPath: string;
+  promptId: string;
+  elapsedMs: number;
 }
 
 export interface GenerateAudioRequest {

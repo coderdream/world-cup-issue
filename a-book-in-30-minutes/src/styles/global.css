@@ -1421,6 +1421,16 @@ textarea:focus {
   white-space: pre-wrap;
 }
 
+.image-model-preview {
+  display: block;
+  width: min(100%, 768px);
+  aspect-ratio: 16 / 9;
+  object-fit: contain;
+  margin-top: 16px;
+  border: 1px solid var(--border);
+  background: #fff;
+}
+
 .spin {
   animation: spin 0.8s linear infinite;
 }

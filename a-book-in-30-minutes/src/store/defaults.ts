@@ -57,6 +57,17 @@ export const defaultSettings: AppSettings = {
     backgroundMusicMode: "single",
     backgroundMusicPath: "D:\\04_GitHub\\world-cup-issue\\a-book-in-30-minutes\\music\\bf.mp3"
   },
+  imageModelProfile: {
+    baseUrl: "http://127.0.0.1:8188",
+    checkpoint: "DreamShaper8_LCM.safetensors",
+    workflow: "img2img",
+    width: 768,
+    height: 432,
+    steps: 16,
+    cfg: 1.9,
+    denoise: 0.38,
+    outputDir: "D:\\AI\\outputs\\ComfyUI\\ui-tests"
+  },
   uiProfile: {
     menuFontFamily: "\"Microsoft YaHei UI\", \"Microsoft YaHei\", \"PingFang SC\", \"Noto Sans SC\", \"Segoe UI\", Arial, sans-serif",
     menuFontSize: 13,
