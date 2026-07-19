@@ -2167,7 +2167,7 @@ pub async fn image_model_status(data: State<'_, AppData>) -> Result<ImageModelSt
 }
 
 #[tauri::command]
-pub fn image_model_start(data: State<'_, AppData>) -> Result<ImageModelStatus, CommandError> {
+pub async fn image_model_start(data: State<'_, AppData>) -> Result<ImageModelStatus, CommandError> {
     let script = PathBuf::from(r"D:\04_GitHub\world-cup-issue\scripts\start-y9000p-comfyui.ps1");
     if !script.is_file() {
         return Err(command_error(format!("找不到 ComfyUI 启动脚本：{}", script.display())));
@@ -2191,10 +2191,18 @@ pub fn image_model_start(data: State<'_, AppData>) -> Result<ImageModelStatus, C
         .map_err(|error| command_error(format!("启动 ComfyUI 失败：{error}")))?;
     *process = Some(child);
     data.logger.info("image_model", "start", "已启动本机 ComfyUI 图像模型服务。".to_string());
+    drop(process);
+    for _ in 0..30 {
+        thread::sleep(Duration::from_secs(2));
+        let status = image_model_status(data.clone()).await?;
+        if status.reachable {
+            return Ok(status);
+        }
+    }
     Ok(ImageModelStatus {
         running: true,
         reachable: false,
-        message: "ComfyUI 已启动，正在等待模型服务响应。".to_string(),
+        message: "ComfyUI 已启动，但模型服务仍在加载；请稍后点击“刷新状态”。".to_string(),
         device: None,
         model: None,
     })

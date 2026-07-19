@@ -1778,6 +1778,10 @@ The Configuration page now has a separate `图像模型` tab beside `基础配�
 
 The existing pipeline image backend selector remains the source of truth for production image generation. Choosing `小黑 AI（本机 187）` continues to route the Image stage to the existing controlled Xiaohei ComfyUI pipeline, while the new tab provides the same local node with an explicit, inspectable configuration and smoke-test workflow.
 
+## 2026-07-19 0.1.170 ComfyUI Startup Readiness
+
+The local image model Start action now waits up to 60 seconds for ComfyUI `/system_stats` to become reachable after launching the D-drive process. This covers first-load Torch/CUDA/model initialization and avoids showing a transient connection error after a successful start request. If the service still needs more time, the page reports that the model is loading and the user can refresh status.
+
 ## 2026-07-18 0.1.167 Azure Speech Proxy
 
 Azure Speech synthesis now uses Speech Profile proxy settings for preview, test, and audio chunk requests. Existing settings files receive compatible defaults `proxyEnabled=true` and `proxyUrl=http://127.0.0.1:1080`; the Settings page exposes the URL and toggle so deployments without the local proxy can disable it.
