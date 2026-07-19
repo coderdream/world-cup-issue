@@ -911,7 +911,6 @@ function ImageModelPanel({ settings, updateSettings }: { settings: AppSettings; 
     setBusy("start");
     try {
       setStatus(await frameworkApi.imageModelStart());
-      window.setTimeout(() => void refresh(), 2500);
     } catch (error) {
       setStatus({ running: false, reachable: false, message: error instanceof Error ? error.message : String(error) });
     } finally {
