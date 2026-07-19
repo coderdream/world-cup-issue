@@ -1952,6 +1952,7 @@ def y9000p_comfyui_workflow(
     prefix: str,
     guide_image: str | None = None,
     denoise: float = 1.0,
+    controlnet: str | None = None,
 ) -> tuple[dict, str]:
     positive_prefix = os.environ.get(
         "Y9000P_COMFYUI_POSITIVE_PREFIX",
@@ -1979,6 +1980,23 @@ def y9000p_comfyui_workflow(
         sampler_node = "6"
         decode_node = "7"
         save_node = "8"
+        if controlnet:
+            nodes["6"] = {"class_type": "ControlNetLoader", "inputs": {"control_net_name": controlnet}}
+            nodes["7"] = {
+                "class_type": "ControlNetApplyAdvanced",
+                "inputs": {
+                    "positive": ["2", 0],
+                    "negative": ["3", 0],
+                    "control_net": ["6", 0],
+                    "image": ["4", 0],
+                    "strength": float(os.environ.get("Y9000P_COMFYUI_CONTROLNET_STRENGTH", "0.48")),
+                    "start_percent": 0.0,
+                    "end_percent": float(os.environ.get("Y9000P_COMFYUI_CONTROLNET_END_PERCENT", "0.85")),
+                },
+            }
+            sampler_node = "8"
+            decode_node = "9"
+            save_node = "10"
     else:
         nodes["4"] = {"class_type": "EmptyLatentImage", "inputs": {"width": width, "height": height, "batch_size": 1}}
         sampler_node = "5"
@@ -2022,6 +2040,7 @@ def generate_y9000p_comfyui_assets(
     steps = int(os.environ.get("Y9000P_COMFYUI_STEPS", "32" if controlled else "16") or ("32" if controlled else "16"))
     cfg = float(os.environ.get("Y9000P_COMFYUI_CFG", "1.9" if controlled else "7.0") or ("1.9" if controlled else "7.0"))
     denoise = float(os.environ.get("Y9000P_COMFYUI_DENOISE", "0.38" if controlled else "1.0") or ("0.38" if controlled else "1.0"))
+    controlnet = os.environ.get("Y9000P_COMFYUI_CONTROLNET", "control_v11p_sd15_lineart.pth" if controlled else "").strip() or None
     request_timeout = int(os.environ.get("Y9000P_COMFYUI_REQUEST_TIMEOUT_SECONDS", "600") or "600")
     poll_seconds = int(os.environ.get("Y9000P_COMFYUI_POLL_SECONDS", "3") or "3")
     max_wait_seconds = int(os.environ.get("Y9000P_COMFYUI_MAX_WAIT_SECONDS", str(2 * 60 * 60)) or str(2 * 60 * 60))
@@ -2087,6 +2106,7 @@ def generate_y9000p_comfyui_assets(
             prefix=f"xiaohei_ai_y9000p/{prefix}",
             guide_image=guide_image,
             denoise=denoise,
+            controlnet=controlnet if checkpoint.endswith(".safetensors") else None,
         )
         print(
             f"Y9000P ComfyUI queue {index}/{len(prompts)} via {base_url} ({workflow_mode}, {checkpoint}, {width}x{height}, steps={steps}, cfg={cfg}, denoise={denoise}, seed={seed})",
@@ -2164,6 +2184,7 @@ def generate_y9000p_comfyui_assets(
         "steps": steps,
         "cfg": cfg,
         "denoise": denoise,
+        "controlnet": controlnet,
         "restoreGuideLineArt": bool(controlled and os.environ.get("Y9000P_COMFYUI_RESTORE_GUIDE_LINE_ART", "1").strip().lower() not in {"0", "false", "no"}),
         "generatedAt": time.strftime("%Y-%m-%d %H:%M:%S"),
         "promptCount": len(prompts),
@@ -3082,6 +3103,10 @@ def restore_guide_line_art(ai_image: Image.Image, guide_path: Path, base_guide_p
             mask = diff.point(lambda value: 255 if value > 12 else 0)
         else:
             mask = guide_rgb.convert("L").point(lambda value: 255 if value < 248 else 0)
+        thin_radius = max(1, int(os.environ.get("Y9000P_COMFYUI_LINE_THIN_RADIUS", "3") or "3"))
+        if thin_radius > 1:
+            thin_radius = thin_radius if thin_radius % 2 == 1 else thin_radius + 1
+            guide_rgb = guide_rgb.filter(ImageFilter.MaxFilter(thin_radius))
         cleanup_radius = int(os.environ.get("Y9000P_COMFYUI_GUIDE_CLEANUP_RADIUS", "5") or "5")
         cleanup_radius = max(3, cleanup_radius | 1)
         cleanup_mask = mask.filter(ImageFilter.MaxFilter(cleanup_radius))

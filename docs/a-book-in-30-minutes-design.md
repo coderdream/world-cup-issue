@@ -1815,3 +1815,5 @@ The local image model defaults now use the quality preset `1536x864`, `32` LCM s
 ## 2026-07-19 0.1.176 Image Prompt Operation Logging
 
 The local image test now writes a dedicated `image_model.prompt` operation log entry before queuing ComfyUI. The entry includes the checkpoint, workflow, Guide path, dimensions, steps, CFG, denoise, full positive prompt, and negative prompt, making a generated result auditable instead of only reporting its output path.
+
+The formal Y9000P image pipeline now uses the installed SD1.5 Lineart ControlNet when running controlled Guide img2img. Its default strength is `0.48` with an `0.85` end percent, keeping composition stable while allowing line texture refinement. The final Guide restoration layer also supports optional 3px MaxFilter thinning through `Y9000P_COMFYUI_LINE_THIN_RADIUS`.
