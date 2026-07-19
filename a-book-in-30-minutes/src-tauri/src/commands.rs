@@ -2273,16 +2273,25 @@ pub async fn image_model_generate(
         .build()
         .map_err(|error| command_error(format!("图像模型客户端初始化失败：{error}")))?;
     let seed = chrono::Local::now().timestamp_millis().unsigned_abs();
-    let positive = format!("flat 2D editorial doodle, black ink line art, white background, simple little black character, flowing hand-drawn curves, clean conceptual composition, no text, no logo. {prompt}");
+    let guide_source = PathBuf::from(r"D:\books\0701新书四本\芒格传\output\04_images\_samples\munger_control_01.png");
+    let guide_dir = PathBuf::from(r"D:\AI\apps\ComfyUI\input\ui_tests");
+    fs::create_dir_all(&guide_dir).map_err(|error| command_error(format!("创建测试 Guide 目录失败：{error}")))?;
+    let guide_name = "ui_test_control_guide.png";
+    if !guide_source.is_file() {
+        return Err(command_error(format!("找不到官方风格测试 Guide：{}", guide_source.display())));
+    }
+    fs::copy(&guide_source, guide_dir.join(guide_name)).map_err(|error| command_error(format!("复制测试 Guide 失败：{error}")))?;
+    let positive = format!("flat 2D editorial doodle, black ink line art, white background, simple little black character, flowing hand-drawn curves, preserve the input composition, no text, no logo. {prompt}");
     let negative = "photorealistic, 3d render, glossy, gradients, dense background, unreadable text, watermark, logo, cluttered layout";
     let workflow = serde_json::json!({
         "1": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": profile.checkpoint}},
-        "2": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["1", 1], "text": positive}},
-        "3": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["1", 1], "text": negative}},
-        "4": {"class_type": "EmptyLatentImage", "inputs": {"width": profile.width, "height": profile.height, "batch_size": 1}},
-        "5": {"class_type": "KSampler", "inputs": {"model": ["1", 0], "positive": ["2", 0], "negative": ["3", 0], "latent_image": ["4", 0], "seed": seed, "steps": profile.steps, "cfg": profile.cfg, "sampler_name": "lcm", "scheduler": "sgm_uniform", "denoise": 1.0}},
-        "6": {"class_type": "VAEDecode", "inputs": {"samples": ["5", 0], "vae": ["1", 2]}},
-        "7": {"class_type": "SaveImage", "inputs": {"images": ["6", 0], "filename_prefix": "ui_test"}}
+        "2": {"class_type": "LoadImage", "inputs": {"image": format!("ui_tests/{guide_name}")}},
+        "3": {"class_type": "VAEEncode", "inputs": {"pixels": ["2", 0], "vae": ["1", 2]}},
+        "4": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["1", 1], "text": positive}},
+        "5": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["1", 1], "text": negative}},
+        "6": {"class_type": "KSampler", "inputs": {"model": ["1", 0], "positive": ["4", 0], "negative": ["5", 0], "latent_image": ["3", 0], "seed": seed, "steps": profile.steps.max(8), "cfg": profile.cfg, "sampler_name": "lcm", "scheduler": "sgm_uniform", "denoise": profile.denoise.clamp(0.25, 0.5)}},
+        "7": {"class_type": "VAEDecode", "inputs": {"samples": ["6", 0], "vae": ["1", 2]}},
+        "8": {"class_type": "SaveImage", "inputs": {"images": ["7", 0], "filename_prefix": "ui_test_controlled"}}
     });
     let queued: serde_json::Value = client
         .post(format!("{base_url}/prompt"))
@@ -2297,7 +2306,7 @@ pub async fn image_model_generate(
             .map_err(|error| command_error(format!("读取图像任务状态失败：{error}")))?.json().await
             .map_err(|error| command_error(format!("解析图像任务状态失败：{error}")))?;
         if let Some(outputs) = history.get(&prompt_id).and_then(|v| v.get("outputs")) {
-            if let Some(images) = outputs.get("7").and_then(|v| v.get("images")).and_then(serde_json::Value::as_array) {
+            if let Some(images) = outputs.get("8").and_then(|v| v.get("images")).and_then(serde_json::Value::as_array) {
                 image_info = images.first().cloned();
                 break;
             }

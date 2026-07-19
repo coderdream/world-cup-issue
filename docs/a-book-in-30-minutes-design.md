@@ -1786,6 +1786,10 @@ The local image model Start action now waits up to 60 seconds for ComfyUI `/syst
 
 The Configuration page no longer schedules a second status request 2.5 seconds after clicking Start. The Rust command owns the readiness wait and returns the authoritative ComfyUI status after `/system_stats` is reachable, so a transient request during Torch/CUDA initialization cannot overwrite a successful status with `无法连接 ComfyUI`. Manual Refresh remains available for services started outside the application.
 
+## 2026-07-19 0.1.172 Controlled Configuration Test
+
+The Configuration page test action now uses the same controlled img2img shape as the verified local Xiaohei route. It copies the verified D-drive official-style guide into ComfyUI input, encodes it with `VAEEncode`, runs LCM KSampler with the configured denoise clamped to `0.25~0.50`, and saves the result through a dedicated controlled output node. This prevents the test action from silently falling back to free txt2img with `denoise=1.0`, which produced oversized abstract black shapes and photographic hands.
+
 ## 2026-07-18 0.1.167 Azure Speech Proxy
 
 Azure Speech synthesis now uses Speech Profile proxy settings for preview, test, and audio chunk requests. Existing settings files receive compatible defaults `proxyEnabled=true` and `proxyUrl=http://127.0.0.1:1080`; the Settings page exposes the URL and toggle so deployments without the local proxy can disable it.
