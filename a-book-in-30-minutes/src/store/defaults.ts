@@ -75,7 +75,7 @@ export const defaultSettings: AppSettings = {
     contentFontSize: 12
   },
   pipelineProfile: {
-    imageBackend: "xiaohei-production",
+    imageBackend: "xiaohei-ai-y9000p",
     skipExistingMaterials: true,
     skipExistingText: true,
     skipExistingImages: true,

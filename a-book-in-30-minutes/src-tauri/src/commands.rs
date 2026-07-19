@@ -494,6 +494,12 @@ pub async fn run_e2e_audio_cli(epub_path: &str) -> Result<(), CommandError> {
 
 fn sanitize_persisted_settings(settings: &mut AppSettings) -> bool {
     let mut changed = false;
+    if settings.pipeline_profile.image_backend.trim().is_empty()
+        || settings.pipeline_profile.image_backend.trim() == "xiaohei-production"
+    {
+        settings.pipeline_profile.image_backend = "xiaohei-ai-y9000p".to_string();
+        changed = true;
+    }
     if settings.tool_profile.ffmpeg_path.trim().is_empty() {
         settings.tool_profile.ffmpeg_path = r"D:\03_Dev\ffmpeg\bin\ffmpeg.exe".to_string();
         changed = true;

@@ -83,7 +83,7 @@ pub struct PipelineProfile {
 impl Default for PipelineProfile {
     fn default() -> Self {
         Self {
-            image_backend: "xiaohei-production".to_string(),
+            image_backend: "xiaohei-ai-y9000p".to_string(),
             skip_existing_materials: true,
             skip_existing_text: true,
             skip_existing_images: true,

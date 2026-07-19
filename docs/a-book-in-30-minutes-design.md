@@ -1803,3 +1803,7 @@ The bundled `book_video_pipeline.py` now enables postponed annotation evaluation
 ## 2026-07-19 0.1.173 Performance Mode Before Image Generation
 
 Before a local image test is submitted to ComfyUI, the Rust command now runs the repository's D-drive Y9000P performance-mode script. A failed or missing script stops generation with an explicit error; a successful run records an `image_model.performance_mode` operation log entry. This ensures local GPU generation does not silently run under a balanced Windows power plan.
+
+## 2026-07-19 0.1.174 Local Xiaohei Backend Default
+
+The default production image backend is now `xiaohei-ai-y9000p`, the local RTX 3070 controlled img2img route. Persisted settings that still contain the former default `xiaohei-production` are migrated to the local backend so an existing fresh install does not silently keep producing the fixed Pillow flowchart templates. The old production template remains available only when explicitly selected.
