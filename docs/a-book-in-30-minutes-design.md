@@ -1811,3 +1811,7 @@ The default production image backend is now `xiaohei-ai-y9000p`, the local RTX 3
 ## 2026-07-19 0.1.175 Structure-First Quality Preset
 
 The local image model defaults now use the quality preset `1536x864`, `32` LCM steps, `cfg 1.9`, and `denoise 0.38`. The generation contract is structure-first: the program creates the composition and short Chinese annotation layer, ComfyUI receives a textless guide for controlled img2img refinement, and the final text layer is restored after generation. This separates layout/Chinese QA from model texture so the RTX 3070 improves hand-drawn detail without changing the intended scene.
+
+## 2026-07-19 0.1.176 Image Prompt Operation Logging
+
+The local image test now writes a dedicated `image_model.prompt` operation log entry before queuing ComfyUI. The entry includes the checkpoint, workflow, Guide path, dimensions, steps, CFG, denoise, full positive prompt, and negative prompt, making a generated result auditable instead of only reporting its output path.

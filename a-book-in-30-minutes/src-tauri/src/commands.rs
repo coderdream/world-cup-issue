@@ -2308,6 +2308,22 @@ pub async fn image_model_generate(
     fs::copy(&guide_source, guide_dir.join(guide_name)).map_err(|error| command_error(format!("复制测试 Guide 失败：{error}")))?;
     let positive = format!("flat 2D editorial doodle, black ink line art, white background, simple little black character, flowing hand-drawn curves, preserve the input composition, no text, no logo. {prompt}");
     let negative = "photorealistic, 3d render, glossy, gradients, dense background, unreadable text, watermark, logo, cluttered layout";
+    data.logger.info(
+        "image_model",
+        "prompt",
+        format!(
+            "checkpoint={} workflow=controlled-img2img guide={} width={} height={} steps={} cfg={} denoise={} positive_prompt={} negative_prompt={}",
+            profile.checkpoint,
+            guide_path.display(),
+            profile.width,
+            profile.height,
+            profile.steps.max(8),
+            profile.cfg,
+            profile.denoise.clamp(0.25, 0.5),
+            positive,
+            negative,
+        ),
+    );
     let workflow = serde_json::json!({
         "1": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": profile.checkpoint}},
         "2": {"class_type": "LoadImage", "inputs": {"image": format!("ui_tests/{guide_name}")}},
