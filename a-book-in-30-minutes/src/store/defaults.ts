@@ -61,9 +61,9 @@ export const defaultSettings: AppSettings = {
     baseUrl: "http://127.0.0.1:8188",
     checkpoint: "DreamShaper8_LCM.safetensors",
     workflow: "img2img",
-    width: 768,
-    height: 432,
-    steps: 16,
+    width: 1536,
+    height: 864,
+    steps: 32,
     cfg: 1.9,
     denoise: 0.38,
     outputDir: "D:\\AI\\outputs\\ComfyUI\\ui-tests"

@@ -1807,3 +1807,7 @@ Before a local image test is submitted to ComfyUI, the Rust command now runs the
 ## 2026-07-19 0.1.174 Local Xiaohei Backend Default
 
 The default production image backend is now `xiaohei-ai-y9000p`, the local RTX 3070 controlled img2img route. Persisted settings that still contain the former default `xiaohei-production` are migrated to the local backend so an existing fresh install does not silently keep producing the fixed Pillow flowchart templates. The old production template remains available only when explicitly selected.
+
+## 2026-07-19 0.1.175 Structure-First Quality Preset
+
+The local image model defaults now use the quality preset `1536x864`, `32` LCM steps, `cfg 1.9`, and `denoise 0.38`. The generation contract is structure-first: the program creates the composition and short Chinese annotation layer, ComfyUI receives a textless guide for controlled img2img refinement, and the final text layer is restored after generation. This separates layout/Chinese QA from model texture so the RTX 3070 improves hand-drawn detail without changing the intended scene.
