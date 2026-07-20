@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "font": "KaiTi",
+  "dynamicLabelMinChars": 6,
+  "dynamicLabelMaxChars": 8,
+  "patterns": {
+    "conveyor": {"fixed": ["两个断点"]},
+    "sorter": {"fixed": ["判断转写", "先判断"]},
+    "fishbone": {"fixed": ["边界与连接"]},
+    "well": {"fixed": ["可行动"]},
+    "press": {"fixed": ["压一下", "小测试"]},
+    "ferment": {"fixed": ["慢慢发酵"]},
+    "bridge": {"fixed": ["陌生", "愿意聊", "小证据"]}
+  }
+}

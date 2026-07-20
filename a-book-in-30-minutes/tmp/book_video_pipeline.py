@@ -33,6 +33,7 @@ VISUAL_SCENE_MIN_COUNT = 32
 VISUAL_SCENE_MAX_COUNT = 64
 VISUAL_SUBTITLE_LINES_PER_IMAGE = 28
 WHITEBOARD_SCENE_COUNT = VISUAL_SCENE_MIN_COUNT
+XIAOHEI_LABEL_CONFIG = Path(__file__).resolve().parents[1] / "config" / "xiaohei-labels.json"
 WHITEBOARD_IMAGE_GENERATOR = (
     Path.home()
     / ".codex"
@@ -98,6 +99,21 @@ CINEMATIC_ENABLE_MOTION = os.environ.get("ABOOK_CINEMATIC_MOTION", "").strip().l
 
 def stage_dir(root: Path, stage: str) -> Path:
     return root / STAGE_DIRS[stage]
+
+
+def load_xiaohei_label_config() -> dict:
+    try:
+        return json.loads(XIAOHEI_LABEL_CONFIG.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {"patterns": {}, "dynamicLabelMinChars": 6, "dynamicLabelMaxChars": 8}
+
+
+XIAOHEI_LABELS = load_xiaohei_label_config()
+
+
+def xiaohei_fixed_labels(pattern: str, fallbacks: list[str]) -> list[str]:
+    configured = XIAOHEI_LABELS.get("patterns", {}).get(pattern, {}).get("fixed", [])
+    return [str(value) for value in configured] or fallbacks
 
 
 def stage_file(root: Path, stage: str, name: str) -> Path:
@@ -2870,9 +2886,14 @@ def assert_xiaohei_image(path: Path) -> None:
 
 
 def official_xiaohei_labels(text: str) -> list[str]:
-    compact = re.sub(r"[^\u4e00-\u9fffA-Za-z0-9]", "", text)
-    labels = [compact[i : i + 4] for i in range(0, min(len(compact), 24), 4) if compact[i : i + 4]]
-    defaults = ["写之前", "写完之后", "好素材", "再判断", "可行动", "慢慢铺"]
+    fragments = [
+        re.sub(r"[^\u4e00-\u9fffA-Za-z0-9]", "", value)
+        for value in re.split(r"[，。！？；：、\n]+", text)
+    ]
+    min_chars = int(XIAOHEI_LABELS.get("dynamicLabelMinChars", 6))
+    max_chars = int(XIAOHEI_LABELS.get("dynamicLabelMaxChars", 8))
+    labels = [value for value in fragments if min_chars <= len(value) <= max_chars]
+    defaults = ["写之前先收集", "写完之后再判断", "把素材放近一点", "先判断再转写", "今天可以行动", "慢慢铺开关系"]
     for value in defaults:
         if len(labels) >= 6:
             break
@@ -2963,11 +2984,72 @@ def draw_official_label_paper(
     if include_labels:
         x = box[0] + 10
         y = box[1] + 10
-        value = compact_text(text, 7)
-        draw.text((x, y), value, font=font, fill=text_color)
-        bbox = draw.textbbox((x, y), value, font=font)
+        value = compact_text(text, 8)
+        label_font = font.font_variant(size=22) if hasattr(font, "font_variant") else font
+        if hasattr(label_font, "font_variant"):
+            while label_font.size > 16 and draw.textbbox((0, 0), value, font=label_font)[2] > (box[2] - box[0] - 20):
+                label_font = label_font.font_variant(size=label_font.size - 1)
+        draw.text((x, y), value, font=label_font, fill=text_color)
+        bbox = draw.textbbox((x, y), value, font=label_font)
         underline_y = bbox[3] + 6
         draw_official_wavy_line(draw, [(bbox[0], underline_y), (bbox[2] + 8, underline_y + 1)], text_color, 2, 1)
+
+
+class SupersampledDraw:
+    """Scale Pillow primitives before one high-quality downsample."""
+
+    def __init__(self, draw: ImageDraw.ImageDraw, factor: int = 3) -> None:
+        self.draw = draw
+        self.factor = factor
+
+    def _point(self, point: tuple[int, int]) -> tuple[int, int]:
+        return tuple(int(value * self.factor) for value in point)
+
+    def _box(self, box: tuple[int, int, int, int]) -> tuple[int, int, int, int]:
+        return tuple(int(value * self.factor) for value in box)
+
+    def _font(self, font: ImageFont.ImageFont) -> ImageFont.ImageFont:
+        if hasattr(font, "font_variant"):
+            return font.font_variant(size=max(1, int(font.size * self.factor)))
+        return font
+
+    def line(self, xy, **kwargs):
+        kwargs["width"] = max(1, int(kwargs.get("width", 1) * self.factor))
+        return self.draw.line([self._point(point) for point in xy], **kwargs)
+
+    def ellipse(self, xy, **kwargs):
+        if "width" in kwargs:
+            kwargs["width"] = max(1, int(kwargs["width"] * self.factor))
+        return self.draw.ellipse(self._box(xy), **kwargs)
+
+    def rectangle(self, xy, **kwargs):
+        if "width" in kwargs:
+            kwargs["width"] = max(1, int(kwargs["width"] * self.factor))
+        return self.draw.rectangle(self._box(xy), **kwargs)
+
+    def rounded_rectangle(self, xy, **kwargs):
+        if "width" in kwargs:
+            kwargs["width"] = max(1, int(kwargs["width"] * self.factor))
+        if "radius" in kwargs:
+            kwargs["radius"] = int(kwargs["radius"] * self.factor)
+        return self.draw.rounded_rectangle(self._box(xy), **kwargs)
+
+    def polygon(self, xy, **kwargs):
+        return self.draw.polygon([self._point(point) for point in xy], **kwargs)
+
+    def arc(self, xy, start, end, **kwargs):
+        if "width" in kwargs:
+            kwargs["width"] = max(1, int(kwargs["width"] * self.factor))
+        return self.draw.arc(self._box(xy), start, end, **kwargs)
+
+    def text(self, xy, text, **kwargs):
+        kwargs["font"] = self._font(kwargs["font"])
+        return self.draw.text(self._point(xy), text, **kwargs)
+
+    def textbbox(self, xy, text, **kwargs):
+        kwargs["font"] = self._font(kwargs["font"])
+        bbox = self.draw.textbbox(self._point(xy), text, **kwargs)
+        return tuple(int(value / self.factor) for value in bbox)
 
 
 def draw_official_xiaohei_guide(path: Path, title: str, group: dict, scene_count: int, include_labels: bool = True) -> dict:
@@ -2979,15 +3061,18 @@ def draw_official_xiaohei_guide(path: Path, title: str, group: dict, scene_count
     red = (216, 58, 50)
     orange = (228, 126, 38)
     blue = (58, 126, 210)
-    image = Image.new("RGB", (WIDTH, HEIGHT), (255, 255, 255))
-    draw = ImageDraw.Draw(image)
+    supersample_factor = max(2, int(os.environ.get("Y9000P_COMFYUI_SUPERSAMPLE_FACTOR", "3") or "3"))
+    image = Image.new("RGB", (WIDTH * supersample_factor, HEIGHT * supersample_factor), (255, 255, 255))
+    draw = SupersampledDraw(ImageDraw.Draw(image), supersample_factor)
     font = load_kaiti_font(40)
     small_font = load_kaiti_font(30)
 
     def label(text_value: str, xy: tuple[int, int], color: tuple[int, int, int] = ink, small: bool = False) -> None:
         if not include_labels:
             return
-        draw.text(xy, compact_text(text_value, 8), font=small_font if small else font, fill=color)
+        label_font = small_font.font_variant(size=22) if small and hasattr(small_font, "font_variant") else (small_font if small else font)
+        value = compact_text(text_value, 8)
+        draw.text(xy, value, font=label_font, fill=color)
 
     if pattern == "conveyor":
         draw_official_wavy_line(draw, [(190, 600), (520, 602), (980, 598), (1630, 600)], ink, 5, 2)
@@ -3002,7 +3087,7 @@ def draw_official_xiaohei_guide(path: Path, title: str, group: dict, scene_count
         draw_official_arrow(draw, (1200, 455), (1460, 455), orange)
         label(labels[0], (250, 380), blue, True)
         label(labels[1], (1230, 380), blue, True)
-        label("两个断点", (840, 265), red, True)
+        label(xiaohei_fixed_labels(pattern, ["两个断点"])[0], (840, 265), red, True)
     elif pattern == "sorter":
         draw_official_paper(draw, (250, 355, 470, 675), ink, 5)
         for i, name in enumerate(labels[:3]):
@@ -3017,8 +3102,9 @@ def draw_official_xiaohei_guide(path: Path, title: str, group: dict, scene_count
             draw_official_arrow(draw, (1065, 500), (1280, y + 35), orange, 3)
             draw_official_paper(draw, (1300, y, 1490, y + 72), ink, 4)
             label(name, (1340, y + 18), ink, True)
-        label("判断转写", (880, 300), red, True)
-        label("先判断", (930, 680), blue, True)
+        fixed = xiaohei_fixed_labels(pattern, ["判断转写", "先判断"])
+        label(fixed[0], (880, 300), red, True)
+        label(fixed[1], (930, 680), blue, True)
     elif pattern == "fishbone":
         draw_official_wavy_line(draw, [(250, 680), (720, 675), (1110, 683), (1550, 680)], orange, 5, 2)
         draw_official_paper(draw, (165, 470, 610, 680), ink, 5)
@@ -3027,11 +3113,12 @@ def draw_official_xiaohei_guide(path: Path, title: str, group: dict, scene_count
         draw_official_xiaohei_blob(draw, 690, 430, 0.9)
         for i, name in enumerate(labels[:4]):
             x = 840 + i * 220
-            draw_official_paper(draw, (x, 455 + (i % 2) * 30, x + 150, 565 + (i % 2) * 30), ink, 4)
-            label(name, (x + 28, 495 + (i % 2) * 30), ink, True)
+            box = (x, 455 + (i % 2) * 30, x + 190, 575 + (i % 2) * 30)
+            draw_official_paper(draw, box, ink, 4)
+            draw_official_label_paper(draw, box, name, small_font, ink, ink, include_labels)
             draw_official_arrow(draw, (x - 50, 520), (x - 8, 520), orange, 3)
         label(labels[0], (300, 520), ink, True)
-        label("别一次发完", (900, 750), red, True)
+        label(xiaohei_fixed_labels(pattern, ["边界与连接"])[0], (900, 750), red, True)
     elif pattern == "well":
         draw.ellipse((420, 285, 1040, 835), outline=ink, width=5)
         for y in range(350, 765, 80):
@@ -3043,7 +3130,7 @@ def draw_official_xiaohei_guide(path: Path, title: str, group: dict, scene_count
         draw_official_xiaohei_blob(draw, 1020, 300, 0.9)
         draw_official_arrow(draw, (1160, 585), (1420, 655), orange, 4)
         draw_official_paper(draw, (1430, 610, 1690, 750), ink, 4)
-        label("可行动", (1260, 520), orange, True)
+        label(xiaohei_fixed_labels(pattern, ["可行动"])[0], (1260, 520), orange, True)
         label(labels[0], (280, 760), red, True)
         label(labels[1], (1500, 785), blue, True)
     elif pattern == "press":
@@ -3053,11 +3140,12 @@ def draw_official_xiaohei_guide(path: Path, title: str, group: dict, scene_count
         draw_official_paper(draw, (770, 350, 1050, 750), ink, 6)
         draw_sketch_line(draw, [(910, 275), (910, 350)], ink, 6)
         draw_official_paper(draw, (840, 245, 980, 285), ink, 5)
-        label("压一下", (855, 665), ink, True)
+        fixed = xiaohei_fixed_labels(pattern, ["压一下", "小测试"])
+        label(fixed[0], (855, 665), ink, True)
         draw_official_arrow(draw, (520, 560), (760, 555), orange, 4)
         draw_official_arrow(draw, (1080, 555), (1255, 555), orange, 4)
         draw_official_paper(draw, (1270, 500, 1375, 610), ink, 4)
-        label("小测试", (1220, 440), ink, True)
+        label(fixed[1], (1220, 440), ink, True)
         label(labels[2], (1420, 430), blue, True)
     elif pattern == "ferment":
         draw_official_xiaohei_blob(draw, 350, 680, 0.95)
@@ -3070,24 +3158,25 @@ def draw_official_xiaohei_guide(path: Path, title: str, group: dict, scene_count
         draw_official_paper(draw, (1370, 630, 1650, 720), ink, 4)
         draw_official_arrow(draw, (1140, 610), (1360, 675), orange, 4)
         label(labels[0], (230, 420), red, True)
-        label("慢慢发酵", (1320, 555), ink, True)
+        label(xiaohei_fixed_labels(pattern, ["慢慢发酵"])[0], (1320, 555), ink, True)
         label(labels[1], (1485, 745), blue, True)
     else:
         draw_official_wavy_line(draw, [(290, 690), (760, 610), (1120, 665), (1580, 600)], ink, 5, 4)
         draw_official_paper(draw, (160, 450, 350, 520), ink, 4)
         draw_official_paper(draw, (1550, 410, 1740, 480), ink, 4)
-        label("陌生", (205, 465), ink, True)
-        label("愿意聊", (1585, 425), ink, True)
+        fixed = xiaohei_fixed_labels(pattern, ["陌生", "愿意聊", "小证据"])
+        label(fixed[0], (205, 465), ink, True)
+        label(fixed[1], (1585, 425), ink, True)
         draw_official_xiaohei_blob(draw, 690, 610, 0.9)
         for i, name in enumerate(labels[:5]):
             x = 760 + i * 145
             draw_official_paper(draw, (x, 610 + (i % 2) * 36, x + 110, 670 + (i % 2) * 36), ink, 3)
             label(name, (x + 18, 625 + (i % 2) * 36), ink, True)
         label(labels[0], (520, 470), red, True)
-        label("小证据", (1070, 475), blue, True)
+        label(fixed[2], (1070, 475), blue, True)
 
+    image = image.resize((WIDTH, HEIGHT), Image.Resampling.LANCZOS)
     image = apply_subtitle_safe_area(image)
-    image = smooth_ink_edges(image)
     image.save(path, quality=95)
     return {"pattern": pattern, "labels": labels, "preview": compact_text(re.sub(r"\s+", "", text), 28)}
 
@@ -3125,10 +3214,8 @@ def restore_guide_line_art(ai_image: Image.Image, guide_path: Path, base_guide_p
             mask = diff.point(lambda value: 255 if value > 12 else 0)
         else:
             mask = guide_rgb.convert("L").point(lambda value: 255 if value < 248 else 0)
-        thin_radius = max(1, int(os.environ.get("Y9000P_COMFYUI_LINE_THIN_RADIUS", "3") or "3"))
-        if thin_radius > 1:
-            thin_radius = thin_radius if thin_radius % 2 == 1 else thin_radius + 1
-            guide_rgb = guide_rgb.filter(ImageFilter.MaxFilter(thin_radius))
+        # Keep the Guide's black ink and KaiTi labels intact. MaxFilter on RGB
+        # raises dark pixels toward white and visibly washes out the drawing.
         cleanup_radius = int(os.environ.get("Y9000P_COMFYUI_GUIDE_CLEANUP_RADIUS", "5") or "5")
         cleanup_radius = max(3, cleanup_radius | 1)
         cleanup_mask = mask.filter(ImageFilter.MaxFilter(cleanup_radius))
