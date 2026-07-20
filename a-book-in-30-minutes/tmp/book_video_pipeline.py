@@ -2077,6 +2077,7 @@ def generate_y9000p_comfyui_assets(
         )
     copied: list[Path] = []
     series = []
+    render_guide_labels = os.environ.get("Y9000P_COMFYUI_RENDER_GUIDE_LABELS", "1").strip().lower() not in {"0", "false", "no"}
     for index, prompt in enumerate(prompts, 1):
         prefix = f"xiaohei_ai_y9000p_{index:02d}"
         seed = int(os.environ.get("Y9000P_COMFYUI_SEED", "20260708") or "20260708") + index
@@ -2088,7 +2089,13 @@ def generate_y9000p_comfyui_assets(
         if controlled:
             group = groups[index - 1]
             guide_source = guide_dir / f"guide_{index:02d}.png"
-            guide_meta = draw_official_xiaohei_guide(guide_source, title or description or "book", group, len(groups))
+            guide_meta = draw_official_xiaohei_guide(
+                guide_source,
+                title or description or "book",
+                group,
+                len(groups),
+                include_labels=render_guide_labels,
+            )
             assert_xiaohei_image(guide_source)
             guide_model_source = guide_dir / f"guide_{index:02d}_no_text.png"
             draw_official_xiaohei_guide(guide_model_source, title or description or "book", group, len(groups), include_labels=False)
@@ -2188,6 +2195,7 @@ def generate_y9000p_comfyui_assets(
         "denoise": denoise,
         "controlnet": controlnet,
         "restoreGuideLineArt": bool(controlled and os.environ.get("Y9000P_COMFYUI_RESTORE_GUIDE_LINE_ART", "1").strip().lower() not in {"0", "false", "no"}),
+        "renderGuideLabels": render_guide_labels,
         "generatedAt": time.strftime("%Y-%m-%d %H:%M:%S"),
         "promptCount": len(prompts),
         "assets": [str(path) for path in copied],
