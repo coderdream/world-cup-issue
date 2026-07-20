@@ -1957,7 +1957,9 @@ def y9000p_comfyui_workflow(
     positive_prefix = os.environ.get(
         "Y9000P_COMFYUI_POSITIVE_PREFIX",
         "flat 2D editorial doodle, black ink line art, white background, simple little black character, "
-        "minimal visual metaphor for a Chinese book summary video, clean thick outline, "
+        "minimal visual metaphor for a Chinese book summary video, fine varied thin ink strokes, "
+        "natural imperfect pen texture, relaxed hand-drawn curves, detailed but uncluttered objects, "
+        "avoid geometric icon style and rigid diagram lines, "
         "large blank lower area for Chinese subtitles, no text, no letters, no logo",
     )
     negative = os.environ.get(
@@ -1989,7 +1991,7 @@ def y9000p_comfyui_workflow(
                     "negative": ["3", 0],
                     "control_net": ["6", 0],
                     "image": ["4", 0],
-                    "strength": float(os.environ.get("Y9000P_COMFYUI_CONTROLNET_STRENGTH", "0.48")),
+                    "strength": float(os.environ.get("Y9000P_COMFYUI_CONTROLNET_STRENGTH", "0.40")),
                     "start_percent": 0.0,
                     "end_percent": float(os.environ.get("Y9000P_COMFYUI_CONTROLNET_END_PERCENT", "0.85")),
                 },
