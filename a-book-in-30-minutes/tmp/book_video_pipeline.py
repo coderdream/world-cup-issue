@@ -30,7 +30,7 @@ HEADER_AUDIO_ENCODE_SECONDS = 2.976
 HEADER_AUDIO_DURATION_MS = 3000
 CINEMATIC_FPS = 30
 VISUAL_SCENE_MIN_COUNT = 32
-VISUAL_SCENE_MAX_COUNT = 64
+VISUAL_SCENE_MAX_COUNT = 48
 VISUAL_SUBTITLE_LINES_PER_IMAGE = 28
 WHITEBOARD_SCENE_COUNT = VISUAL_SCENE_MIN_COUNT
 XIAOHEI_LABEL_CONFIG = Path(__file__).resolve().parents[1] / "config" / "xiaohei-labels.json"
@@ -2194,6 +2194,10 @@ def generate_y9000p_comfyui_assets(
                 "guide": str(guide_source) if guide_source else None,
                 "modelGuide": str(guide_model_source) if guide_model_source else None,
                 "comfyGuide": str(guide_comfy) if guide_comfy else None,
+                "startMs": group.get("startMs"),
+                "endMs": group.get("endMs"),
+                "durationMs": (group.get("endMs") - group.get("startMs")) if group.get("startMs") is not None and group.get("endMs") is not None else None,
+                "subtitleText": str(group.get("text") or ""),
                 "prompt": prompt,
                 **(guide_meta or {}),
             }
