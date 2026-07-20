@@ -3087,8 +3087,20 @@ def draw_official_xiaohei_guide(path: Path, title: str, group: dict, scene_count
         label("小证据", (1070, 475), blue, True)
 
     image = apply_subtitle_safe_area(image)
+    image = smooth_ink_edges(image)
     image.save(path, quality=95)
     return {"pattern": pattern, "labels": labels, "preview": compact_text(re.sub(r"\s+", "", text), 28)}
+
+
+def smooth_ink_edges(image: Image.Image) -> Image.Image:
+    """Reduce high-contrast Pillow stair-stepping without making ink look blurry."""
+    radius = float(os.environ.get("Y9000P_COMFYUI_ANTIALIAS_RADIUS", "0.35") or "0.35")
+    if radius <= 0:
+        return image.convert("RGB")
+    rgb = image.convert("RGB")
+    enlarged = rgb.resize((rgb.width * 2, rgb.height * 2), Image.Resampling.BICUBIC)
+    softened = enlarged.filter(ImageFilter.GaussianBlur(radius))
+    return softened.resize(rgb.size, Image.Resampling.LANCZOS)
 
 
 def restore_guide_line_art(ai_image: Image.Image, guide_path: Path, base_guide_path: Path | None = None) -> Image.Image:
@@ -3122,7 +3134,7 @@ def restore_guide_line_art(ai_image: Image.Image, guide_path: Path, base_guide_p
         cleanup_mask = mask.filter(ImageFilter.MaxFilter(cleanup_radius))
         restored.paste(Image.new("RGB", restored.size, (255, 255, 255)), (0, 0), cleanup_mask)
         restored.paste(guide_rgb, (0, 0), mask)
-    return restored
+    return smooth_ink_edges(restored)
 
 
 def generate_xiaohei_sequence_assets(
