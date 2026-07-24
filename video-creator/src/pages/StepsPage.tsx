@@ -36,7 +36,7 @@ export function StepsPage() {
                 <td className={statusClass(step.status)}>{step.status}</td>
                 <td>{step.startedAt}</td>
                 <td>{step.finishedAt}</td>
-                <td>{step.durationMs}</td>
+                <td>{formatDuration(step.durationMs)}</td>
                 <td>{step.description}</td>
               </tr>
             ))}
@@ -45,6 +45,13 @@ export function StepsPage() {
       </div>
     </section>
   );
+}
+
+function formatDuration(durationMs: number) {
+  const safeMs = Math.max(0, Math.round(durationMs || 0));
+  const minutes = Math.floor(safeMs / 60_000);
+  const seconds = ((safeMs % 60_000) / 1000).toFixed(3).padStart(6, "0");
+  return `${String(minutes).padStart(2, "0")} 分 ${seconds} 秒`;
 }
 
 function DataState({ loading, error }: { loading: boolean; error: string | null }) {

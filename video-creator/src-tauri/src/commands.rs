@@ -27,6 +27,7 @@ pub struct AppData {
     logger: OperationLogger,
     workflow: Arc<Mutex<Option<ActiveWorkflow>>>,
     workflow_state_path: PathBuf,
+    operation_log_start_id: i64,
     quark_log_start_offset: u64,
     quark_session_log_path: PathBuf,
 }
@@ -57,6 +58,11 @@ impl AppData {
         let _ = fs::create_dir_all(&log_dir);
         let _ = fs::write(&quark_session_log_path, "");
         let logger = OperationLogger::new(db_path.clone(), log_dir);
+        let operation_log_start_id = Connection::open(&db_path)
+            .ok()
+            .and_then(|connection| connection.query_row("SELECT COALESCE(MAX(id), 0) FROM operate_log", [], |row| row.get(0)).ok())
+            .unwrap_or_default()
+            + 1;
 
         let mut settings = fs::read_to_string(&settings_path)
             .ok()
@@ -76,6 +82,7 @@ impl AppData {
             logger,
             workflow: Arc::new(Mutex::new(read_active_workflow(&workflow_state_path))),
             workflow_state_path,
+            operation_log_start_id,
             quark_log_start_offset,
             quark_session_log_path,
         }
@@ -514,9 +521,9 @@ pub fn get_operation_logs(data: State<'_, AppData>, request: GetOperationLogsReq
     let trace_id = request.trace_id.as_deref().filter(|value| !value.trim().is_empty());
     let connection = Connection::open(&data.db_path).map_err(|error| command_error(format!("Failed to open operation log database: {error}")))?;
     let entries = if let Some(trace_id) = trace_id {
-        query_operation_logs_by_trace(&connection, limit, trace_id)?
+        query_operation_logs_by_trace(&connection, limit, trace_id, data.operation_log_start_id)?
     } else {
-        query_operation_logs(&connection, limit)?
+        query_operation_logs(&connection, limit, data.operation_log_start_id)?
     };
     Ok(GetOperationLogsResult { entries })
 }
@@ -1031,37 +1038,38 @@ fn detect_vpn_status() -> String {
     }
 }
 
-fn query_operation_logs(connection: &Connection, limit: usize) -> Result<Vec<OperationLogEntry>, CommandError> {
+fn query_operation_logs(connection: &Connection, limit: usize, start_id: i64) -> Result<Vec<OperationLogEntry>, CommandError> {
     let mut statement = connection
         .prepare(
             r#"
             SELECT id, created_at, level, module, action, message, detail, trace_id
             FROM operate_log
+            WHERE id >= ?1
             ORDER BY id DESC
-            LIMIT ?1
+            LIMIT ?3
             "#,
         )
         .map_err(|error| command_error(format!("Failed to prepare operation log query: {error}")))?;
     let rows = statement
-        .query_map([limit as i64], operation_log_from_row)
+        .query_map((start_id, limit as i64), operation_log_from_row)
         .map_err(|error| command_error(format!("Failed to query operation logs: {error}")))?;
     collect_operation_logs(rows)
 }
 
-fn query_operation_logs_by_trace(connection: &Connection, limit: usize, trace_id: &str) -> Result<Vec<OperationLogEntry>, CommandError> {
+fn query_operation_logs_by_trace(connection: &Connection, limit: usize, trace_id: &str, start_id: i64) -> Result<Vec<OperationLogEntry>, CommandError> {
     let mut statement = connection
         .prepare(
             r#"
             SELECT id, created_at, level, module, action, message, detail, trace_id
             FROM operate_log
-            WHERE trace_id = ?1
+            WHERE trace_id = ?1 AND id >= ?2
             ORDER BY id DESC
             LIMIT ?2
             "#,
         )
         .map_err(|error| command_error(format!("Failed to prepare trace log query: {error}")))?;
     let rows = statement
-        .query_map((trace_id, limit as i64), operation_log_from_row)
+        .query_map((trace_id, start_id, limit as i64), operation_log_from_row)
         .map_err(|error| command_error(format!("Failed to query trace logs: {error}")))?;
     collect_operation_logs(rows)
 }
