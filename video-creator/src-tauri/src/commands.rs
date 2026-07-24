@@ -60,7 +60,7 @@ impl AppData {
         let logger = OperationLogger::new(db_path.clone(), log_dir);
         let operation_log_start_id = Connection::open(&db_path)
             .ok()
-            .and_then(|connection| connection.query_row("SELECT COALESCE(MAX(id), 0) FROM operate_log", [], |row| row.get(0)).ok())
+            .and_then(|connection| connection.query_row("SELECT COALESCE(MAX(id), 0) FROM operate_log", [], |row| row.get::<_, i64>(0)).ok())
             .unwrap_or_default()
             + 1;
 
