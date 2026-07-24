@@ -18,7 +18,7 @@ use std::thread;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::{Manager, State};
 
-const LEGACY_DB: &str = r"D:\04_GitHub\world-cup-issue\video-creator\data\video-easy-creator.db";
+const LEGACY_DB: &str = r"D:\04_GitHub\video-easy-creator\data\video-easy-creator.db";
 
 pub struct AppData {
     settings: Mutex<AppSettings>,
